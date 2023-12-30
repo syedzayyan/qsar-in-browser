@@ -1,0 +1,104 @@
+body,
+h1,
+h2,
+p,
+ul,
+li {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: 'Arial', sans-serif;
+	background-color: #f0f0f0;
+}
+
+/* styles.css */
+.navbar {
+	background-color: #3498db;
+	padding: 15px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.logo a {
+	color: #fff;
+	text-decoration: none;
+	font-size: 1.5rem;
+	font-weight: bold;
+}
+
+.navLinks {
+	list-style: none;
+	display: flex;
+}
+
+.navLinks li {
+	margin-right: 15px;
+}
+
+.navLinks a {
+	color: #fff;
+	text-decoration: none;
+	font-size: 1rem;
+	font-weight: bold;
+}
+
+
+
+.container {
+	background-color: #ffffff;
+	padding: 20px;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 255, 0.1);
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+
+.input {
+	padding: 8px;
+	border: 1px solid #3498db;
+	border-radius: 4px;
+	margin-top: 8px;
+	width: 500px;
+}
+
+.button {
+	padding: 10px;
+	background: #3498db;
+	color: #ffffff;
+	border-radius: 4px;
+	cursor: pointer;
+	border: none;
+}
+
+.progress-bar {
+	position: relative;
+	width: 500px;
+	height: 1em;
+	background-color: #111;
+	border-radius: 1.5em;
+	color: white;
+	margin-top: 10px;
+}
+
+.progress-bar::before {
+	content: attr(data-label);
+	display: flex;
+	align-items: center;
+	position: absolute;
+	left: .5em;
+	top: .5em;
+	bottom: .5em;
+	width: calc(var(--width, 0) * 1%);
+	min-width: 2rem;
+	max-width: calc(100% - 1em);
+	background-color: #069;
+	border-radius: 1em;
+	padding: 1em;
+}
