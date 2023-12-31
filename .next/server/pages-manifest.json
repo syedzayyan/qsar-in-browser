@@ -1,8 +1,11 @@
 {
-  "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
+  "/": "pages/index.html",
+  "/_app": "pages/_app.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/tools/data-distribution": "pages/tools/data-distribution.js",
-  "/tools/dimension-reduction/pca": "pages/tools/dimension-reduction/pca.js"
+  "/tools/dimension-reduction/pca": "pages/tools/dimension-reduction/pca.html",
+  "/tools/dimension-reduction/tsne": "pages/tools/dimension-reduction/tsne.html",
+  "/tools/data-distribution": "pages/tools/data-distribution.html",
+  "/tools/preprocess": "pages/tools/preprocess.html",
+  "/404": "pages/404.html"
 }
