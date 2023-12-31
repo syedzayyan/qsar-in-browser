@@ -73,8 +73,7 @@ export default function CompoundGetter() {
         </div>}
         <br></br>
         {ligand.length > 0 && <div>
-          <Link className="button" href = '/tools/data-distribution'>Show The Ligand Distribution Graph</Link>
-          <Link className="button" href = '/tools/dimension-reduction/pca'>PCA</Link>
+          <Link className="button" href = '/tools/preprocess'>Pre-Process Molecules</Link>
           </div>}
     </div>
 

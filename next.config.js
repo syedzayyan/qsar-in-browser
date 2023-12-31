@@ -1,5 +1,5 @@
 const CopyPlugin = require("copy-webpack-plugin");
-const path = require('path')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack(config, { isServer }) {
@@ -22,8 +22,10 @@ const nextConfig = {
 
     return config;
   },   
-  sassOptions: {
-    includePaths: [path.join(__dirname, 'styles')],
+  output: "export",
+  basePath: "/sar-in-browser",
+  images: {
+    unoptimized: true,
   },
 };
 

@@ -2,10 +2,13 @@
 import React, { useContext, useEffect, useState } from "react";
 import TargetContext from "../context/TargetContext";
 import CompoundGetter from "./CompoundGetter";
+import LigandContext from "../context/LigandContext";
+import DataPreProcessToolKit from './DataPreProcessToolKit';
 
 export default function TargetGetter() {
   const [targetDetails, setTargetDetails] = useState([]);
   const { target, setTarget } = useContext(TargetContext);
+  const { ligand } = useContext(LigandContext);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -24,27 +27,33 @@ export default function TargetGetter() {
   }, [target]);
 
   return (
-    
-    <div className="container" style={{width : "600px", height : "400px"}}>
-      <label>
-        Choose a Target From this List <br></br>
-        <input
-          className="input"
-          placeholder="Start Typing and Things Will Come Up. Hopefully not PTSD"
-          list="browsers"
-          name="myBrowser"
-          onChange={(e) => setTarget(e.target.value)}
-        />
-      </label>
-      <datalist id="browsers">
-        {targetDetails &&
-          targetDetails.map((tars) => (
-            <option key={tars.target_chembl_id} value={tars.target_chembl_id}>
-              {tars.pref_name} || {tars.target_chembl_id} || {tars.organism}
-            </option>
-          ))}
-      </datalist>
-      <CompoundGetter />
+    <div className="container" style={{ width: "600px", height: "400px" }}>
+      {ligand >= 0 ? (
+        <div>
+          <label>
+            Choose a Target From this List <br></br>
+            <input
+              className="input"
+              placeholder="Start Typing and Things Will Come Up. Hopefully not PTSD"
+              list="browsers"
+              name="myBrowser"
+              onChange={(e) => setTarget(e.target.value)}
+            />
+          </label>
+          <datalist id="browsers">
+            {targetDetails &&
+              targetDetails.map((tars) => (
+                <option key={tars.target_chembl_id} value={tars.target_chembl_id}>
+                  {tars.pref_name} || {tars.target_chembl_id} || {tars.organism}
+                </option>
+              ))}
+          </datalist>
+          <CompoundGetter />
+        </div>
+      ) : (
+        <DataPreProcessToolKit />
+      )
+      }
     </div>
   );
 }

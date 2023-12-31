@@ -23,8 +23,7 @@ export default function Histogram() {
   console.log(ligand);
 
   // Extract standard values from ligand data and transform them
-  var data = ligand.map((obj) => obj.standard_value);
-  data = ligand.map((obj) => -Math.log10(obj.standard_value * 10e-9));
+  var data = ligand.map((obj) => obj.pKi);
 
   // Create a reference to the SVG element
   const svgRef = useRef(null);

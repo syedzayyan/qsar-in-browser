@@ -81,6 +81,16 @@ body {
   border: none;
 }
 
+.button-link {
+  text-decoration: none;
+  padding: 10px;
+  background: var(--accent-color);
+  color: var(--secondary-color);
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+}
+
 .progress-bar {
   position: relative;
   width: 500px;
@@ -169,4 +179,20 @@ body {
 
 .theme-switcher input:checked + .switch .moon {
   opacity: 0;
+}
+
+
+.loader {
+  margin: auto;
+  border: 20px solid var(--secondary-color);
+  border-radius: 50%;
+  border-top: 20px solid var(--accent-color);
+  width: 200px;
+  height: 200px;
+  animation: spinner 4s linear infinite;
+}
+
+@keyframes spinner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

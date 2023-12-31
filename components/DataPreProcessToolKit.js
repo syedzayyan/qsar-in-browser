@@ -1,93 +1,156 @@
 import { useContext, useEffect, useState } from "react";
 import LigandContext from "../context/LigandContext";
-import { PCA } from 'ml-pca';
 import { initRDKit } from './utils/rdkit_loader'
-import ScatterPlot from './ScatterPlot';
-import tsnejs from 'tsne'
+import Link from "next/link";
+import Loader from './Loader';
 
+export default function DataPreProcessToolKit() {
+  const { ligand, setLigand } = useContext(LigandContext);
+  const [dataDeduplication, setDataDeduplication] = useState(true);
+  const [fingerprinting, setFingerprinting] = useState(true);
+  const [pkistate, setpkistate] = useState(true);
+  const [fpRadius, setFpRadius] = useState(2);
+  const [fpSize, setFpSize] = useState(2048);
 
-var opt = {}
-opt.epsilon = 10; // epsilon is learning rate (10 = default)
-opt.perplexity = 30; // roughly how many neighbors each point influences (30 = default)
-opt.dim = 2; // dimensionality of the embedding (2 = default)
+  const [RDKit, setRDKit] = useState(null);
+  const [stateOfRDKit, setStateOfRDKit] = useState(false);
 
-var tsne = new tsnejs.tSNE(opt); // create a tSNE instance
+  const [fpProcessing, setFPProcessing] = useState(false);
+  const [fploading, setFPloading] = useState(false);
 
-export default function PreProcess() {
-  const { ligand } = useContext(LigandContext);
-  const [pcaData, setPCAData] = useState(false)
-
-  const [rdload, setRDload] = useState(false);
-  const [rdkitting, updateRdkitting] = useState(null);
-  const [progress, setProgress] = useState(0);
-  const totalCompounds = ligand.length;
+  const [totalComps, setTotalComps] = useState(0);
 
   useEffect(() => {
-    const processCompounds = async () => {
-      try {
-        const RDKit = await initRDKit();
-        updateRdkitting(RDKit);
+    async function loadRDKit() {
+      const RDK = await initRDKit()
+      setRDKit(RDK);
+      setStateOfRDKit(true);
+    }
+    loadRDKit();
+  })
 
-        const fp_storer = [];
+  function dataDeuplicater() {
+    if (dataDeduplication) {
+      let de_dup_lig = ligand.map(({ molecule_chembl_id, canonical_smiles, standard_value }) => {
+        const newKey = 'pKi';
+        const newValue = -Math.log10(standard_value * 10e-9);
+        return {
+          molecule_chembl_id,
+          canonical_smiles,
+          standard_value,
+          [newKey]: newValue,
+        };
+      }).filter((ligand, index, self) =>
+        index === self.findIndex((t) => (
+          t.molecule_chembl_id === ligand.molecule_chembl_id &&
+          t.canonical_smiles === ligand.canonical_smiles &&
+          ligand.standard_value
+        )));
 
-        for (let i = 0; i < totalCompounds; i++) {
+      setTotalComps(de_dup_lig.length);
+
+      if (fingerprinting) {
+        de_dup_lig.forEach(async (lig, i) => {
           try {
-            const mol = RDKit.get_mol(ligand[i].canonical_smiles);
-            const mol_fp = mol.get_morgan_fp_as_uint8array(JSON.stringify({ radius: 2, nBits: 2048 }));
-            fp_storer.push(mol_fp);
-            const newProgress = i + 1;
-            setProgress(newProgress);
-            mol?.delete()
+            const mol = RDKit.get_mol(lig.canonical_smiles);
+            const mol_fp = mol.get_morgan_fp_as_uint8array(JSON.stringify({ radius: fpRadius, nBits: fpSize }));
+            de_dup_lig[i]['fingerprint'] = mol_fp;
+            mol?.delete();
           } catch (e) {
             console.error(e);
           }
-        }
 
-        try {
-          const pca = new PCA(fp_storer);
-          const pca_data_raw = pca.predict(fp_storer, { nComponents: 2 });
+          // Use functional form of setFPProgress to ensure correct update
 
-          const pca_data_in = pca_data_raw.data.map(([x, y]) => ({ x, y }));
-          setPCAData(pca_data_in)
-
-        } catch (error) {
-          console.error("Error:", error);
-        }
-
-        try {
-          tsne.initDataDist(fp_storer);
-          
-          for(var k = 0; k < 500; k++) {
-            tsne.step(); // every time you call this, solution gets better
+          if (i === de_dup_lig.length - 1) {
+            // Update the state with the final ligand array
+            setLigand(de_dup_lig);
           }
-          
-          var Y = tsne.getSolution(); // Y is an array of 2-D points that you can plot
-          
-          console.log(Y)
-
-        } catch (error) {
-          console.error("Error:", error);
-        }
-
-        setRDload(true);
-      } catch {
-        console.log('Do Something About RDKit');
+        });
+        setFPloading(false);
+      } else {
+        // Update the state without fingerprinting
+        setLigand(de_dup_lig);
       }
-    };
-
-    processCompounds();
-  }, [ligand, totalCompounds]);
-
-  if (rdload) {
-    return (
-      <div className="container">
-        <div>Number of Data Points Processed: {progress}</div>
-        <progress className="progress-bar" value={progress} max={totalCompounds}></progress>
-        <br></br>
-        {pcaData && <ScatterPlot data={pcaData} width={600} height={600} />}
-      </div>
-    );
+    }
   }
 
-  return <>Processing...</>;
+
+
+  if (fpProcessing) {
+    return (
+      <div>
+        {fploading ? <Loader /> : <>
+          <Link className='button-link' href='/tools/data-distribution'>Data Distribution</Link>&nbsp;
+          <Link className='button-link' href='/tools/dimension-reduction/pca'>PCA</Link>
+        </>}
+
+      </div>
+    )
+  } else {
+    return (
+      <div style={{ width: '100%' }}>
+        <h2>Data Processing</h2>
+        <hr></hr>
+        {stateOfRDKit ? (<span>RDKit is Loaded ✅</span>) : (<span>Loading RDKit</span>)}
+        <br></br>
+        <input
+          checked={dataDeduplication}
+          type="checkbox"
+          id='data-dedup-check'
+          onChange={() => setDataDeduplication(!dataDeduplication)}
+        />
+        <label htmlFor="data-dedup-check">Data De-Duplication</label>
+        <br></br>
+        <input
+          checked={fingerprinting}
+          type="checkbox"
+          id='fingerprint-check'
+          onChange={() => setFingerprinting(!fingerprinting)}
+        />
+        <label htmlFor="fingerprint-check">Fingerprinting</label>
+        <br></br>
+        <input
+          checked={pkistate}
+          type="checkbox"
+          id='pki-check'
+          onChange={() => setpkistate(!pkistate)}
+        />
+        <label htmlFor="pki-check">Convert to pKi</label>
+
+        <br></br><br></br>
+        <details open={false}>
+          <summary>Fingerprint Settings</summary>
+          <label htmlFor="fp-radius">Radius: </label>
+          <input
+            className="input"
+            id='fp-radius'
+            type="number"
+            value={fpRadius}
+            onChange={(e) => setFpRadius(e.target.value)}
+          />
+          <br></br>
+          <label htmlFor="fp-size">Bit Size: </label>
+          <input
+            className="input"
+            id='fp-size'
+            type="number"
+            value={fpSize}
+            onChange={(e) => setFpSize(e.target.value)}
+          />
+        </details>
+
+        <br></br>
+        <button className="button" onClick={() => {
+          setFPProcessing(true);
+          setFPloading(true)
+          setTimeout(function () {
+            dataDeuplicater();
+          }, 3000);
+        }}>Pre-Process Data</button>
+        <br></br>
+        <p>Filtered Ligands: {totalComps}</p>
+      </div>
+    )
+  }
 }
