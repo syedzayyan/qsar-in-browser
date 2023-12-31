@@ -1,6 +1,7 @@
 // Import necessary dependencies from React and D3
 import { useContext, useEffect, useMemo, useRef } from "react";
 import * as d3 from "d3";
+import StatisticsCalculator from "./utils/usual_maths_stuff";
 
 // Import LigandContext to access ligand data
 import LigandContext from "../context/LigandContext";
@@ -11,13 +12,15 @@ const BUCKET_NUMBER = 70;
 const BUCKET_PADDING = 1;
 
 // Define the width and height of the SVG container
-const width = 800;
-const height = 400;
+const width = 1200;
+const height = 600;
 
 // Histogram component
 export default function Histogram() {
   // Access ligand data from the context
-  const { ligand } = useContext(LigandContext);
+  const { ligand, _ } = useContext(LigandContext);
+
+  console.log(ligand);
 
   // Extract standard values from ligand data and transform them
   var data = ligand.map((obj) => obj.standard_value);
@@ -102,6 +105,12 @@ export default function Histogram() {
           {/* Bars will be created within the useEffect */}
         </g>
       </svg>
+      <h3>Small Molecules: {data.length}</h3>
+      <h3>Activity Stats</h3>
+      <span>Mean: {StatisticsCalculator.calculateMean(data)}</span>
+      <span>Median: {StatisticsCalculator.calculateMedian(data)}</span>
+      {/* <span>Mode: {StatisticsCalculator.calculateMode(data)}</span> */}
+      <span>Standard Deviation: {StatisticsCalculator.calculateStandardDeviation(data)}</span>
     </div>
   );
 }

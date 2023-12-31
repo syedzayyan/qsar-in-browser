@@ -24,7 +24,8 @@ export default function TargetGetter() {
   }, [target]);
 
   return (
-    <div className="container">
+    
+    <div className="container" style={{width : "600px", height : "400px"}}>
       <label>
         Choose a Target From this List <br></br>
         <input

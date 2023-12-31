@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import TargetContext from "../context/TargetContext";
 import LigandContext from "../context/LigandContext";
+import Link from "next/link";
 
 export default function CompoundGetter() {
   const [unit, setUnit] = useState("Ki");
@@ -31,7 +32,6 @@ export default function CompoundGetter() {
       setProgress(newProgress);
     }
 
-    setLoading(false);
     return results.slice(1);
   }
 
@@ -66,7 +66,18 @@ export default function CompoundGetter() {
       <br></br>
       <button className="button" onClick={hehe}>Download Data</button>
       <br></br>
-      {loading && <progress className="progress-bar" value = {progress} max={100}></progress>}
+      {loading && <div>
+        <progress className="progress-bar" value = {progress} max={100}></progress> 
+        <br></br>
+        <span style={{ textAlign: 'center'}}>{(Math.min(progress, 100)).toFixed(2)} %</span>
+        </div>}
+        <br></br>
+        {ligand.length > 0 && <div>
+          <Link className="button" href = '/tools/data-distribution'>Show The Ligand Distribution Graph</Link>
+          <Link className="button" href = '/tools/dimension-reduction/pca'>PCA</Link>
+          </div>}
     </div>
+
+    
   );
 }

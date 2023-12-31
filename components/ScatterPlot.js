@@ -1,0 +1,171 @@
+import { useEffect, useMemo } from "react";
+import { ScaleLinear } from "d3";
+import * as d3 from 'd3';
+
+// tick length
+const TICK_LENGTH = 10;
+
+export const AxisBottom = ({
+  xScale,
+  pixelsPerTick,
+  height,
+}) => {
+  const range = xScale.range();
+
+  const ticks = useMemo(() => {
+    const width = range[1] - range[0];
+    const numberOfTicksTarget = Math.floor(width / pixelsPerTick);
+
+    return xScale.ticks(numberOfTicksTarget).map((value) => ({
+      value,
+      xOffset: xScale(value),
+    }));
+  }, [xScale, height]);
+
+  return (
+    <>
+      {/* Ticks and labels */}
+      {ticks.map(({ value, xOffset }) => (
+        <g
+          key={value}
+          transform={`translate(${xOffset}, 0)`}
+          shapeRendering={"crispEdges"}
+        >
+          <line
+            y1={TICK_LENGTH}
+            y2={-height - TICK_LENGTH}
+            stroke="var(--text-color)"
+            strokeWidth={0.5}
+          />
+          <text
+            key={value}
+            style={{
+              fontSize: "10px",
+              textAnchor: "middle",
+              transform: "translateY(20px)",
+              fill: "var(--text-color)",
+            }}
+          >
+            {value}
+          </text>
+        </g>
+      ))}
+    </>
+  );
+};
+
+export const AxisLeft = ({ yScale, pixelsPerTick, width }) => {
+  const range = yScale.range();
+  const ticks = useMemo(() => {
+    const height = range[0] - range[1];
+    const numberOfTicksTarget = Math.floor(height / pixelsPerTick);
+
+    return yScale.ticks(numberOfTicksTarget).map((value) => ({
+      value,
+      yOffset: yScale(value),
+    }));
+  }, [yScale]);
+
+  return (
+    <>
+      {/* Ticks and labels */}
+      {ticks.map(({ value, yOffset }) => (
+        <g
+          key={value}
+          transform={`translate(0, ${yOffset})`}
+          shapeRendering={"crispEdges"}
+        >
+          <line
+            x1={-TICK_LENGTH}
+            x2={width + TICK_LENGTH}
+            stroke="var(--text-color)"
+            strokeWidth={0.5}
+          />
+          <text
+            key={value}
+            style={{
+              fontSize: "10px",
+              textAnchor: "middle",
+              transform: "translateX(-20px)",
+              fill: "var(--text-color)",
+            }}
+          >
+            {value}
+          </text>
+        </g>
+      ))}
+    </>
+  );
+};
+
+
+const MARGIN = { top: 60, right: 60, bottom: 60, left: 60 };
+
+export default function Scatterplot({ width, height, data }) {
+  // Layout. The div size is set by the given props.
+  // The bounds (=area inside the axis) is calculated by substracting the margins
+  const boundsWidth = width - MARGIN.right - MARGIN.left;
+  const boundsHeight = height - MARGIN.top - MARGIN.bottom;
+  const padding = 4;
+
+  const xDomain = [d3.min(data, d => d.y) - padding,
+  d3.max(data, d => d.y) + padding];
+
+  const yDomain = [d3.min(data, d => d.x) - padding,
+  d3.max(data, d => d.x) + padding];
+
+  const xScale = d3.scaleLinear()
+    .domain(xDomain)
+    .range([0, boundsWidth]);
+
+  const yScale = d3.scaleLinear()
+    .domain(yDomain)
+    .range([boundsHeight, 0]);
+
+  // Build the shapes
+  const allShapes = data.map((d, i) => {
+    return (
+      <circle
+        key={i}
+        r={4}
+        cx={xScale(d.y)}
+        cy={yScale(d.x)}
+        opacity={1}
+        stroke="var(--accent-color)"
+        fill="var(--accent-color)"
+        fillOpacity={0.2}
+        strokeWidth={1}
+      />
+    );
+  });
+
+  useEffect(() => {
+
+  })
+  return (
+    <div>
+      <svg width={width} height={height}>
+        <g
+          width={boundsWidth}
+          height={boundsHeight}
+          transform={`translate(${[MARGIN.left, MARGIN.top].join(',')})`}
+        >
+          {/* Y axis */}
+          <AxisLeft yScale={yScale} pixelsPerTick={20} width={boundsWidth} />
+
+          {/* X axis, use an additional translation to appear at the bottom */}
+          <g transform={`translate(0, ${boundsHeight})`}>
+            <AxisBottom
+              xScale={xScale}
+              pixelsPerTick={20}
+              height={boundsHeight}
+            />
+          </g>
+
+          {/* Circles */}
+          {allShapes}
+        </g>
+      </svg>
+    </div>
+  );
+};
