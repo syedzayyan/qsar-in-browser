@@ -1,26 +1,14 @@
 {
-  "index.js -> ../components/TargetGetter": {
-    "id": 8840,
-    "files": [
-      "static/chunks/fec483df.3512a4ac65d30003.js",
-      "static/chunks/29107295.52d5ccd9ad2558b9.js",
-      "static/chunks/978.9699f1b2c7a8ef55.js",
-      "static/chunks/372.6dd1a4770a14d2bf.js"
-    ]
-  },
   "tools/data-distribution.js -> ../../components/Histogram": {
-    "id": 3929,
+    "id": "tools/data-distribution.js -> ../../components/Histogram",
     "files": [
-      "static/chunks/358.902285b046cc7014.js",
-      "static/chunks/929.e4e95c550496b588.js"
+      "static/chunks/components_Histogram_js.js"
     ]
   },
   "tools/dimension-reduction/pca.js -> ../../../components/PCA_Plot": {
-    "id": 8299,
+    "id": "tools/dimension-reduction/pca.js -> ../../../components/PCA_Plot",
     "files": [
-      "static/chunks/358.902285b046cc7014.js",
-      "static/chunks/138.b16c4b53c5e514d3.js",
-      "static/chunks/299.736b75c2edee37ea.js"
+      "static/chunks/components_PCA_Plot_js.js"
     ]
   }
 }

@@ -3,7 +3,7 @@ import { ScaleLinear } from "d3";
 import * as d3 from 'd3';
 
 // tick length
-const TICK_LENGTH = 10;
+const TICK_LENGTH = 20;
 
 export const AxisBottom = ({
   xScale,
@@ -98,21 +98,17 @@ export const AxisLeft = ({ yScale, pixelsPerTick, width }) => {
   );
 };
 
-
 const MARGIN = { top: 60, right: 60, bottom: 60, left: 60 };
 
-export default function Scatterplot({ width, height, data }) {
+export default function Scatterplot({ width, height, data, xAxisTitle = 'Principal Component 1', yAxisTitle = 'Principal Component 2' }) {
   // Layout. The div size is set by the given props.
-  // The bounds (=area inside the axis) is calculated by substracting the margins
+  // The bounds (=area inside the axis) is calculated by subtracting the margins
   const boundsWidth = width - MARGIN.right - MARGIN.left;
   const boundsHeight = height - MARGIN.top - MARGIN.bottom;
   const padding = 4;
 
-  const xDomain = [d3.min(data, d => d.y) - padding,
-  d3.max(data, d => d.y) + padding];
-
-  const yDomain = [d3.min(data, d => d.x) - padding,
-  d3.max(data, d => d.x) + padding];
+  const xDomain = [d3.min(data, d => d.y) - padding, d3.max(data, d => d.y) + padding];
+  const yDomain = [d3.min(data, d => d.x) - padding, d3.max(data, d => d.x) + padding];
 
   const xScale = d3.scaleLinear()
     .domain(xDomain)
@@ -139,9 +135,7 @@ export default function Scatterplot({ width, height, data }) {
     );
   });
 
-  useEffect(() => {
 
-  })
   return (
     <div>
       <svg width={width} height={height}>
@@ -151,16 +145,34 @@ export default function Scatterplot({ width, height, data }) {
           transform={`translate(${[MARGIN.left, MARGIN.top].join(',')})`}
         >
           {/* Y axis */}
-          <AxisLeft yScale={yScale} pixelsPerTick={20} width={boundsWidth} />
-
+          <AxisLeft yScale={yScale} pixelsPerTick={40} width={boundsWidth} />
           {/* X axis, use an additional translation to appear at the bottom */}
-          <g transform={`translate(0, ${boundsHeight})`}>
+          <g
+            transform={`translate(0, ${boundsHeight})`}
+          >
             <AxisBottom
               xScale={xScale}
-              pixelsPerTick={20}
+              pixelsPerTick={40}
               height={boundsHeight}
             />
           </g>
+
+          {/* Axis Titles */}
+          <text
+            x={boundsWidth / 2}
+            y={boundsHeight + MARGIN.top - 10}
+            textAnchor="middle"
+            style={{ fontSize: "14px", fill: "var(--text-color)" }}
+          >
+            {xAxisTitle}
+          </text>
+          <text
+            transform={`translate(${-MARGIN.left + 20},${boundsHeight / 2}) rotate(-90)`}
+            textAnchor="middle"
+            style={{ fontSize: "14px", fill: "var(--text-color)" }}
+          >
+            {yAxisTitle}
+          </text>
 
           {/* Circles */}
           {allShapes}
@@ -168,4 +180,4 @@ export default function Scatterplot({ width, height, data }) {
       </svg>
     </div>
   );
-};
+}
