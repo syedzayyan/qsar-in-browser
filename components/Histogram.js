@@ -20,8 +20,6 @@ export default function Histogram() {
   // Access ligand data from the context
   const { ligand, _ } = useContext(LigandContext);
 
-  console.log(ligand);
-
   // Extract standard values from ligand data and transform them
   var data = ligand.map((obj) => obj.pKi);
 

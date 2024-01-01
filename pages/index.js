@@ -8,7 +8,7 @@ const TargetGetter = dynamic(
   { ssr: false }
 );
 
-export default function Home() {
+export default function Page() {
   return (
     <>
       <Head>

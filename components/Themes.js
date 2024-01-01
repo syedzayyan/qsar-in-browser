@@ -13,6 +13,8 @@ const DarkTheme = () => {
 
     --input-back: #555; /* Darker gray for input background */
     --input-color: #fbec48; /* Yellow for input text */
+
+    --darker-secondary-accent-color: #004080;
 }
 
           }
@@ -35,6 +37,8 @@ const LightTheme = () => {
         
             --input-back: #4b4a4a;
             --input-color: #294797;
+
+            --darker-secondary-accent-color: #004080;
         }
         `}
         </style>

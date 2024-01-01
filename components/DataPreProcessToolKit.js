@@ -3,8 +3,10 @@ import LigandContext from "../context/LigandContext";
 import { initRDKit } from './utils/rdkit_loader'
 import Link from "next/link";
 import Loader from './Loader';
+import { useRouter } from 'next/router';
 
 export default function DataPreProcessToolKit() {
+  const router = useRouter();
   const { ligand, setLigand } = useContext(LigandContext);
   const [dataDeduplication, setDataDeduplication] = useState(true);
   const [fingerprinting, setFingerprinting] = useState(true);
@@ -68,6 +70,7 @@ export default function DataPreProcessToolKit() {
           }
         });
         setFPloading(false);
+        router.push('/tools/data-distribution');
       } else {
         // Update the state without fingerprinting
         setLigand(de_dup_lig);
@@ -80,11 +83,7 @@ export default function DataPreProcessToolKit() {
   if (fpProcessing) {
     return (
       <div>
-        {fploading ? <Loader /> : <>
-          <Link className='button-link' href='/tools/data-distribution'>Data Distribution</Link>&nbsp;
-          <Link className='button-link' href='/tools/dimension-reduction/pca'>PCA</Link>
-        </>}
-
+        {fploading ? <Loader /> : <></>}
       </div>
     )
   } else {

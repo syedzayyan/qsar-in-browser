@@ -1,14 +1,20 @@
 {
+  "index.js -> ../components/TargetGetter": {
+    "id": "index.js -> ../components/TargetGetter",
+    "files": [
+      "static/chunks/components_TargetGetter_js.js"
+    ]
+  },
   "tools/data-distribution.js -> ../../components/Histogram": {
     "id": "tools/data-distribution.js -> ../../components/Histogram",
     "files": [
       "static/chunks/components_Histogram_js.js"
     ]
   },
-  "tools/dimension-reduction/pca.js -> ../../../components/PCA_Plot": {
-    "id": "tools/dimension-reduction/pca.js -> ../../../components/PCA_Plot",
+  "tools/dimension-reduction/tsne.js -> ../../../components/tSNE_Plot": {
+    "id": "tools/dimension-reduction/tsne.js -> ../../../components/tSNE_Plot",
     "files": [
-      "static/chunks/components_PCA_Plot_js.js"
+      "static/chunks/components_tSNE_Plot_js.js"
     ]
   }
 }
