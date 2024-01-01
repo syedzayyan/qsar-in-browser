@@ -1,7 +1,7 @@
-export default function (){
+export default function Loader({ loadingText = 'Processsing'}){
     return(
         <div style={{textAlign:"center"}}>
-            Processsing
+            {loadingText}
             <div className="loader"></div>
         </div>
         

@@ -1,20 +1,18 @@
 {
+  "../node_modules/scikitjs/dist/esm/simpleSerializer.js -> ./index": {
+    "id": "../node_modules/scikitjs/dist/esm/simpleSerializer.js -> ./index",
+    "files": []
+  },
   "index.js -> ../components/TargetGetter": {
     "id": "index.js -> ../components/TargetGetter",
     "files": [
       "static/chunks/components_TargetGetter_js.js"
     ]
   },
-  "tools/data-distribution.js -> ../../components/Histogram": {
-    "id": "tools/data-distribution.js -> ../../components/Histogram",
+  "tools/ml/rf.js -> ../../../components/RandomForest": {
+    "id": "tools/ml/rf.js -> ../../../components/RandomForest",
     "files": [
-      "static/chunks/components_Histogram_js.js"
-    ]
-  },
-  "tools/dimension-reduction/tsne.js -> ../../../components/tSNE_Plot": {
-    "id": "tools/dimension-reduction/tsne.js -> ../../../components/tSNE_Plot",
-    "files": [
-      "static/chunks/components_tSNE_Plot_js.js"
+      "static/chunks/components_RandomForest_js.js"
     ]
   }
 }

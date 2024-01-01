@@ -2,19 +2,19 @@ import dynamic from 'next/dynamic';
 import Head from 'next/head'
 import TabbedComponent from '../../../components/Tabbed';
 
-const PCAPlot = dynamic(
-    () => import('../../../components/PCA_Plot'),
+const RandomForest = dynamic(
+    () => import('../../../components/RandomForest'),
     { ssr: false }
 );
 
-export default function DataDistribution() {
+export default function ToolRF() {
     return (
         <div>
             <Head>
-                <title>Data Distribution</title>
+                <title>Random Forest</title>
             </Head>
-            <TabbedComponent activeTab={1}/>
-            <PCAPlot />
+            <TabbedComponent activeTab={3}/>
+            <RandomForest />
         </div>
     )
 }

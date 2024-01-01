@@ -55,7 +55,7 @@ const TabbedComponent = ({ activeTab }) => {
   const tabs = ['Data Distribution', 'PCA', 'tSNE', 'Random Forest'];
   const tabLinks = ['data-distribution', 
   'dimension-reduction/pca', 
-  'dimension-reduction/tsne', 'Random Forest'];
+  'dimension-reduction/tsne', 'ml/rf'];
   const handleTabClick = (index) => {
     setActiveIndex(index);
   };
