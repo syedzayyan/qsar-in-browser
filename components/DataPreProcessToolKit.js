@@ -145,7 +145,7 @@ export default function DataPreProcessToolKit() {
           setFPloading(true)
           setTimeout(function () {
             dataDeuplicater();
-          }, 3000);
+          }, 500);
         }}>Pre-Process Data</button>
         <br></br>
         <p>Filtered Ligands: {totalComps}</p>

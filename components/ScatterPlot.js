@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from "react";
-import { ScaleLinear } from "d3";
+import { useMemo } from "react";
 import * as d3 from 'd3';
+import D3ColorLegend from './D3ColorLegend';
 
 // tick length
 const TICK_LENGTH = 20;
@@ -100,7 +100,9 @@ export const AxisLeft = ({ yScale, pixelsPerTick, width }) => {
 
 const MARGIN = { top: 60, right: 60, bottom: 60, left: 60 };
 
-export default function Scatterplot({ width, height, data, xAxisTitle = 'Principal Component 1', yAxisTitle = 'Principal Component 2' }) {
+export default function Scatterplot({ width, height, data, 
+  xAxisTitle = 'Principal Component 1', yAxisTitle = 'Principal Component 2',
+  colorProperty = null }) {
   // Layout. The div size is set by the given props.
   // The bounds (=area inside the axis) is calculated by subtracting the margins
   const boundsWidth = width - MARGIN.right - MARGIN.left;
@@ -118,6 +120,10 @@ export default function Scatterplot({ width, height, data, xAxisTitle = 'Princip
     .domain(yDomain)
     .range([boundsHeight, 0]);
 
+
+  const colorScale = d3.scaleSequential().domain([1,10])
+  .interpolator(d3.interpolateSinebow);
+    console.log(colorProperty)
   // Build the shapes
   const allShapes = data.map((d, i) => {
     return (
@@ -127,8 +133,8 @@ export default function Scatterplot({ width, height, data, xAxisTitle = 'Princip
         cx={xScale(d.y)}
         cy={yScale(d.x)}
         opacity={1}
-        stroke="var(--accent-color)"
-        fill="var(--accent-color)"
+        stroke= {colorProperty == null ? "var(--accent-color)" : colorScale(colorProperty[i])}
+        fill={colorProperty == null ? "var(--accent-color)" : colorScale(colorProperty[i])}
         fillOpacity={0.2}
         strokeWidth={1}
       />
@@ -136,9 +142,12 @@ export default function Scatterplot({ width, height, data, xAxisTitle = 'Princip
   });
 
 
+
   return (
     <div>
+      <D3ColorLegend />
       <svg width={width} height={height}>
+        
         <g
           width={boundsWidth}
           height={boundsHeight}
@@ -178,6 +187,7 @@ export default function Scatterplot({ width, height, data, xAxisTitle = 'Princip
           {allShapes}
         </g>
       </svg>
+      
     </div>
   );
 }

@@ -4,7 +4,6 @@ import ScatterPlot from './ScatterPlot';
 import * as tsnejs from './utils/tsne';
 import Loader from "./Loader";
 
-
 export default function TSNEPlot() {
   const { ligand } = useContext(LigandContext);
   const [tsneData, setTSNEData] = useState(null)
@@ -15,11 +14,10 @@ export default function TSNEPlot() {
   opt.perplexity = 30;
   opt.dim = 2; 
   var tsne = new tsnejs.tSNE(opt);
-
   useEffect(() => {    
     setTimeout(() => {
       processCompounds();
-    }, 1000)
+    }, 500)
   }, []);
 
     const processCompounds = async () => {
@@ -39,12 +37,14 @@ export default function TSNEPlot() {
 
   if (tsneData === null) {
     return (
+      <div className="container">
       <Loader />
+      </div>
     )
   }
   return (
     <div className="container">
-      <ScatterPlot data={tsneData} width={600} height={600} />
+      <ScatterPlot data={tsneData} width={600} height={600} colorProperty={ligand.map((obj) => obj.pKi)}/>
     </div>
   )
 }

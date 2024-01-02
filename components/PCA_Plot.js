@@ -39,7 +39,7 @@ export default function PCAPlot() {
     return (
       <div className="container">
         <br></br>
-        {pcaData && <ScatterPlot data={pcaData} width={600} height={600} />}
+        {pcaData && <ScatterPlot data={pcaData} width={600} height={600} colorProperty={ligand.map((obj) => obj.pKi)}/>}
       </div>
     );
 }

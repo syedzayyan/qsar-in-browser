@@ -11,8 +11,10 @@
   "dependencies": {
     "@rdkit/rdkit": "^2022.9.5-1.0.0",
     "@tensorflow/tfjs": "^4.15.0",
+    "@tensorflow/tfjs-tsne": "^0.2.0",
     "copy-webpack-plugin": "^11.0.0",
     "d3": "^7.8.5",
+    "d3-scale-chromatic": "^3.0.0",
     "lodash": "^4.17.21",
     "ml-pca": "^4.1.1",
     "ml-random-forest": "^2.1.0",
