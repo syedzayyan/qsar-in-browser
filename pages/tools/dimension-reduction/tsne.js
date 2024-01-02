@@ -11,7 +11,7 @@ export default function DataDistribution() {
     return (
         <div>
             <Head>
-                <title>Data Distribution</title>
+                <title>tSNE</title>
             </Head>
             <TabbedComponent activeTab={2}/>
             <TSNEPlot />

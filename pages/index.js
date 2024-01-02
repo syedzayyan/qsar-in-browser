@@ -12,7 +12,7 @@ export default function Page() {
   return (
     <>
       <Head>
-        <title>Tools</title>
+        <title>SAR In Browser</title>
       </Head>
       <div className="main-container">
 

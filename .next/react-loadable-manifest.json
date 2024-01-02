@@ -3,10 +3,10 @@
     "id": "../node_modules/scikitjs/dist/esm/simpleSerializer.js -> ./index",
     "files": []
   },
-  "tools/dimension-reduction/pca.js -> ../../../components/PCA_Plot": {
-    "id": "tools/dimension-reduction/pca.js -> ../../../components/PCA_Plot",
+  "index.js -> ../components/TargetGetter": {
+    "id": "index.js -> ../components/TargetGetter",
     "files": [
-      "static/chunks/components_PCA_Plot_js.js"
+      "static/chunks/components_TargetGetter_js.js"
     ]
   },
   "tools/dimension-reduction/tsne.js -> ../../../components/tSNE_Plot": {

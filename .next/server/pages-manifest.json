@@ -2,8 +2,8 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/tools/dimension-reduction/tsne": "pages/tools/dimension-reduction/tsne.js",
-  "/tools/dimension-reduction/pca": "pages/tools/dimension-reduction/pca.js",
   "/tools/ml/rf": "pages/tools/ml/rf.js",
+  "/": "pages/index.js",
+  "/tools/dimension-reduction/tsne": "pages/tools/dimension-reduction/tsne.js",
   "/tools/data-distribution": "pages/tools/data-distribution.js"
 }

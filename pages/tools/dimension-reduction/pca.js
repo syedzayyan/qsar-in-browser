@@ -11,7 +11,7 @@ export default function DataDistribution() {
     return (
         <div>
             <Head>
-                <title>Data Distribution</title>
+                <title>PCA</title>
             </Head>
             <TabbedComponent activeTab={1}/>
             <PCAPlot />

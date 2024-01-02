@@ -7,6 +7,7 @@ import * as sk from 'scikitjs'
 sk.setBackend(tf)
 
 import Loader from './Loader';
+import GroupedBarChart from "./BarChart";
 
 export default function RandomForest(){
     const { ligand } = useContext(LigandContext);
@@ -38,21 +39,52 @@ export default function RandomForest(){
         var X = ligand.map((obj) => obj.fingerprint);
         var y = ligand.map((obj) => obj.pKi);
 
-        let [XTrain, XTest, yTrain, yTest] = sk.trainTestSplit(X, y, 0.2)
-        const regression = new RFRegression({
-            seed: 3,
-            maxFeatures: 2,
-            replacement: false,
-            nEstimators: 120
-        });
-        regression.train(XTrain, yTrain);
-        const result = regression.predict(XTest);
-        let mae_test = sk.metrics.meanAbsoluteError(yTest, result);
-        let r2_test = sk.metrics.r2Score(yTest, result);
+        const kf = new sk.KFold({ nSplits: 5 })    
+        console.log('nSplits:', kf.getNumSplits(X, y))
 
-        regression.train(X, y);
-        setRFModelState(regression.toJSON());
-        setRFMAE([mae_test, r2_test]);
+        const mae_through_folds = []
+        const r2_through_folds = []
+        for (const { trainIndex, testIndex } of kf.split(X, y)) {
+            try {
+                const regression = new RFRegression({
+                    seed: 3,
+                    maxFeatures: 0.5,
+                    replacement: false,
+                    nEstimators: 80
+                });
+
+                const XTrain = Array.from(trainIndex.dataSync()).map(i => X[i]);
+                const yTrain= Array.from(trainIndex.dataSync()).map(index => y[index]);
+                regression.train(XTrain, yTrain);
+
+                const XTest = Array.from(testIndex.dataSync()).map(i => X[i]);
+                const yTest= Array.from(testIndex.dataSync()).map(i => y[i]);
+                const result = regression.predict(XTest);
+
+                let mae_test = sk.metrics.meanAbsoluteError(yTest, result);
+                let r2_test = sk.metrics.r2Score(yTest, result);
+
+                console.log(mae_test, r2_test)
+
+                mae_through_folds.push(mae_test)
+                r2_through_folds.push(r2_test)
+            }
+            finally {
+                trainIndex.dispose()
+                testIndex.dispose()
+            }
+        }
+
+        const regression2 = new RFRegression({
+            seed: 3,
+            maxFeatures: 0.5,
+            replacement: false,
+            nEstimators: 80
+        });
+
+        regression2.train(X, y);
+        setRFModelState(regression2.toJSON());
+        setRFMAE([mae_through_folds, r2_through_folds]);
         setRFRun(true)
     }
 
@@ -68,7 +100,10 @@ export default function RandomForest(){
 
     if (!rfRun) {
         return(
-            <Loader />
+            <div className="main-container">
+                 <Loader />
+            </div>
+           
         )
     }
 
@@ -76,8 +111,9 @@ export default function RandomForest(){
         <div className="main-container">
             <div className="container">
                 {stateOfRDKit ? (<span>RDKit is Loaded ✅</span>) : (<span>Loading RDKit</span>)}
-                <p>RF MAE on 20% Split : {rfMAE[0]}</p>
-                <p>RF R2 on 20% Split : {rfMAE[1]}</p>
+
+                <GroupedBarChart mae = {rfMAE[0]} r2={rfMAE[1]} />
+
                 <input className="input" type="text" placeholder = {testSMILES} onChange={(e) => settestSMILES(e.target.value)}></input>
                 <br></br>
                 <button className="button" onClick={predictionerRF}>Predict on SMILES</button>
