@@ -44,7 +44,7 @@ export default function TSNEPlot() {
   }
   return (
     <div className="container">
-      <ScatterPlot data={tsneData} width={600} height={600} colorProperty={ligand.map((obj) => obj.pKi)}/>
+      <ScatterPlot data={tsneData} width={600} height={600} colorProperty={ligand.map((obj) => obj.pKi)} hoverProp = {ligand.map((obj) => obj.canonical_smiles)}/>
     </div>
   )
 }

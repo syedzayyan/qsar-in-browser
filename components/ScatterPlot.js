@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import * as d3 from 'd3';
 import D3ColorLegend from './D3ColorLegend';
-
+import {Tooltip} from './ToolTip'
 // tick length
 const TICK_LENGTH = 20;
 
@@ -100,11 +100,13 @@ export const AxisLeft = ({ yScale, pixelsPerTick, width }) => {
 
 const MARGIN = { top: 60, right: 60, bottom: 60, left: 60 };
 
-export default function Scatterplot({ width, height, data, 
+export default function Scatterplot({ width, height, data, hoverProp,
   xAxisTitle = 'Principal Component 1', yAxisTitle = 'Principal Component 2',
   colorProperty = null }) {
   // Layout. The div size is set by the given props.
   // The bounds (=area inside the axis) is calculated by subtracting the margins
+  const [hovered, setHovered] = useState(null);
+
   const boundsWidth = width - MARGIN.right - MARGIN.left;
   const boundsHeight = height - MARGIN.top - MARGIN.bottom;
   const padding = 4;
@@ -123,7 +125,6 @@ export default function Scatterplot({ width, height, data,
 
   const colorScale = d3.scaleSequential().domain([1,10])
   .interpolator(d3.interpolateSinebow);
-    console.log(colorProperty)
   // Build the shapes
   const allShapes = data.map((d, i) => {
     return (
@@ -137,6 +138,14 @@ export default function Scatterplot({ width, height, data,
         fill={colorProperty == null ? "var(--accent-color)" : colorScale(colorProperty[i])}
         fillOpacity={0.2}
         strokeWidth={1}
+        onMouseEnter={() =>
+          setHovered({
+            xPos: xScale(d.x),
+            yPos: yScale(d.y),
+            name: hoverProp[i],
+          })
+        }
+        onMouseLeave={() => setHovered(null)}
       />
     );
   });
@@ -144,7 +153,7 @@ export default function Scatterplot({ width, height, data,
 
 
   return (
-    <div>
+    <div style={{ position: "relative" }} className="container">
       <D3ColorLegend />
       <svg width={width} height={height}>
         
@@ -187,7 +196,7 @@ export default function Scatterplot({ width, height, data,
           {allShapes}
         </g>
       </svg>
-      
+      <Tooltip interactionData={hovered} />
     </div>
   );
 }
