@@ -3,12 +3,6 @@
     "id": "../node_modules/scikitjs/dist/esm/simpleSerializer.js -> ./index",
     "files": []
   },
-  "index.js -> ../components/TargetGetter": {
-    "id": "index.js -> ../components/TargetGetter",
-    "files": [
-      "static/chunks/components_TargetGetter_js.js"
-    ]
-  },
   "tools/dimension-reduction/tsne.js -> ../../../components/tSNE_Plot": {
     "id": "tools/dimension-reduction/tsne.js -> ../../../components/tSNE_Plot",
     "files": [

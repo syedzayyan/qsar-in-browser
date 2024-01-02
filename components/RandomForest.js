@@ -39,8 +39,7 @@ export default function RandomForest(){
         var X = ligand.map((obj) => obj.fingerprint);
         var y = ligand.map((obj) => obj.pKi);
 
-        const kf = new sk.KFold({ nSplits: 5 })    
-        console.log('nSplits:', kf.getNumSplits(X, y))
+        const kf = new sk.KFold({ nSplits: 5 });  
 
         const mae_through_folds = []
         const r2_through_folds = []
@@ -101,7 +100,9 @@ export default function RandomForest(){
     if (!rfRun) {
         return(
             <div className="main-container">
-                 <Loader />
+                <div className="container">
+                <Loader />
+                </div>
             </div>
            
         )
@@ -112,6 +113,7 @@ export default function RandomForest(){
             <div className="container">
                 {stateOfRDKit ? (<span>RDKit is Loaded ✅</span>) : (<span>Loading RDKit</span>)}
 
+                <h3>Random Forest performance across 5 folds</h3>
                 <GroupedBarChart mae = {rfMAE[0]} r2={rfMAE[1]} />
 
                 <input className="input" type="text" placeholder = {testSMILES} onChange={(e) => settestSMILES(e.target.value)}></input>

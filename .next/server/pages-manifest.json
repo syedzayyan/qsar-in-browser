@@ -3,7 +3,6 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/tools/ml/rf": "pages/tools/ml/rf.js",
-  "/": "pages/index.js",
   "/tools/dimension-reduction/tsne": "pages/tools/dimension-reduction/tsne.js",
   "/tools/data-distribution": "pages/tools/data-distribution.js"
 }
