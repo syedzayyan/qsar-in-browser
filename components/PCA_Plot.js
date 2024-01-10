@@ -31,7 +31,7 @@ export default function PCAPlot() {
 
     if(pcaData === null){
       return(
-        <div className="container">
+        <div className="main-container">
           <Loader />
         </div>
       )
@@ -39,7 +39,12 @@ export default function PCAPlot() {
     return (
       <div className="main-container">
         <br></br>
-        {pcaData && <ScatterPlot data={pcaData} width={600} height={600} colorProperty={ligand.map((obj) => obj.pKi)} hoverProp = {ligand.map((obj) => obj.canonical_smiles)}/>}
+        {pcaData && <ScatterPlot 
+        data={pcaData} width={600} height={600} colorProperty={ligand.map((obj) => obj.pKi)} 
+        hoverProp = {ligand.map((obj) => obj.canonical_smiles)}
+        xAxisTitle={'Principal Component 2'}
+        yAxisTitle={'Principal Component 1'}
+        />}
       </div>
     );
 }

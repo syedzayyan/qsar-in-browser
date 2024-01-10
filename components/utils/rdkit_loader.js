@@ -1,13 +1,17 @@
 import _ from "lodash";
-import initRDKitModule from "@rdkit/rdkit";
-
 
 export const initRDKit = (() => {
-    let rdkitLoadingPromise;
-  
-    return () => {
-      if (!rdkitLoadingPromise) {
-        rdkitLoadingPromise = new Promise((resolve, reject) => {
+  let rdkitLoadingPromise;
+  return () => {
+    if (!rdkitLoadingPromise) {
+      rdkitLoadingPromise = new Promise((resolve, reject) => {
+
+        const script = document.createElement("script");
+        script.src = "/sar-in-browser/RDKit_minimal.js";
+        script.async = true;
+        document.body.appendChild(script);
+
+        script.addEventListener("load", () => {
           initRDKitModule()
             .then((RDKit) => {
               resolve(RDKit);
@@ -16,8 +20,9 @@ export const initRDKit = (() => {
               console.log(e)
             });
         });
-      }
-  
-      return rdkitLoadingPromise;
-    };
-  })();
+      });
+    }
+
+    return rdkitLoadingPromise;
+  };
+})();

@@ -5,12 +5,12 @@ const MoleculeStructure = dynamic(
 );
 
 export const Tooltip = ({ interactionData }) => {  
-  if (!interactionData) {
+  if (interactionData === null) {
     return null;
   }
 
   return (
-    <div style={{ left: Math.log10(interactionData.xPos), bottom: interactionData.yPos, position: "relative" }} className="tooltip">
+    <div style={{ left: interactionData.xPos * 0.5 + 10, bottom: interactionData.yPos * 0.5}} className="tooltip">
       <MoleculeStructure
       structure={interactionData.name}
       id="smiles"

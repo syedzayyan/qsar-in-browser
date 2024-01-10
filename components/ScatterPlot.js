@@ -1,202 +1,152 @@
-import { useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import D3ColorLegend from './D3ColorLegend';
-import {Tooltip} from './ToolTip'
-// tick length
-const TICK_LENGTH = 20;
-
-export const AxisBottom = ({
-  xScale,
-  pixelsPerTick,
-  height,
-}) => {
-  const range = xScale.range();
-
-  const ticks = useMemo(() => {
-    const width = range[1] - range[0];
-    const numberOfTicksTarget = Math.floor(width / pixelsPerTick);
-
-    return xScale.ticks(numberOfTicksTarget).map((value) => ({
-      value,
-      xOffset: xScale(value),
-    }));
-  }, [xScale, height]);
-
-  return (
-    <>
-      {/* Ticks and labels */}
-      {ticks.map(({ value, xOffset }) => (
-        <g
-          key={value}
-          transform={`translate(${xOffset}, 0)`}
-          shapeRendering={"crispEdges"}
-        >
-          <line
-            y1={TICK_LENGTH}
-            y2={-height - TICK_LENGTH}
-            stroke="var(--text-color)"
-            strokeWidth={0.5}
-          />
-          <text
-            key={value}
-            style={{
-              fontSize: "10px",
-              textAnchor: "middle",
-              transform: "translateY(20px)",
-              fill: "var(--text-color)",
-            }}
-          >
-            {value}
-          </text>
-        </g>
-      ))}
-    </>
-  );
-};
-
-export const AxisLeft = ({ yScale, pixelsPerTick, width }) => {
-  const range = yScale.range();
-  const ticks = useMemo(() => {
-    const height = range[0] - range[1];
-    const numberOfTicksTarget = Math.floor(height / pixelsPerTick);
-
-    return yScale.ticks(numberOfTicksTarget).map((value) => ({
-      value,
-      yOffset: yScale(value),
-    }));
-  }, [yScale]);
-
-  return (
-    <>
-      {/* Ticks and labels */}
-      {ticks.map(({ value, yOffset }) => (
-        <g
-          key={value}
-          transform={`translate(0, ${yOffset})`}
-          shapeRendering={"crispEdges"}
-        >
-          <line
-            x1={-TICK_LENGTH}
-            x2={width + TICK_LENGTH}
-            stroke="var(--text-color)"
-            strokeWidth={0.5}
-          />
-          <text
-            key={value}
-            style={{
-              fontSize: "10px",
-              textAnchor: "middle",
-              transform: "translateX(-20px)",
-              fill: "var(--text-color)",
-            }}
-          >
-            {value}
-          </text>
-        </g>
-      ))}
-    </>
-  );
-};
-
-const MARGIN = { top: 60, right: 60, bottom: 60, left: 60 };
-
-export default function Scatterplot({ width, height, data, hoverProp,
-  xAxisTitle = 'Principal Component 1', yAxisTitle = 'Principal Component 2',
-  colorProperty = null }) {
-  // Layout. The div size is set by the given props.
-  // The bounds (=area inside the axis) is calculated by subtracting the margins
-  const [hovered, setHovered] = useState(null);
-
-  const boundsWidth = width - MARGIN.right - MARGIN.left;
-  const boundsHeight = height - MARGIN.top - MARGIN.bottom;
-  const padding = 4;
-
-  const xDomain = [d3.min(data, d => d.y) - padding, d3.max(data, d => d.y) + padding];
-  const yDomain = [d3.min(data, d => d.x) - padding, d3.max(data, d => d.x) + padding];
-
-  const xScale = d3.scaleLinear()
-    .domain(xDomain)
-    .range([0, boundsWidth]);
-
-  const yScale = d3.scaleLinear()
-    .domain(yDomain)
-    .range([boundsHeight, 0]);
+import { Tooltip } from './ToolTip'
 
 
-  const colorScale = d3.scaleSequential().domain([1,10])
-  .interpolator(d3.interpolateSinebow);
-  // Build the shapes
-  const allShapes = data.map((d, i) => {
-    return (
-      <circle
-        key={i}
-        r={4}
-        cx={xScale(d.y)}
-        cy={yScale(d.x)}
-        opacity={1}
-        stroke= {colorProperty == null ? "var(--accent-color)" : colorScale(colorProperty[i])}
-        fill={colorProperty == null ? "var(--accent-color)" : colorScale(colorProperty[i])}
-        fillOpacity={0.2}
-        strokeWidth={1}
-        onMouseEnter={() =>
-          setHovered({
-            xPos: xScale(d.x),
-            yPos: yScale(d.y),
-            name: hoverProp[i],
-          })
-        }
-        onMouseLeave={() => setHovered(null)}
-      />
-    );
-  });
+const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle }) => {
+  const svgRef = useRef();
+  const [details, setDetails] = useState(null);
+
+  const handleMouseOver = (event, d) => {
+    const [x, y] = d3.pointer(event);
+    setDetails({
+      xPos: x,
+      yPos: y,
+      name: hoverProp[data.indexOf(d)],
+    });
+  };
+
+  const handleMouseEnd = () => {
+    setDetails(null);
+  };
+
+  useEffect(() => {
+    // set the dimensions and margins of the graph
+    const margin = { top: 10, right: 30, bottom: 30, left: 60 };
+    const width = 800 - margin.left - margin.right;
+    const height = 600 - margin.top - margin.bottom;
+
+    // Find the minimum and maximum values in your data for both x and y
+    const xExtent = d3.extent(data, d => d.x);
+    const yExtent = d3.extent(data, d => d.y);
+
+    // Append the SVG object to the body of the page
+    const svg = d3.select(svgRef.current)
+      .append('svg')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
 
+    // Set the zoom and Pan features: how much you can zoom, on which part, and what to do when there is a zoom
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 20]) // This controls how much you can unzoom (x0.5) and zoom (x20)
+      .extent([[0, 0], [width, height]])
+      .on('zoom', updateChart);
+
+    // This adds an invisible rect on top of the chart area. This rect can recover pointer events: necessary to understand when the user zoom
+    svg.append('rect')
+      .attr('width', width)
+      .attr('height', height)
+      .style('fill', 'none')
+      .style('pointer-events', 'all')
+      .attr('transform', `translate(${margin.left},${margin.top})`)
+      .call(zoom);
+
+    // now the user can zoom, and it will trigger the function called updateChart
+
+    // A function that updates the chart when the user zooms and thus new boundaries are available
+    function updateChart(event) {
+      // recover the new scale
+      const newX = event.transform.rescaleX(x);
+      const newY = event.transform.rescaleY(y);
+
+      // update axes with these new boundaries
+      xAxis.call(d3.axisBottom(newX));
+      yAxis.call(d3.axisLeft(newY));
+
+      // update circle position
+      scatter
+        .selectAll('circle')
+        .attr('cx', (d) => newX(d.x))
+        .attr('cy', (d) => newY(d.y));
+    }
+
+    // Add X axis
+    const x = d3.scaleLinear()
+      .domain([d3.min(data, d => d.x), d3.max(data, d => d.x)])
+      .range([0, width]);
+    const xAxis = svg.append('g')
+      .attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(x));
+
+    // Add Y axis
+    const y = d3.scaleLinear()
+      .domain([d3.min(data, d => d.y), d3.max(data, d => d.y)])
+      .range([height, 0]);
+    const yAxis = svg.append('g')
+      .call(d3.axisLeft(y));
+
+
+
+    // Add a clipPath: everything out of this area won't be drawn.
+    const clip = svg.append('defs').append('clipPath')
+      .attr('id', 'clip')
+      .append('rect')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('x', 0)
+      .attr('y', 0);
+
+    // Create the scatter variable: where both the circles and the brush take place
+    const scatter = svg.append('g')
+      .attr('clip-path', 'url(#clip)');
+
+
+
+    const colorScale = d3.scaleSequential().domain([1, 10]).interpolator(d3.interpolateSinebow);
+
+    // Add circles
+    scatter
+      .selectAll('circle')
+      .data(data)
+      .enter()
+      .append('circle')
+      .attr('cx', (d) => x(d.x))
+      .attr('cy', (d) => y(d.y))
+      .attr('r', 8)
+      .style('fill', (_, i) => colorScale(colorProperty[i]))
+      .style('opacity', 0.5)
+      .on('mouseenter', handleMouseOver)
+      .on('mouseleave', handleMouseEnd);
+
+
+    svg.append('text')
+      .attr('transform', `translate(${width / 2},${height + margin.top + 20})`)
+      .style('text-anchor', 'middle')
+      .style('fill', 'var(--text-color)')
+      .text(xAxisTitle);
+
+    // Add Y axis label
+    svg.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('y', 0 - margin.left)
+      .attr('x', 0 - height / 2)
+      .attr('dy', '1em')
+      .style('text-anchor', 'middle')
+      .style('fill', 'var(--text-color)')
+      .text(yAxisTitle);
+  }, [data]);
 
   return (
-    <div style={{ position: "relative" }} className="container">
+    <div className='container' style={{ position: 'relative' }}>
       <D3ColorLegend />
-      <svg width={width} height={height}>
-        
-        <g
-          width={boundsWidth}
-          height={boundsHeight}
-          transform={`translate(${[MARGIN.left, MARGIN.top].join(',')})`}
-        >
-          {/* Y axis */}
-          <AxisLeft yScale={yScale} pixelsPerTick={40} width={boundsWidth} />
-          {/* X axis, use an additional translation to appear at the bottom */}
-          <g
-            transform={`translate(0, ${boundsHeight})`}
-          >
-            <AxisBottom
-              xScale={xScale}
-              pixelsPerTick={40}
-              height={boundsHeight}
-            />
-          </g>
-
-          {/* Axis Titles */}
-          <text
-            x={boundsWidth / 2}
-            y={boundsHeight + MARGIN.top - 10}
-            textAnchor="middle"
-            style={{ fontSize: "14px", fill: "var(--text-color)" }}
-          >
-            {xAxisTitle}
-          </text>
-          <text
-            transform={`translate(${-MARGIN.left + 20},${boundsHeight / 2}) rotate(-90)`}
-            textAnchor="middle"
-            style={{ fontSize: "14px", fill: "var(--text-color)" }}
-          >
-            {yAxisTitle}
-          </text>
-
-          {/* Circles */}
-          {allShapes}
-        </g>
-      </svg>
-      <Tooltip interactionData={hovered} />
+      <div id="dataviz_axisZoom" ref={svgRef}></div>
+      <Tooltip interactionData={details} />
     </div>
   );
-}
+};
+
+export default Scatterplot;

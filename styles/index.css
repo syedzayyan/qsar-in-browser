@@ -196,3 +196,25 @@ body {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.container-for-cards{
+  display: grid;
+  width: 90%;
+  min-height: 80vh;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.card-containers{
+  background-color: #fff;
+  width: 300px;
+  height:300px;
+  border-radius:0.625rem;
+  overflow:hidden;
+  margin : 10px;
+  transition: box-shadow 0.3s ease;
+  text-align: center;
+}
+
+.card-containers:hover {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Adding a subtle box shadow on hover */
+}

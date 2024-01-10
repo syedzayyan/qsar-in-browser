@@ -52,10 +52,10 @@ const activeTabBeforeStyle = {
 
 const TabbedComponent = ({ activeTab }) => {
   const [activeIndex, setActiveIndex] = useState(activeTab);
-  const tabs = ['Data Distribution', 'PCA', 'tSNE', 'Random Forest'];
-  const tabLinks = ['data-distribution', 
+  const tabs = ['Data Distribution', 'PCA', 'tSNE', 'Matched Molecular Analysis', 'Random Forest'];
+  const tabLinks = ['distribution/data', 
   'dimension-reduction/pca', 
-  'dimension-reduction/tsne', 'ml/rf'];
+  'dimension-reduction/tsne', 'scaffold/mma', 'ml/rf'];
   const handleTabClick = (index) => {
     setActiveIndex(index);
   };

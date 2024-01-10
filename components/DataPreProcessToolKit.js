@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import LigandContext from "../context/LigandContext";
 import { initRDKit } from './utils/rdkit_loader'
-import Link from "next/link";
+import bitStringToBitVector from './utils/bit_vect'
 import Loader from './Loader';
 import { useRouter } from 'next/router';
 
@@ -35,7 +35,7 @@ export default function DataPreProcessToolKit() {
     if (dataDeduplication) {
       let de_dup_lig = ligand.map(({ molecule_chembl_id, canonical_smiles, standard_value }) => {
         const newKey = 'pKi';
-        const newValue = -Math.log10(standard_value * 10e-9);
+        const newValue = -Math.log10(standard_value * 10e-9).toFixed(2);
         return {
           molecule_chembl_id,
           canonical_smiles,
@@ -55,7 +55,8 @@ export default function DataPreProcessToolKit() {
         de_dup_lig.forEach(async (lig, i) => {
           try {
             const mol = RDKit.get_mol(lig.canonical_smiles);
-            const mol_fp = mol.get_morgan_fp_as_uint8array(JSON.stringify({ radius: fpRadius, nBits: fpSize }));
+            let mol_fp = mol.get_morgan_fp(JSON.stringify({ radius: fpRadius, nBits: fpSize }));
+            mol_fp = bitStringToBitVector(mol_fp)
             de_dup_lig[i]['fingerprint'] = mol_fp;
             mol?.delete();
           } catch (e) {
@@ -70,7 +71,7 @@ export default function DataPreProcessToolKit() {
           }
         });
         setFPloading(false);
-        router.push('/tools/data-distribution');
+        router.push('/tools/distribution/data');
       } else {
         // Update the state without fingerprinting
         setLigand(de_dup_lig);

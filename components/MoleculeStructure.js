@@ -1,28 +1,27 @@
 import React, { Component } from "react";
 import _ from "lodash";
 import PropTypes from "prop-types";
-import initRDKitModule from "@rdkit/rdkit";
 
-const initRDKit = (() => {
+export const initRDKit = (() => {
   let rdkitLoadingPromise;
-
   return () => {
-    /**
-     * Utility function ensuring there's only one call made to load RDKit
-     * It returns a promise with the resolved RDKit API as value on success,
-     * and a rejected promise with the error on failure.
-     *
-     * The RDKit API is also attached to the global object on successful load.
-     */
     if (!rdkitLoadingPromise) {
       rdkitLoadingPromise = new Promise((resolve, reject) => {
-        initRDKitModule()
-          .then((RDKit) => {
-            resolve(RDKit);
-          })
-          .catch((e) => {
-            reject();
-          });
+
+        const script = document.createElement("script");
+        script.src = "/sar-in-browser/RDKit_minimal.js";
+        script.async = true;
+        document.body.appendChild(script);
+
+        script.addEventListener("load", () => {
+          initRDKitModule()
+            .then((RDKit) => {
+              resolve(RDKit);
+            })
+            .catch((e) => {
+              console.log(e)
+            });
+        });
       });
     }
 
@@ -153,6 +152,7 @@ class MoleculeStructure extends Component {
   }
 
   componentDidMount() {
+
     initRDKit()
       .then((RDKit) => {
         this.RDKit = RDKit;
