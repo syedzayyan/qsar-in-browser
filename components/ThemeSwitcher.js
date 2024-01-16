@@ -29,8 +29,8 @@ export default function ThemeSwitcher() {
                 />
 
                 <div className="switch">
-                    <img alt="theme switch to dark" className="moon" src="/sar-in-browser/moon.png"></img>
-                    <img alt="theme switch to light" className="sun" src="/sar-in-browser/sun.png"></img>
+                    <img alt="theme switch to dark" className="moon" src="/qsar-in-browser/moon.png"></img>
+                    <img alt="theme switch to light" className="sun" src="/qsar-in-browser/sun.png"></img>
                 </div>
             </label>
             <Themes theme = {theme}/>

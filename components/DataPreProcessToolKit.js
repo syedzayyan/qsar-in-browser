@@ -20,8 +20,6 @@ export default function DataPreProcessToolKit() {
   const [fpProcessing, setFPProcessing] = useState(false);
   const [fploading, setFPloading] = useState(false);
 
-  const [totalComps, setTotalComps] = useState(0);
-
   useEffect(() => {
     async function loadRDKit() {
       const RDK = await initRDKit()
@@ -49,7 +47,6 @@ export default function DataPreProcessToolKit() {
           ligand.standard_value
         )));
 
-      setTotalComps(de_dup_lig.length);
 
       if (fingerprinting) {
         de_dup_lig.forEach(async (lig, i) => {
@@ -149,7 +146,7 @@ export default function DataPreProcessToolKit() {
           }, 500);
         }}>Pre-Process Data</button>
         <br></br>
-        <p>Filtered Ligands: {totalComps}</p>
+        <p>Unfiltered Ligands: {ligand.length}</p>
       </div>
     )
   }

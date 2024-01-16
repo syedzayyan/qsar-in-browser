@@ -5,7 +5,7 @@ const Navbar = () => {
         <nav className="navbar">
             <div className="logo">
                 <Link href="/">
-                    SAR IN BROWSER
+                    QSAR IN THE BROWSER
                 </Link>
             </div>
             <ul className="navLinks">

@@ -13,7 +13,7 @@ export default function ToolRF() {
             <Head>
                 <title>Random Forest</title>
             </Head>
-            <TabbedComponent activeTab={3}/>
+            <TabbedComponent activeTab={4}/>
             <RandomForest />
         </div>
     )

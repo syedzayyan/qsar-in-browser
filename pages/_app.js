@@ -14,7 +14,7 @@ function MyApp({ Component, pageProps }) {
   return (
     <>
       <Head>
-      <link rel="shortcut icon" href="favicon.ico" />  
+      <link rel="shortcut icon" href="/qsar-in-browser/favicon.ico" />  
 
       <Script
         src="https://app.lemonsqueezy.com/js/checkout.js"
