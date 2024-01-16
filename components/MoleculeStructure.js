@@ -9,7 +9,7 @@ export const initRDKit = (() => {
       rdkitLoadingPromise = new Promise((resolve, reject) => {
 
         const script = document.createElement("script");
-        script.src = "/sar-in-browser/RDKit_minimal.js";
+        script.src = "/qsar-in-browser/RDKit_minimal.js";
         script.async = true;
         document.body.appendChild(script);
 
