@@ -12,7 +12,7 @@ const DarkTheme = () => {
     --border-color: #95a5a6; /* Light border color */
 
     --input-back: #555; /* Darker gray for input background */
-    --input-color: #9b9e02; /* Yellow for input text */
+    --input-color: #F6BE00; /* Yellow for input text */
 
     --darker-secondary-accent-color: #004080;
 }

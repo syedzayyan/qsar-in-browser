@@ -44,7 +44,7 @@ export default function CompoundGetter() {
   }
 
   return (
-    <div>
+    <div style={{width: '100%'}}>
       <label>
         <input
           className="input"

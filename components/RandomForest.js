@@ -4,18 +4,30 @@ import { initRDKit } from './utils/rdkit_loader';
 import Script from "next/script";
 import Loader from './Loader';
 import GroupedBarChart from './BarChart';
+import bitStringToBitVector from "./utils/bit_vect";
 
 export default function RandomForest() {
   const { ligand } = useContext(LigandContext);
   const [pyodide_ins, setPyodide] = useState(false)
   const [pyodideState, setPyodideState] = useState(false)
+  const [rdKit, setRDKit] = useState();
+  const [onesmiles, setSMILES] = useState('C1=NC(=C2C(=N1)N(C=N2)C3C(C(C(O3)CO)O)O)N');
+  const [oneOffPred, setOneOffPred] = useState();
+
+  useEffect(() => {
+    async function loadRDKit() {
+      const RDK = await initRDKit()
+      setRDKit(RDK);
+    }
+    loadRDKit();
+  })
 
   const [cpuNum, setCpuNum] = useState(-1);
   const [maxFeats, setMaxFeats] = useState('None');
   const [criterion, setCriterion] = useState('poisson');
   const [nEstimators, setNEstimators] = useState(120);
 
-  const [results, setResults] = useState([])
+  const [results, setResults] = useState([]);
 
   globalThis.fp = ligand.map((obj) => obj.fingerprint);
   globalThis.pKi = ligand.map((obj) => obj.pKi);
@@ -36,6 +48,7 @@ export default function RandomForest() {
     from sklearn.metrics import mean_absolute_error, r2_score
     from sklearn.model_selection import KFold
     import numpy as np
+    import joblib
 
     param = {
       "n_estimators": 120,
@@ -71,12 +84,40 @@ export default function RandomForest() {
       metrics.append(metric)
 
     js.metrics = metrics
+
+    params = {'n_estimators': ${nEstimators}, 'criterion': '${criterion}', 'max_features': ${maxFeats}, 'n_jobs' : ${cpuNum}}
+    model = RandomForestRegressor(**params)
+    model.fit(X, y)
+    joblib.dump(model, "model.pkl") 
     `
     )
     const results = metrics.toJs();
     const results_mae = results.map((arr) => arr[0]);
     const results_r2 = results.map((arr) => arr[1]);
     setResults([results_mae, results_r2])
+  }
+  function predictOneOff(){
+    const mol = rdKit.get_mol(onesmiles);
+    let mol_fp = mol.get_morgan_fp(JSON.stringify({ radius: 2, nBits: 2048 }));
+    mol_fp = bitStringToBitVector(mol_fp);
+    mol.delete();
+    globalThis.one_off_mol_fp = mol_fp;
+    pyodide_ins.runPython(`
+    import js
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.metrics import mean_absolute_error, r2_score
+    from sklearn.model_selection import KFold
+    import numpy as np
+    import joblib
+
+    X = (js.globalThis.one_off_mol_fp).to_py()
+
+    model = joblib.load("model.pkl")
+    js.one_off_y = model.predict([X])
+    `
+    )
+
+    setOneOffPred(one_off_y.toJs())
   }
   return (
     <div className="main-container">
@@ -95,10 +136,17 @@ export default function RandomForest() {
               <br />
               <label>CPU No:</label>
               <input type = 'number' value = {cpuNum} onChange={(e) => setCpuNum(e.target.value)} className="input"></input>
+              <br></br><br></br>
+              <button onClick={runRandForestModel} className="button">Run Random Forest Model</button>
             </div>
-            <br />
-            <button onClick={runRandForestModel} className="button">Run Random Forest Model</button>
-            {results.length > 0 ? <GroupedBarChart mae = {results[0]} r2 = {results[1]} /> : <></>}
+            {results.length > 0 ? 
+            <div>
+            <GroupedBarChart mae = {results[0]} r2 = {results[1]} />
+            <label>Predict the activity for single compound with SMILES string</label>
+            <input className="input" placeholder="C1=NC(=C2C(=N1)N(C=N2)C3C(C(C(O3)CO)O)O)N" onChange={(e) => setSMILES(e.target.value)}></input>
+            <br></br><br></br>
+            <button className="button" onClick={predictOneOff}>Predict</button>&nbsp;<span>Predicted: {oneOffPred}</span>
+            </div> : <></>}
           </div>
         ): <Loader loadingText="Loading Scikit and Numpy"/>}
     </div>

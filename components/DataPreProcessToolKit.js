@@ -89,64 +89,66 @@ export default function DataPreProcessToolKit() {
       <div style={{ width: '100%' }}>
         <h2>Data Processing</h2>
         <hr></hr>
-        {stateOfRDKit ? (<span>RDKit is Loaded ✅</span>) : (<span>Loading RDKit</span>)}
         <br></br>
-        <input
-          checked={dataDeduplication}
-          type="checkbox"
-          id='data-dedup-check'
-          onChange={() => setDataDeduplication(!dataDeduplication)}
-        />
-        <label htmlFor="data-dedup-check">Data De-Duplication</label>
-        <br></br>
-        <input
-          checked={fingerprinting}
-          type="checkbox"
-          id='fingerprint-check'
-          onChange={() => setFingerprinting(!fingerprinting)}
-        />
-        <label htmlFor="fingerprint-check">Fingerprinting</label>
-        <br></br>
-        <input
-          checked={pkistate}
-          type="checkbox"
-          id='pki-check'
-          onChange={() => setpkistate(!pkistate)}
-        />
-        <label htmlFor="pki-check">Convert to pKi</label>
-
-        <br></br><br></br>
-        <details open={false}>
-          <summary>Fingerprint Settings</summary>
-          <label htmlFor="fp-radius">Radius: </label>
+        {stateOfRDKit ? (<>
           <input
-            className="input"
-            id='fp-radius'
-            type="number"
-            value={fpRadius}
-            onChange={(e) => setFpRadius(e.target.value)}
+            checked={dataDeduplication}
+            type="checkbox"
+            id='data-dedup-check'
+            onChange={() => setDataDeduplication(!dataDeduplication)}
           />
+          <label htmlFor="data-dedup-check">Data De-Duplication</label>
           <br></br>
-          <label htmlFor="fp-size">Bit Size: </label>
           <input
-            className="input"
-            id='fp-size'
-            type="number"
-            value={fpSize}
-            onChange={(e) => setFpSize(e.target.value)}
+            checked={fingerprinting}
+            type="checkbox"
+            id='fingerprint-check'
+            onChange={() => setFingerprinting(!fingerprinting)}
           />
-        </details>
+          <label htmlFor="fingerprint-check">Fingerprinting</label>
+          <br></br>
+          <input
+            checked={pkistate}
+            type="checkbox"
+            id='pki-check'
+            onChange={() => setpkistate(!pkistate)}
+          />
+          <label htmlFor="pki-check">Convert to pKi</label>
 
-        <br></br>
-        <button className="button" onClick={() => {
-          setFPProcessing(true);
-          setFPloading(true)
-          setTimeout(function () {
-            dataDeuplicater();
-          }, 500);
-        }}>Pre-Process Data</button>
-        <br></br>
-        <p>Unfiltered Ligands: {ligand.length}</p>
+          <br></br><br></br>
+          <details open={false}>
+            <summary>Fingerprint Settings</summary>
+            <label htmlFor="fp-radius">Radius: </label>
+            <input
+              className="input"
+              id='fp-radius'
+              type="number"
+              value={fpRadius}
+              onChange={(e) => setFpRadius(e.target.value)}
+            />
+            <br></br>
+            <label htmlFor="fp-size">Bit Size: </label>
+            <input
+              className="input"
+              id='fp-size'
+              type="number"
+              value={fpSize}
+              onChange={(e) => setFpSize(e.target.value)}
+            />
+          </details>
+
+          <br></br>
+          <button className="button" onClick={() => {
+            setFPProcessing(true);
+            setFPloading(true)
+            setTimeout(function () {
+              dataDeuplicater();
+            }, 500);
+          }}>Pre-Process Data</button>
+          <br></br>
+          <p>Unfiltered Ligands: {ligand.length}</p>
+
+        </>) : (<span>Loading RDKit</span>)}
       </div>
     )
   }

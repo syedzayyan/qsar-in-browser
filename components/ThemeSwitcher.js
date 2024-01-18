@@ -9,13 +9,15 @@ export default function ThemeSwitcher() {
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) {
             setTheme(savedTheme)
-            setChecked((theme) => (theme === 'dark'))
+            if (savedTheme === 'dark'){
+                setChecked(true)
+            }
         } 
     }, [])
 
     return (
         <div>
-            <label className="theme-switcher" htmlFor="themeswitch">
+            <label className="theme-switcher" htmlFor="themeswitch"> 
                 <div className="background"></div>
                 <input
                     type="checkbox"
@@ -23,8 +25,13 @@ export default function ThemeSwitcher() {
                     checked={checked}
                     onChange={() => {
                         setChecked((prevCheck) => !prevCheck);
-                        setTheme((theme) => (theme === 'dark' ? 'light' : 'dark'))
-                        localStorage.setItem('theme', (theme) => (theme === 'dark' ? 'light' : 'dark'))
+                        if (theme === 'light') {
+                            setTheme('dark');
+                            localStorage.setItem('theme', 'dark')
+                        } else if (theme === 'dark'){
+                            setTheme('light');
+                            localStorage.setItem('theme', 'light')
+                        }
                     }}
                 />
 
@@ -33,7 +40,7 @@ export default function ThemeSwitcher() {
                     <img alt="theme switch to light" className="sun" src="/qsar-in-browser/sun.png"></img>
                 </div>
             </label>
-            <Themes theme = {theme}/>
+            <Themes theme={theme} />
         </div>
     );
 }

@@ -27,7 +27,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
       // Calculate folds based on the length of the arrays
-      const folds = Array.from({ length: mae.length }, (_, i) => `fold${i + 1}`);
+      const folds = Array.from({ length: mae.length }, (_, i) => `Fold ${i + 1}`);
 
       // List of subgroups
       const subgroups = ['MAE', 'R2'];
