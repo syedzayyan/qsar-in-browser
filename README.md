@@ -8,10 +8,8 @@ For some, it will be a quick and dirty tool to analyze various targets and drugs
 Just in your browser. All the code runs in the browser. Using WASM and JS The technologies include:
 
 - Next.js. Don't ask me why. I think it's for SEO. SSR with normal React is horrendous. SveltKit is in its infancy compared to React and I don't know how to use Vue. I have a penchant for headaches. That too!
-- (RDKit JS)[https://github.com/rdkit/rdkit/tree/master/Code/MinimalLib]. This is a custom build of the JS version with hopes for more contributions to the RDKit JS repo to import more functionalities into QITB.
+- (RDKit JS)[https://github.com/rdkit/rdkit/tree/master/Code/MinimalLib]. This is a custom build of the JS version with hopes for more contributions to the RDKit JS repo to import more functionalities into QITB. I need people with C++ knowledge to fix things.
 - Pyodide and Scikit-Learn. 
-- tSNE adapted for (Karpathy's)[https://github.com/karpathy/tsnejs] JavaScript implementation.
-- PCA from ml-pca
 
 ### How is QITB?
-You tell? Found an issue and want to fix it? Please feel free to make a PR. I am a noob when it comes to programming so will look forward to people turning and tossing my code to make it better.
+You tell? Found an issue and want to fix it? Please feel free to make a PR. Will look forward to people turning and tossing my code to make it better.

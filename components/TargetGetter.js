@@ -27,17 +27,17 @@ export default function TargetGetter() {
   }, [target]);
 
   return (
-    <div className="container" style={{ width: "600px", height: "400px" }}>
+    <div className="container">
       {ligand >= 0 ? (
         <div>
+          <h4>Download the data from ChEMBL</h4>
           <label>
-            Choose a Target From this List <br></br>
             <input
               className="input"
-              placeholder="Start Typing and Things Will Come Up. Hopefully not PTSD"
+              placeholder="Search for relevant words to your Target"
               list="browsers"
               name="myBrowser"
-              onChange={(e) => setTarget(e.target.value)}
+              onChange={(e) => ssetTarget(e.target.value)}
             />
           </label>
           <datalist id="browsers">
@@ -49,6 +49,7 @@ export default function TargetGetter() {
               ))}
           </datalist>
           <CompoundGetter />
+          <hr></hr>
         </div>
       ) : (
         <DataPreProcessToolKit />

@@ -44,7 +44,7 @@ export default function CompoundGetter() {
   }
 
   return (
-    <div style={{width: '100%'}}>
+    <>
       <label>
         <input
           className="input"
@@ -68,14 +68,13 @@ export default function CompoundGetter() {
       <br></br>
       {loading && <div>
         <progress className="progress-bar" value = {progress} max={100}></progress> 
-        <br></br>
         <span style={{ textAlign: 'center'}}>{(Math.min(progress, 100)).toFixed(2)} %</span>
         </div>}
         <br></br>
         {ligand.length > 0 && <div>
           <Link className="button" href = '/tools/preprocess'>Pre-Process Molecules</Link>
           </div>}
-    </div>
+    </>
 
     
   );
