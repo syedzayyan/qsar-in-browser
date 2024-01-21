@@ -37,7 +37,7 @@ export default function TargetGetter() {
               placeholder="Search for relevant words to your Target"
               list="browsers"
               name="myBrowser"
-              onChange={(e) => ssetTarget(e.target.value)}
+              onChange={(e) => setTarget(e.target.value)}
             />
           </label>
           <datalist id="browsers">
