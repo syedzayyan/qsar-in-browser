@@ -74,13 +74,13 @@ export default function DashboardLayout({
     }
 
     async function pyodideLoaded() {
-      globalThis.loadPyodide().then((pyodide) => {
+      await globalThis.loadPyodide().then((pyodide) => {
         pyodide.loadPackage(['scikit-learn', 'numpy']).then(() => {
           setPyodide(pyodide)
         })
       })
       setLoadingText("Loading RDKit")
-      loadRDKit().then(RDK => {setRDKit(RDK);setLoading(false)});
+      await loadRDKit().then(RDK => {setRDKit(RDK);setLoading(false)});
     }
 
     if (ligand.length > 1){

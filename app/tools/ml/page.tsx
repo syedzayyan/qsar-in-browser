@@ -64,7 +64,7 @@ export default function ML(){
             globalThis.opts = 3
         }
 
-        pyodide.runPython(await (await fetch("/pyodide_ml.py")).text());
+        await pyodide.runPython(await (await fetch("/pyodide_ml.py")).text());
 
         const results = globalThis.metrics.toJs();
         const results_mae = results.map((arr) => arr[0]);
