@@ -4,7 +4,6 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import KFold
 import numpy as np
 import joblib
-import xgboost
 
 param = {
   "n_estimators": 120,
@@ -32,6 +31,7 @@ if js.opts == 1:
             'max_features': js_stuff['max_features'] if js_stuff['max_features'] != "None" else None, 
             'n_jobs' : int(js_stuff['n_jobs'])}
 if js.opts == 2:
+    import xgboost
     params = {'max_depth': int(js_stuff['max_depth']), 
             'min_child_weight': js_stuff['min_child_weight'],
             'colsample_bytree': js_stuff['colsample_bytree'], 

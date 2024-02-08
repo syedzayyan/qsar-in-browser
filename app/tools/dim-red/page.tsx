@@ -34,7 +34,7 @@ export default function DimRed(){
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
 
-    function runDimRed(pcaCorrect=true){
+    async function runDimRed(pcaCorrect=true){
         setLoaded(false);
         let opts: number;
         switch (whatDimRed) {
@@ -49,7 +49,7 @@ export default function DimRed(){
         }
         
         globalThis.opts = opts;
-        pyodide.runPython(`
+        await pyodide.runPython(`
             from sklearn.decomposition import PCA
             from sklearn.manifold import TSNE
             import js
