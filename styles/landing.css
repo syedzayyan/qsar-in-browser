@@ -1,0 +1,69 @@
+/* landing.css */
+
+
+.content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: column;
+}
+.image-container{
+    width: 100%;
+    height: 100%;
+}
+
+.image-container img {
+    border-radius: 10px;
+}
+
+.text-container {
+    flex: 1;
+    padding: 0 20px;
+}
+
+.text-container h2 {
+    font-size: 2em;
+    color: var(--accent-color);
+}
+
+.text-container p {
+    font-size: 1.2em;
+    line-height: 1.5;
+}
+
+.button {
+    background-color: var(--accent-color);
+    color: var(--text-color);
+    padding: 15px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+
+.button:hover {
+    background-color: var(--hover-accent-color);
+}
+
+@media (min-width: 768px) {
+    .content-wrapper {
+        flex-direction: row;
+        /* Switch to row direction for larger screens */
+    }
+
+    .image-container{
+        width: 34%;
+        height: 34%;
+    }
+
+    .image-container img{
+        margin-bottom: 0;
+        /* Remove space between image and text for larger screens */
+    }
+
+    .text-container {
+        max-width: 60%;
+        /* Adjust the maximum width of the text container */
+    }
+}

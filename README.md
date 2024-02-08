@@ -1,7 +1,7 @@
 # QSAR IN THE BROWSER (QITB)
 
 ### Why is QITB?
-This project was borne out of a virtual screening campaign that was conducted for my MPhil thesis. I was given a biological target and told to explore AI/ML strategies to find agonists for it. I learned a ton and attended a lot of talks and conferences. There I met a man who after a very complex talk was like, do you have a UI for this where I could just press a button? And, from there this project was borne to strip all the programming and only keep the chemistry, with some options to dig into the complexities of various algorithms. 
+This project was borne out of a virtual screening campaign that was conducted for my MPhil thesis. I was given a biological target and told to explore AI/ML strategies to find agonists for it. I learned a ton and attended a lot of talks and conferences. However, given all the cool projects out in the open, it's imminent to known programming and that is often a barrier to entry for people wanting to try out stuff. Enter - QITB.
 For some, it will be a quick and dirty tool to analyze various targets and drugs to work on while for others it will be their foray into cheminformatics and analysis of small molecules. The hope is to make this website a powerful and versatile tool.
 
 ### Where is QITB?

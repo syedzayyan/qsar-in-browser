@@ -1,0 +1,35 @@
+.custom-table {
+  width: 80%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+
+  height: 100%;
+  overflow-y: auto;
+}
+
+.custom-table th,
+.custom-table td {
+  border: 1px solid var(--border-color);
+  padding: 10px;
+  text-align: left;
+}
+
+.custom-table th {
+  background-color: var(--background-color);
+}
+
+.custom-table tr:hover{
+  background-color: var(--secondary-color);
+}
+
+@media screen and (max-width: 600px) {
+  .custom-table {
+    overflow-x: auto;
+    display: block;
+  }
+
+  .custom-table th,
+  .custom-table td {
+    white-space: nowrap;
+  }
+}

@@ -1,3 +1,11 @@
+@import "./buttons.css";
+@import "./csv_file.css";
+@import "./tables.css";
+@import "./theme-vars.css";
+@import "./landing.css";
+@import "./corner-menu.css";
+
+
 body,
 h1,
 h2,
@@ -10,28 +18,60 @@ li {
 
 body {
   font-family: 'Arial', sans-serif;
-  background-color: var(--background-color);
   color: var(--text-color);
 }
 
-.main-container {
+main {
+  min-height: calc(100vh - 55px);
+  margin: 0;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--background-color);
+  display: grid;
+  color:var(--text-color);
+}
+
+.input {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-top: 8px;
+  width: 80%;
+}
+
+.centered-self-container {
+  width: inherit;
+  height: 80%;
+  gap:10px;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 80vh;
-  margin: 0;
+  flex-flow: wrap;
+}
+
+.container {
+  background-color: var(--background-color);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px var(--box-shadow-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100%;
+  height: 100%;
 }
 
 .navbar {
+  height: 50px;
+  padding: 5px;
   background-color: var(--accent-color);
-  padding: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .logo a {
-  color:  var(--secondary-color);
+  color: var(--secondary-color);
   text-decoration: none;
   font-size: 1.5rem;
   font-weight: bold;
@@ -64,31 +104,12 @@ body {
   justify-content: center;
 }
 
-.input {
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  margin-top: 8px;
-  width: 80%;
-}
-
-.button {
-  padding: 10px;
-  background: var(--accent-color);
-  color: var(--secondary-color);
-  border-radius: 4px;
-  cursor: pointer;
-  border: none;
-}
-
-.button-link {
-  text-decoration: none;
-  padding: 10px;
-  background: var(--accent-color);
-  color: var(--secondary-color);
-  border-radius: 4px;
-  cursor: pointer;
-  border: none;
+.about-container{
+  min-height: calc(100vh - 110px);
+  width: calc(100vw - 120px);
+  padding: 60px;
+  background-color: var(--background-color);
+  color:var(--text-color);
 }
 
 .progress-bar {
@@ -133,8 +154,8 @@ body {
   border-radius: 30px;
 }
 
-.theme-switcher .switch{
-  -webkit-margin-before : -14px;
+.theme-switcher .switch {
+  -webkit-margin-before: -14px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   height: 30px;
   width: 30px;
@@ -170,15 +191,15 @@ body {
   display: none;
 }
 
-.theme-switcher input:checked + .switch {
+.theme-switcher input:checked+.switch {
   left: 20px;
 }
 
-.theme-switcher input:checked + .switch .sun {
+.theme-switcher input:checked+.switch .sun {
   opacity: 1;
 }
 
-.theme-switcher input:checked + .switch .moon {
+.theme-switcher input:checked+.switch .moon {
   opacity: 0;
 }
 
@@ -194,28 +215,70 @@ body {
 }
 
 @keyframes spinner {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.container-for-cards{
+.container-for-cards {
   display: grid;
   width: 90%;
   min-height: 80vh;
   grid-template-columns: repeat(4, 1fr);
 }
 
-.card-containers{
+.card-containers {
   background-color: #fff;
   width: 300px;
-  height:300px;
-  border-radius:0.625rem;
-  overflow:hidden;
-  margin : 10px;
+  height: 300px;
+  border-radius: 0.625rem;
+  overflow: hidden;
+  margin: 10px;
   transition: box-shadow 0.3s ease;
   text-align: center;
 }
 
 .card-containers:hover {
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Adding a subtle box shadow on hover */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  /* Adding a subtle box shadow on hover */
+}
+
+.csv-container-container{
+  width: 100%;
+  display: flex;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .container {
+    background-color: var(--background-color);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px var(--box-shadow-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 600px;
+    min-height: 400px;
+  }
+}
+
+.tools-container{
+  width : 80vw;
+  min-height: 80vh;
+}
+
+.form-labels{
+  display: inline-block;
+}
+
+
+@media screen and (min-width: 768px) {
+  .tools-container{
+    width : 70vw;
+  }
 }
