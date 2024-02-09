@@ -1,18 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-const D3ColorLegend = ({ max = 10 , min = 0 }) => {
+const D3ColorLegend = ({ colorProperty, width}) => {
     const chartRef = useRef();
 
     useEffect(() => {
         var colorScale = d3.scaleSequential(d3.interpolateSinebow)
-            .domain([max, min]);
+            .domain([Math.max(...colorProperty), Math.min(...colorProperty)]);
 
         continuous(chartRef, colorScale);
 
         function continuous(selector_id, colorscale) {
             var legendheight = 50, // Reduce the height for a horizontal legend
-                legendwidth = 500, // Increase the width for a horizontal legend
+                legendwidth = 300, // Increase the width for a horizontal legend
                 margin = { top: 10, right: 2, bottom: 20, left: 60 }; // Adjust margins for a horizontal legend
 
             var canvas = d3.select(selector_id.current)

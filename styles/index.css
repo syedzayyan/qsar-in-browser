@@ -40,8 +40,7 @@ main {
 }
 
 .centered-self-container {
-  width: inherit;
-  height: 80%;
+  height: 100%;
   gap:10px;
   display: flex;
   justify-content: center;
@@ -49,16 +48,24 @@ main {
   flex-flow: wrap;
 }
 
+.data-loader-container{
+  width: 100%;
+}
+
+.data-loaders{
+  min-width: 300px;
+  min-height: 400px;
+  margin:2px;
+}
+
 .container {
   background-color: var(--background-color);
-  padding: 20px;
+  padding: 2px;
   border-radius: 8px;
   box-shadow: 0 0 10px var(--box-shadow-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 100%;
-  height: 100%;
 }
 
 .navbar {
@@ -106,8 +113,8 @@ main {
 
 .about-container{
   min-height: calc(100vh - 110px);
-  width: calc(100vw - 120px);
-  padding: 60px;
+  width: calc(100vw - 30px);
+  padding: 15px;
   background-color: var(--background-color);
   color:var(--text-color);
 }
@@ -262,14 +269,13 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 600px;
-    min-height: 400px;
+    min-height: 70vh;
   }
 }
 
 .tools-container{
   width : 80vw;
-  min-height: 80vh;
+  min-height: 90vh;
 }
 
 .form-labels{
@@ -281,4 +287,12 @@ main {
   .tools-container{
     width : 70vw;
   }
+  .about-container{
+    width: calc(100vw - 120px);
+    padding: 60px;
+  }
+}
+
+.chembl-loader input{
+  width: 100%;
 }

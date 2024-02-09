@@ -4,7 +4,6 @@ import { useState } from "react";
 import Navbar from "../components/ui-comps/Navbar"
 import "../styles/index.css"
 import ThemeContext from "../context/ThemeContext";
-import Head from "next/head";
 import { TargetProvider } from "../context/TargetContext";
 import { LigandProvider } from "../context/LigandContext";
 import { RDKitProvider } from "../context/RDKitContext";
@@ -19,9 +18,10 @@ export default function RootLayout({
     return (
       <ThemeContext.Provider value={{ theme, setTheme }}>
       <html lang="en">
-        <Head>
+        <head>
+          <title>QSAR In The Browser</title>
           <link rel="shortcut icon" href="favicon.ico" />  
-        </Head>
+        </head>
         <body className={`container-${theme}`}>
           <Navbar />
           <div className="about-container">

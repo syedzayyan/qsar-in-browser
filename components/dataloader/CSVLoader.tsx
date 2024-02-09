@@ -52,7 +52,8 @@ export default function CSVReader() {
         getRemoveFileProps,
         Remove,
       }: any) => (
-        <div className='container'>
+        <div className='container data-loaders'>
+          CSV Loading is disabled for now
           <div
             {...getRootProps()}
             className={`zone ${zoneHover ? 'zoneHover' : ''}`}

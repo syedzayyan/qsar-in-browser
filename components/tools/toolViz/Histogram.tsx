@@ -22,7 +22,7 @@ export default function Histogram({ data, width, height, xLabel = "", yLabel = "
     const min = Math.min(...data);
     return d3
       .scaleLinear()
-      .domain([min, max])
+      .domain([min - min * 0.04, max + max * 0.04])
       .range([0, boundsWidth]);
   }, [data, boundsWidth]);
 

@@ -2,7 +2,7 @@
   width: 80%;
   border-collapse: collapse;
   margin-bottom: 20px;
-
+  margin-top:10px;
   height: 100%;
   overflow-y: auto;
 }
@@ -26,6 +26,7 @@
   .custom-table {
     overflow-x: auto;
     display: block;
+    font-size:x-small;
   }
 
   .custom-table th,

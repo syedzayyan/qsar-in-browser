@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import React, { useContext, useEffect, useState } from 'react';
+import LigandContext from '../../context/LigandContext';
 
 export interface MenuItem {
   label: string;
@@ -13,6 +15,12 @@ interface CornerMenuProps {
 
 const CornerMenu: React.FC<CornerMenuProps> = (props) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [stateOfLinks, setStateOfLinks] = useState("");
+  const {ligand} = useContext(LigandContext);
+
+  useEffect(() => {
+    setStateOfLinks(window.location.href.split(window.location.host)[1]);
+}, [useSearchParams()]);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -33,11 +41,11 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
                 <>
                   <input
                     defaultChecked={index === 0}
-                    className='collapsible-menu'
+                    className="collapsed-menu collapsed-menu-open"
                     type="radio"
                     name="menu"
                     id={`collapsed-menu-${index}`}
-                    onChange={() => { }} // You can add a real onChange handler if needed
+                    disabled = {ligand[0].fingerprint === undefined}
                   />
                   <label
                     htmlFor={`collapsed-menu-${index}`}
@@ -47,12 +55,16 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
                   </label>
                   <article className={`sub-col-menu-${index}`}>
                     {item.subMenuItems.map((subItem, subIndex) => (
-                      <Link className='submenu-links' key={subIndex} href={subItem.link}>{subItem.label}</Link>
+                      <Link 
+                        style = {{backgroundColor : stateOfLinks === subItem.link && "var(--accent-color)"}}
+                        className='submenu-links' key={subIndex} href={subItem.link}>{subItem.label}</Link>
                     ))}
                   </article>
                 </>
               ) : (
-                  <Link className='collapsible-menu' style = {{textDecoration : "none"}} href={item.link}>{item.label}</Link>
+                  <Link 
+                    style = {{backgroundColor : stateOfLinks === item.link && "var(--accent-color)", textDecoration : "none"}}
+                    className='collapsible-menu' href={item.link}>{item.label}</Link>
               )}
             </li>
           ))}

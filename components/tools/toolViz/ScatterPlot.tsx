@@ -6,27 +6,47 @@ import { Tooltip } from './ToolTip'
 
 const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, wid = 800, heit = 600 }) => {
   const margin = { top: 10, right: 30, bottom: 30, left: 60 };
-  const width = wid - margin.left - margin.right;
-  const height = heit - margin.top - margin.bottom;
 
+  const parentRef = useRef(null);
   const svgRef = useRef();
   const [details, setDetails] = useState(null);
 
-  const handleMouseOver = (event, d) => {
-    const [x, y] = d3.pointer(event);
-    setDetails({
-      xPos: x,
-      yPos: y,
-      name: hoverProp[data.indexOf(d)],
-    });
-  };
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  const handleMouseEnd = () => {
-    setDetails(null);
+  const getSvgContainerSize = () => {
+    const newWidth = parentRef.current.clientWidth;
+    const newHeight = parentRef.current.clientHeight;
+    setDimensions({ width: newWidth, height: newHeight });
   };
 
   useEffect(() => {
-    // Append the SVG object to the body of the page
+    // detect 'width' and 'height' on render
+    getSvgContainerSize();
+    // listen for resize changes, and detect dimensions again when they change
+    window.addEventListener("resize", getSvgContainerSize);
+
+    // cleanup event listener
+    return () => window.removeEventListener("resize", getSvgContainerSize);
+  }, []);
+
+  useEffect(() => {
+    const width = dimensions.width - margin.left - margin.right;
+    const height = Math.min(dimensions.height, window.innerHeight) - margin.top - margin.bottom;
+    console.log(dimensions)
+    const handleMouseOver = (event, d) => {
+      const [x, y] = d3.pointer(event);
+      setDetails({
+        xPos: x,
+        yPos: y,
+        name: hoverProp[data.indexOf(d)],
+      });
+    };
+
+    const handleMouseEnd = () => {
+      setDetails(null);
+    };
+
+
     d3.select(svgRef.current).selectAll('*').remove();
 
 
@@ -51,7 +71,7 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .style('pointer-events', 'all')
       .attr('transform', `translate(${margin.left},${margin.top})`)
       .call(zoom);
-      
+
 
     // now the user can zoom, and it will trigger the function called updateChart
 
@@ -96,7 +116,7 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .attr('height', height)
       .attr('x', 0)
       .attr('y', 0);
-      
+
 
     // Create the scatter variable: where both the circles and the brush take place
     const scatter = svg.append('g')
@@ -136,11 +156,11 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .style('text-anchor', 'middle')
       .style('fill', 'var(--text-color)')
       .text(yAxisTitle);
-  }, [data]);
+  }, [data, dimensions]);
 
   return (
-    <div className='container' style={{ position: 'relative' }}>
-      <D3ColorLegend />
+    <div className='container' ref={parentRef}>
+      <D3ColorLegend colorProperty={colorProperty} width = {dimensions.width}/>
       <div id="dataviz_axisZoom" ref={svgRef}></div>
       <Tooltip interactionData={details} />
     </div>
