@@ -21,20 +21,20 @@ export default function DataPreProcessToolKit() {
 
   function dataDeuplicater() {
     if (dataDeduplication) {
-      let de_dup_lig = ligand.map(({ molecule_chembl_id, canonical_smiles, standard_value }) => {
+      let de_dup_lig = ligand.map(({ id, canonical_smiles, activity_column }) => {
         const newKey = 'pKi';
-        const newValue = -Math.log10(standard_value * 10e-9).toFixed(2);
+        const newValue = -Math.log10(activity_column * 10e-9).toFixed(2);
         return {
-          molecule_chembl_id,
+          id,
           canonical_smiles,
-          standard_value,
+          activity_column,
           [newKey]: newValue,
         };
       }).filter((ligand, index, self) =>
         index === self.findIndex((t) => (
-          t.molecule_chembl_id === ligand.molecule_chembl_id &&
+          t.id === ligand.id &&
           t.canonical_smiles === ligand.canonical_smiles &&
-          ligand.standard_value
+          ligand.activity_column
         )));
 
 
@@ -66,7 +66,7 @@ export default function DataPreProcessToolKit() {
   if (fpProcessing) {
     return (
       <div>
-        {fploading ? <Loader /> : <></>}
+        {fploading ? <Loader loadingText="Processing molecules and making them cooler"/> : <></>}
       </div>
     )
   } else {

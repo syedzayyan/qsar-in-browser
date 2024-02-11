@@ -1,7 +1,10 @@
+import ReactMarkdown from 'react-markdown';
+import AboutSection from '../../README.md';
+
 export default function About(){
     return(
         <div>
-            Yew
+            <ReactMarkdown skipHtml={true} children={AboutSection} />
         </div>
     )
 }

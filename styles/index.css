@@ -296,3 +296,9 @@ main {
 .chembl-loader input{
   width: 100%;
 }
+.ml-forms{
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}

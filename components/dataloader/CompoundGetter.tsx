@@ -39,33 +39,35 @@ export default function CompoundGetter() {
     getFullActivityData(
       `/chembl/api/data/activity?format=json&target_chembl_id=${target}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`
     ).then((data) => {
-      setLigand(data)
+      data.map(x => {
+        x["activity_column"] = x["standard_value"];
+        x["id"] = x["molecule_chembl_id"];
+        delete x["standard_value"];
+        return x
+      })
+      setLigand(data);
     });
   }
 
   return (
-    <div>
-      <label>
-        <input
+    <div style={{ width: "90%", display: "flex", gap: "10px", flexDirection : "column", marginTop : "20px" }}>
+      <label htmlFor="input-unit">Unit Type</label>
+      <input
+          id = "input-unit"
           className="input"
           placeholder="Input Unit. Default is Ki"
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
         />
-      </label>
-      <br />
-      <label>
-        <input
+      <label htmlFor="input-assay-type">Assay Type</label>
+      <input
+          id = "input-assay-type"
           className="input"
           placeholder="Input Assay Type. Default is Binding (B)"
           value={binding}
           onChange={(e) => setBinding(e.target.value)}
         />
-      </label>
-      <br></br>
-      <br></br>
       <button className="button" onClick={hehe}>Download Data</button>
-      <br></br>
       {loading && <div>
         <progress className="progress-bar" value = {progress} max={100}></progress> 
         <span style={{ textAlign: 'center'}}>{(Math.min(progress, 100)).toFixed(2)} %</span>

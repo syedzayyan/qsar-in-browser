@@ -31,8 +31,9 @@ export default function DimRed(){
             }
         } else {
             throw new Error("opts is not properly set.");
-        }    
-        runDimRed();
+        }  
+        setLoaded(false);  
+        setTimeout(() => {runDimRed()}, 1000);
     }, [useSearchParams()])
 
     var data = ligand.map((obj) => obj.pKi);
@@ -102,7 +103,7 @@ export default function DimRed(){
     } else {
         return (
             <div className="tools-container">
-                <Loader />
+                <Loader loadingText="Doing Dimension Reduction Magic"/>
             </div>
         )
     }

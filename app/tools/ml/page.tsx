@@ -6,9 +6,10 @@ import PyodideContext from "../../../context/PyodideContext";
 import { useSearchParams } from "next/navigation";
 import Loader from "../../../components/ui-comps/Loader";
 import RDKitContext from "../../../context/RDKitContext";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import GroupedBarChart from "../../../components/tools/toolViz/BarChart";
-
+import { mean } from "mathjs";
+import bitStringToBitVector from "../../../components/utils/bit_vect";
 
 type RFModelInputs = {
     n_estimators: number,
@@ -32,10 +33,10 @@ export default function ML(){
     const { pyodide } = useContext(PyodideContext);
     const { rdkit } = useContext(RDKitContext);
     const [whatMLModel, setWhatMLModel] = useState('');
-    const [results, setResults] = useState([])
+    const [results, setResults] = useState([]);
+    const [oneOffSMILES, setOneOffSmiles] = useState('CCO');
+    const [oneOffSMILESResult, setOneOffSmilesResult] = useState<number>();
 
-    const containerRef = useRef(null);
-    const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
 
     const [loaded, setLoaded] = useState(true);
 
@@ -45,24 +46,25 @@ export default function ML(){
 
     useEffect(() => {
         setWhatMLModel(window.location.hash);
+        setResults([]);
     }, [useSearchParams()]);
 
     async function onSubmit(data){
-        console.log(data)
+        if (whatMLModel == "#rf"){
+            globalThis.opts = 1;
+        } else if (whatMLModel == "#xgboost") {
+            globalThis.opts = 2;
+            await pyodide.loadPackage(['xgboost']);
+        } else {
+            globalThis.opts = 3
+        }
+
+
         setLoaded(false)
         globalThis.model_parameters = data;
 
         globalThis.pKi = ligand.map((obj) => obj.pKi);
         globalThis.fp = ligand.map((obj) => obj.fingerprint);
-
-        if (whatMLModel == "#rf"){
-            globalThis.opts = 1;
-        } else if (whatMLModel == "#xgboost") {
-            await pyodide.loadPackage(['xgboost'])
-            globalThis.opts = 2
-        } else {
-            globalThis.opts = 3
-        }
 
         await pyodide.runPython(await (await fetch("/pyodide_ml.py")).text());
 
@@ -74,16 +76,31 @@ export default function ML(){
         setLoaded(true)
     }
 
+    async function oneOffPred(){
+        const mol = rdkit.get_mol(oneOffSMILES);
+        let mol_fp = mol.get_morgan_fp(JSON.stringify({ radius: 2, nBits: 2048 }));
+        mol_fp = bitStringToBitVector(mol_fp);
+        mol.delete();
+        globalThis.one_off_mol_fp = [mol_fp];
+        await pyodide.runPython(await (await fetch("/pyodide_ml_screen.py")).text());
+        setOneOffSmilesResult((globalThis.one_off_y).toJs())
+    }
+
     if (loaded) {
         return(
-            <div className="tools-container" ref={containerRef}>
+            <div className="tools-container">
                 <details open = {results.length == 0}>
                     <summary>Model Settings</summary>
                     <p style = {{margin : "10px 0"}}>If you are confused, I'd suggest leaving these to the default and just press on 
-                        Run Model button down below. It'll generate you a report of the model performance.
+                        Run Model button down below. It'll generate you a report of the model performance. These parameters only help you control
+                        the ML model performance and maybe tune it to your dataset. These default values have been tried and tested and should give you
+                        decent performance.
                     </p>
                     {whatMLModel == "#rf" && 
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <form className="ml-forms" onSubmit={handleSubmit(onSubmit)}>
+                        <p>The Python Scikit Learn with the Random Forest Regressor is used. You could consult those docs
+                            for clarity
+                        </p>
                         <label className="form-labels" htmlFor="n_estimators">Number of Estimators: &nbsp;</label>
                         <input id = "n_estimators" className="input" type="number" defaultValue={120} {...register("n_estimators")} />
                         <br />
@@ -111,7 +128,10 @@ export default function ML(){
                     }
 
                     {whatMLModel == "#xgboost" && 
-                    <form onSubmit={handleSubmit2(onSubmit)}>
+                    <form className="ml-forms" onSubmit={handleSubmit2(onSubmit)}>
+                        <p>The python XGBoost library is used. You could consult those docs
+                            for clarity
+                        </p>
                         <label className="form-labels" htmlFor="learning_rate">Learning Rate: &nbsp;</label>
                         <input className="input" id = "learning_rate" type="number" defaultValue={0.15} {...register2("learning_rate")} />
                         <br />
@@ -135,13 +155,35 @@ export default function ML(){
                     </form>
                     }
                 </details>
-                {results.length != 0 && <GroupedBarChart mae = {results[0]} r2={results[1]}/>}
+                {results.length != 0 && <>
+                    <GroupedBarChart mae = {results[0]} r2={results[1]}/>
+                    <span>Mean MAE: {mean(results[0])}</span> &nbsp;
+                    <span>Mean R-Squared: {mean(results[1])}</span>
+                    <hr></hr>
+                    <details open>
+                        <summary>Interpretation Guide</summary>
+                            <p>The graph above is generated using K-Fold Validation. The dataset you have provided is split into 10 portion or folds.
+                                One fold is kept for testing, while nine other folds are combined to train a model. This is repeated 10 times with each folds,
+                                each fold is tested. This validation technique helps mitigate splitting biases.
+                            </p>
+                            <p>&emsp;Considering <a href = "https://pubs.acs.org/doi/10.1021/ci400099q">the error rates in experimental assays and in general with ChEMBL</a>,
+                            the mean absolute error (MAE) value of about 0.45 - 0.85 is a good ballpark range. Anything below 0.45 is freakishly low and possibly overfitting.
+                            The R-squared value of near to one is desirable, but again given error rates, anything above 0.90ish is freakishly high.</p>
+                            <p>&emsp;Now that you have an idea how the model performs, and how the training data looks like, this trained model could be used, to virtually screen
+                                new molecules against your target. You could supply your own molecule using the CSV loader, or use ZINC (Both of these features are coming soon).
+                                For now you could test one smile at a time.
+                            </p>
+                    </details>
+                    <input className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
+                    <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>
+                    <p>Predicted pKi: {oneOffSMILESResult}</p>
+                </>}
             </div>
         )        
     } else {
         return (
             <div className="tools-container">
-                <Loader />
+                <Loader loadingText="Training and Testing the Model"/>
             </div>
         )
     }

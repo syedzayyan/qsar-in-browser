@@ -9,7 +9,9 @@ export default function DataLoader() {
                 <p>Starting off with analysis, we need data.
                     For now, you could use the in-built program to fetch data format
                     ChEMBL, or you can use your own dataset in a CSV format. If you are lost
-                    or just want to try the program out, I'd the ChEMBL program with the CHEMBL223 Target.
+                    or just want to try the program out, I'd suggest the ChEMBL program with the CHEMBL223 Target.
+                    ChEMBL is a bioactivity database, and you could find details about it&nbsp;
+                    <a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener noreferrer">here</a>
                 </p>
             </div>
             <br />

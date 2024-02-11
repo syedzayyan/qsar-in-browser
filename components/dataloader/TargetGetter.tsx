@@ -26,14 +26,15 @@ export default function TargetGetter() {
 
   return (
     <div className="container data-loaders chembl-loader">
-      <div style={{ width: "100%", display: "flex", gap: "10px", overflow: "hidden" }}>
+      <div style={{ width: "90%", display: "flex", gap: "10px", flexDirection : "column" }}>
+        <h2>ChEMBL Data Fetcher</h2>
         <input
           className="input"
           placeholder="Search for relevant words to your Target"
           onChange={(e) => setTargetQuery(e.target.value)}
           defaultValue={target}
         />
-        <button onClick={fetchTarget} className="button">{loading ? <span>Loading</span> : <span>Search</span>}</button>
+        <button onClick={fetchTarget} className="button">Search for your Target</button>
       </div>
       {target === "" ? (
         <table className="custom-table">

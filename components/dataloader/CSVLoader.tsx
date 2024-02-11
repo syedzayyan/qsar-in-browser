@@ -3,6 +3,7 @@ import { useCSVReader, lightenDarkenColor, formatFileSize} from 'react-papaparse
 import LigandContext from '../../context/LigandContext';
 import convertToJSON from '../utils/arrayToJson';
 import { useForm, SubmitHandler } from "react-hook-form";
+import { useRouter } from 'next/navigation';
 
 const DEFAULT_REMOVE_HOVER_COLOR = '#A01919';
 const REMOVE_HOVER_COLOR_LIGHT = lightenDarkenColor(
@@ -20,11 +21,25 @@ export default function CSVReader() {
   const { CSVReader } = useCSVReader();
   const [zoneHover, setZoneHover] = useState(false);
   const [csvLoaded, setCSVLoaded] = useState(false);
-  const {setLigand} = useContext(LigandContext);
+  const {ligand, setLigand} = useContext(LigandContext);
   const [headers, setHeader] = useState<any[]>([]);
   const [removeHoverColor, setRemoveHoverColor] = useState(DEFAULT_REMOVE_HOVER_COLOR); 
   const { register, handleSubmit, formState: { errors } } = useForm<Inputs>();
-  const onSubmit: SubmitHandler<Inputs> = data => console.log(data);
+
+  const router = useRouter();
+
+  const onSubmit: SubmitHandler<Inputs> = data => {
+      let while_process_var = ligand;
+      while_process_var.map(x => {
+        x["id"] = x[data.id_column];
+        x["activity_column"] = x[data.act_column];
+        x["canonical_smiles"] = x[data.smi_column];
+        delete data.act_column;
+        return x
+      })
+      setLigand(while_process_var);
+      router.push('/tools/preprocess')
+  };
 
 
   return (
@@ -53,7 +68,6 @@ export default function CSVReader() {
         Remove,
       }: any) => (
         <div className='container data-loaders'>
-          CSV Loading is disabled for now
           <div
             {...getRootProps()}
             className={`zone ${zoneHover ? 'zoneHover' : ''}`}
@@ -92,7 +106,7 @@ export default function CSVReader() {
           </div>
           <br />
           {csvLoaded ? 
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form onSubmit={handleSubmit(onSubmit)} style = {{display : "flex", flexDirection : "column"}}>
                     <label htmlFor='id_column'>ID Column: </label>
                     <select id = 'id_column' className='input' defaultValue="test" {...register("id_column")}>
                         {headers.map((head, key) => <option key={key}>{head}</option>)}
@@ -109,7 +123,7 @@ export default function CSVReader() {
                     <select id = 'act_column' className='input' {...register("act_column")}>
                         {headers.map((head, key) => <option key={key}>{head}</option>)}
                     </select>
-                    <input type="submit" className='button'/>
+                    <input type="submit" className='button' value={"Pre-Precess Molecules"}/>
                     <br />
                     <span>{errors.id_column?.message}</span>
                     <span>{errors.smi_column?.message}</span>

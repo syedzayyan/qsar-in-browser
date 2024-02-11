@@ -46,10 +46,12 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
                     name="menu"
                     id={`collapsed-menu-${index}`}
                     disabled = {ligand[0].fingerprint === undefined}
+                    
                   />
                   <label
                     htmlFor={`collapsed-menu-${index}`}
                     className="collapsible-label"
+                    style = {{backgroundColor : stateOfLinks.split('#')[0] === item.subMenuItems[0].link.split('#')[0] && "var(--background-color)", textDecoration : "none"}}
                   >
                     {item.label}
                   </label>
