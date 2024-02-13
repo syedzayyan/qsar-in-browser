@@ -1,6 +1,6 @@
 "use client"
 
-import { useContext, useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import LigandContext from "../../../context/LigandContext"
 import PyodideContext from "../../../context/PyodideContext";
 import { useSearchParams } from "next/navigation";
@@ -9,7 +9,7 @@ import RDKitContext from "../../../context/RDKitContext";
 import { useForm } from "react-hook-form";
 import GroupedBarChart from "../../../components/tools/toolViz/BarChart";
 import { mean } from "mathjs";
-import bitStringToBitVector from "../../../components/utils/bit_vect";
+import fpSorter from "../../../components/utils/fp_sorter";
 
 type RFModelInputs = {
     n_estimators: number,
@@ -77,10 +77,13 @@ export default function ML(){
     }
 
     async function oneOffPred(){
-        const mol = rdkit.get_mol(oneOffSMILES);
-        let mol_fp = mol.get_morgan_fp(JSON.stringify({ radius: 2, nBits: 2048 }));
-        mol_fp = bitStringToBitVector(mol_fp);
-        mol.delete();
+        const mol_fp = fpSorter(
+            localStorage.getItem("fingerprint"),
+            oneOffSMILES,
+            rdkit,
+            parseInt(localStorage.getItem("path")),
+            parseInt(localStorage.getItem("nBits")),
+        )
         globalThis.one_off_mol_fp = [mol_fp];
         await pyodide.runPython(await (await fetch("/pyodide_ml_screen.py")).text());
         setOneOffSmilesResult((globalThis.one_off_y).toJs())

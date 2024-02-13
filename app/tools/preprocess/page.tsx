@@ -4,6 +4,8 @@ import DataPreProcessToolKit from "../../../components/dataloader/DataPreProcess
 
 export default function PreProcess(){
     return(
-        <DataPreProcessToolKit />
+        <div className="tools-container">
+            <DataPreProcessToolKit />
+        </div>
     )
 }

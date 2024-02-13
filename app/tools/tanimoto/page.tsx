@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useContext } from "react";
 import LigandContext from "../../../context/LigandContext";
 import Histogram from "../../../components/tools/toolViz/Histogram";
 import RDKitContext from "../../../context/RDKitContext";
-import bitStringToBitVector from "../../../components/utils/bit_vect";
 import TanimotoSimilarity from "../../../components/utils/tanimoto";
+import fpSorter from "../../../components/utils/fp_sorter";
 
 export default function Tanimoto(){
     const {ligand} = useContext(LigandContext);
@@ -17,9 +17,13 @@ export default function Tanimoto(){
     const [anchorMol, setAnchorMol] = useState("CCO");
 
     function tanimotoDist(){
-        console.log(TanimotoSimilarity([0,0,1], [0,0,1]))
-        const mol = rdkit.get_mol(anchorMol);
-        const mol_fp = bitStringToBitVector(mol.get_morgan_fp(JSON.stringify({ radius: 2, nBits: 2048 })));
+        const mol_fp = fpSorter(
+            localStorage.getItem("fingerprint"),
+            anchorMol,
+            rdkit,
+            parseInt(localStorage.getItem("path")),
+            parseInt(localStorage.getItem("nBits")),
+        )
         const data = ligand.map((x) => {
             const tanimoto = TanimotoSimilarity(x.fingerprint, mol_fp)
             return tanimoto
