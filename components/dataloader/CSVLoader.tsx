@@ -28,17 +28,16 @@ export default function CSVReader() {
 
   const router = useRouter();
 
-  const onSubmit: SubmitHandler<Inputs> = data => {
-      let while_process_var = ligand;
-      while_process_var.map(x => {
+  const onSubmit: SubmitHandler<Inputs> = (data) => {
+      let while_process_var = ligand.map(x => {
         x["id"] = x[data.id_column];
-        x["activity_column"] = x[data.act_column];
+        x["activity_column"] = parseFloat(x[data.act_column]);
         x["canonical_smiles"] = x[data.smi_column];
-        delete data.act_column;
+        delete x[data.act_column], x[data.id_column], x[data.smi_column];
         return x
       })
       setLigand(while_process_var);
-      router.push('/tools/preprocess')
+      router.push('/tools/preprocess/#csv')
   };
 
 
@@ -123,7 +122,7 @@ export default function CSVReader() {
                     <select id = 'act_column' className='input' {...register("act_column")}>
                         {headers.map((head, key) => <option key={key}>{head}</option>)}
                     </select>
-                    <input type="submit" className='button' value={"Pre-Precess Molecules"}/>
+                    <input type="submit" className='button' value={"Pre-Process Molecules"}/>
                     <br />
                     <span>{errors.id_column?.message}</span>
                     <span>{errors.smi_column?.message}</span>

@@ -62,7 +62,7 @@ export default function MMA() {
                         molList.delete()
                         cores_smiles_list.push(fragments.at(0))
                         sidechains_smiles_list.push(fragments.at(1))
-                        massive_array.push([x.canonical_smiles, fragments.at(0), fragments.at(1), x.id, x.pKi])
+                        massive_array.push([x.canonical_smiles, fragments.at(0), fragments.at(1), x.id, x.neg_log_activity_column])
                         m.delete()
                         mol_frags.cores.delete()
                         mol_frags.sidechains.delete()
@@ -119,7 +119,7 @@ export default function MMA() {
                         <Card key={key}>
                             <MoleculeStructure structure={cores[0]} subStructure={cores[1]} id={cores[0]} svgMode />
                             <br></br>
-                            <span>pKi : {cores[4]}</span>
+                            <span>Activity : {cores[4]}</span>
                             {console.log(cores[3])}
                         </Card>
                     ))}

@@ -12,7 +12,6 @@ type FingerPrintSettings = {
   radius?: number,
   nBits?: number,
   dedup: boolean,
-  neglog: boolean
 }
 
 
@@ -20,39 +19,38 @@ export default function DataPreProcessToolKit() {
   const router = useRouter();
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<FingerPrintSettings>();
   const fpOption = watch("fingerprint");
-
   const { ligand, setLigand } = useContext(LigandContext);
-
   const { rdkit } = useContext(RDKitContext)
   const [loaded, setLoaded] = useState(true);
 
-  function dataDeuplicater(formStuff) {
+  function dataProcessor(formStuff) {
+    setLoaded(false);
     localStorage.setItem("fingerprint", formStuff.fingerprint);
     localStorage.setItem("path", formStuff.radius);
     localStorage.setItem("nBits", formStuff.nBits);
-
-    if (formStuff.dedup) {
-      let de_dup_lig = ligand.map(({ id, canonical_smiles, activity_column }) => {
-        const newKey = 'pKi';
-        const newValue = -Math.log10(activity_column * 10e-9).toFixed(2);
+    setTimeout(async () => {
+      var de_dup_lig = ligand.map(({ id, canonical_smiles, activity_column }) => {
         return {
           id,
           canonical_smiles,
           activity_column,
-          [newKey]: newValue,
+          ["neg_log_activity_column"]: window.location.hash === "#chembl" ? -Math.log10(activity_column * 10e-9).toFixed(2) : activity_column,
         };
-      }).filter((ligand, index, self) =>
-        index === self.findIndex((t) => (
-          t.id === ligand.id &&
-          t.canonical_smiles === ligand.canonical_smiles &&
-          ligand.activity_column
-        )));
+      })
 
+      if (formStuff.dedup) {
+        de_dup_lig = await de_dup_lig.filter((ligand, index, self) =>
+          index === self.findIndex((t) => (
+            t.id === ligand.id &&
+            t.canonical_smiles === ligand.canonical_smiles && 
+            ligand.activity_column
+          )));
+      }
 
-      de_dup_lig.forEach(async (lig, i) => {
+      await de_dup_lig.map((lig, i) => {
         try {
           const mol_fp = fpSorter(
-            formStuff.fingerprint, 
+            formStuff.fingerprint,
             lig.canonical_smiles,
             rdkit,
             formStuff.radius,
@@ -62,13 +60,13 @@ export default function DataPreProcessToolKit() {
         } catch (e) {
           console.error(e);
         }
-        if (i === de_dup_lig.length - 1) {
-          setLigand(de_dup_lig);
-          setLoaded(true)
-          router.push('/tools/activity');
-        }
       })
-    }
+
+
+      setLigand(de_dup_lig);
+      console.log(ligand)
+      router.push('/tools/activity');
+    }, 500)
   }
 
 
@@ -92,7 +90,7 @@ export default function DataPreProcessToolKit() {
           </p>
         </details>
         <br></br>
-        <form onSubmit={handleSubmit(dataDeuplicater)}>
+        <form onSubmit={handleSubmit(dataProcessor)}>
           <label className="form-labels" htmlFor="fingerprint">Fingerprint Type: &nbsp;</label><br />
           <select id="fingerprint" className="input" {...register("fingerprint")}>
             <option value="maccs">MACCS Fingerprint</option>
@@ -110,12 +108,8 @@ export default function DataPreProcessToolKit() {
           <br />
           <input type="checkbox" defaultChecked={true} {...register("dedup")}></input>
           <label>Data De-Duplication</label>
-
           <br />
-          <input type="checkbox" defaultChecked={true} {...register("neglog")}></input>
-          <label>Convert to negative logarithm of base 10</label>
-          <br />
-          <input type="submit" className="button" value = "Process Molecule"></input>
+          <input type="submit" className="button" value="Process Molecule"></input>
         </form>
         <br />
       </div>

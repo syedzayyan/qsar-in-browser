@@ -74,7 +74,7 @@ export default function CompoundGetter() {
         </div>}
         <br></br>
         {ligand.length > 0 && <div>
-          <Link className="button" href = '/tools/preprocess'>Pre-Process Molecules</Link>
+          <Link className="button" href = '/tools/preprocess/#chembl'>Pre-Process Molecules</Link>
           </div>}
     </div>
     

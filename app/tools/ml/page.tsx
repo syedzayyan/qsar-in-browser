@@ -63,7 +63,7 @@ export default function ML(){
         setLoaded(false)
         globalThis.model_parameters = data;
 
-        globalThis.pKi = ligand.map((obj) => obj.pKi);
+        globalThis.neg_log_activity_column = ligand.map((obj) => obj.neg_log_activity_column);
         globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
         await pyodide.runPython(await (await fetch("/pyodide_ml.py")).text());
@@ -179,7 +179,7 @@ export default function ML(){
                     </details>
                     <input className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
                     <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>
-                    <p>Predicted pKi: {oneOffSMILESResult}</p>
+                    <p>Predicted Activity: {oneOffSMILESResult}</p>
                 </>}
             </div>
         )        

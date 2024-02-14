@@ -13,7 +13,7 @@ param = {
 model = RandomForestRegressor(**param, n_jobs = -1)
 
 X = (js.globalThis.fp).to_py()
-y = (js.globalThis.pKi).to_py()
+y = (js.globalThis.neg_log_activity_column).to_py()
 
 X = np.array(X)
 y = np.array(y)

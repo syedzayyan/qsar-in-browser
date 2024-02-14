@@ -36,7 +36,7 @@ export default function DimRed(){
         setTimeout(() => {runDimRed()}, 1000);
     }, [useSearchParams()])
 
-    var data = ligand.map((obj) => obj.pKi);
+    var data = ligand.map((obj) => obj.neg_log_activity_column);
     var smi = ligand.map((obj) => obj.canonical_smiles);
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
 

@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import D3ColorLegend from './D3ColorLegend';
-import { Tooltip } from './ToolTip'
-
+import { Tooltip } from './ToolTip';
 
 const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, wid = 800, heit = 600 }) => {
   const margin = { top: 10, right: 30, bottom: 30, left: 60 };
@@ -12,6 +11,26 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
   const [details, setDetails] = useState(null);
 
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [selectedColorScale, setSelectedColorScale] = useState('Viridis');
+
+  const [bubbleSize, setBubbleSize] = useState(8);
+
+  const colorScales = {
+    Viridis: d3.interpolateViridis,
+    Blues: d3.interpolateBlues,
+    Reds: d3.interpolateReds,
+    Greens: d3.interpolateGreens,
+    Spectral: d3.interpolateSpectral,
+    Rainbow: d3.interpolateRainbow,
+    Sinebow: d3.interpolateSinebow,
+    Yellow_Green_Blue: d3.interpolateYlGnBu
+  };
+
+  const colorScaler = d3.scaleSequential().domain([Math.max(...colorProperty), Math.min(...colorProperty)]).interpolator(colorScales[selectedColorScale]);
+
+  const handleColorScaleChange = (event) => {
+    setSelectedColorScale(event.target.value);
+  };
 
   const getSvgContainerSize = () => {
     const newWidth = parentRef.current.clientWidth;
@@ -20,19 +39,16 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
   };
 
   useEffect(() => {
-    // detect 'width' and 'height' on render
     getSvgContainerSize();
-    // listen for resize changes, and detect dimensions again when they change
     window.addEventListener("resize", getSvgContainerSize);
 
-    // cleanup event listener
     return () => window.removeEventListener("resize", getSvgContainerSize);
   }, []);
 
   useEffect(() => {
     const width = dimensions.width - margin.left - margin.right;
     const height = Math.min(dimensions.height, window.innerHeight) - margin.top - margin.bottom;
-    console.log(dimensions)
+
     const handleMouseOver = (event, d) => {
       const [x, y] = d3.pointer(event);
       setDetails({
@@ -46,11 +62,8 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       setDetails(null);
     };
 
-
     d3.select(svgRef.current).selectAll('*').remove();
 
-
-    // Append the SVG object to the body of the page
     const svg = d3.select(svgRef.current)
       .append('svg')
       .attr('width', width + margin.left + margin.right)
@@ -58,9 +71,8 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-
     const zoom = d3.zoom()
-      .scaleExtent([0.5, 20]) // This controls how much you can unzoom (x0.5) and zoom (x20)
+      .scaleExtent([0.5, 20])
       .extent([[0, 0], [width, height]])
       .on('zoom', updateChart);
 
@@ -72,26 +84,19 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .attr('transform', `translate(${margin.left},${margin.top})`)
       .call(zoom);
 
-
-    // now the user can zoom, and it will trigger the function called updateChart
-
-    // A function that updates the chart when the user zooms and thus new boundaries are available
     function updateChart(event) {
       const newX = event.transform.rescaleX(x);
       const newY = event.transform.rescaleY(y);
 
-      // update axes with these new boundaries
       xAxis.call(d3.axisBottom(newX));
       yAxis.call(d3.axisLeft(newY));
 
-      // update circle position
       scatter
         .selectAll('circle')
         .attr('cx', (d) => newX(d.x))
         .attr('cy', (d) => newY(d.y));
     }
 
-    // Add X axis
     const x = d3.scaleLinear()
       .domain([d3.min(data, d => d.x), d3.max(data, d => d.x)])
       .range([0, width]);
@@ -99,16 +104,12 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
 
-    // Add Y axis
     const y = d3.scaleLinear()
       .domain([d3.min(data, d => d.y), d3.max(data, d => d.y)])
       .range([height, 0]);
     const yAxis = svg.append('g')
       .call(d3.axisLeft(y));
 
-
-
-    // Add a clipPath: everything out of this area won't be drawn.
     svg.append('defs').append('clipPath')
       .attr('id', 'clip')
       .append('rect')
@@ -116,17 +117,8 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .attr('height', height)
       .attr('x', 0)
       .attr('y', 0);
+    const scatter = svg.append('g').attr('clip-path', 'url(#clip)');
 
-
-    // Create the scatter variable: where both the circles and the brush take place
-    const scatter = svg.append('g')
-      .attr('clip-path', 'url(#clip)');
-
-
-
-    const colorScale = d3.scaleSequential().domain([1, 10]).interpolator(d3.interpolateSinebow);
-
-    // Add circles
     scatter
       .selectAll('circle')
       .data(data)
@@ -134,12 +126,11 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .append('circle')
       .attr('cx', (d) => x(d.x))
       .attr('cy', (d) => y(d.y))
-      .attr('r', 8)
-      .style('fill', (_, i) => colorScale(colorProperty[i]))
+      .attr('r', bubbleSize)
+      .style('fill', (_, i) => colorScaler(colorProperty[i]))
       .style('opacity', 0.5)
       .on('mouseenter', handleMouseOver)
       .on('mouseleave', handleMouseEnd);
-
 
     svg.append('text')
       .attr('transform', `translate(${width / 2},${height + margin.top + 20})`)
@@ -147,7 +138,6 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .style('fill', 'var(--text-color)')
       .text(xAxisTitle);
 
-    // Add Y axis label
     svg.append('text')
       .attr('transform', 'rotate(-90)')
       .attr('y', 0 - margin.left)
@@ -156,13 +146,31 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .style('text-anchor', 'middle')
       .style('fill', 'var(--text-color)')
       .text(yAxisTitle);
-  }, [data, dimensions]);
+  }, [data, dimensions, selectedColorScale, bubbleSize]);
 
   return (
     <div className='container' ref={parentRef}>
-      <D3ColorLegend colorProperty={colorProperty} width = {dimensions.width}/>
+      <D3ColorLegend colorScale={colorScaler} width={dimensions.width} />
       <div id="dataviz_axisZoom" ref={svgRef}></div>
       <Tooltip interactionData={details} />
+
+      <div>
+        <details>
+          <summary>Plot Settings</summary>
+          <div className='ml-forms'>
+            <label htmlFor="colorScaleSelect">Select Color Scale:</label>
+            <select className='input' id="colorScaleSelect" onChange={handleColorScaleChange} value={selectedColorScale}>
+              {Object.keys(colorScales).map((scale) => (
+                <option key={scale} value={scale}>
+                  {scale}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="myRange">Select Color Scale:</label>
+            <input type="range" min="1" max="10" className="slider" id="myRange" onChange={e => setBubbleSize(parseFloat(e.target.value))}></input>
+          </div>
+        </details>
+      </div>
     </div>
   );
 };

@@ -7,8 +7,7 @@ import { mean, median, mode } from "mathjs";
 
 export default function Activity(){
     const {ligand} = useContext(LigandContext);
-    var data = ligand.map((obj) => obj.pKi);
-
+    var data = ligand.map((obj) => obj["neg_log_activity_column"]);
     const containerRef = useRef(null);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
