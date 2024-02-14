@@ -1,6 +1,6 @@
 # QSAR IN THE BROWSER (QITB)
 
-<img src="/logo.svg" alt="image" width="300" width="300" height="auto">
+<img src="https://github.com/syedzayyan/qsar-in-browser/blob/main/public/logo.svg" alt="image" width="300" width="300" height="auto">
 
 ### Why is QITB?
 This project was borne out of a virtual screening campaign that was conducted for my MPhil thesis. I was given a biological target and told to explore AI/ML strategies to find agonists for it. I learned a ton and attended a lot of talks and conferences. There I met a man who after a very complex talk was like, do you have a UI for this where I could just press a button? And, from there this project was borne to strip all the programming and only keep the chemistry, with some options to dig into the complexities of various algorithms. 
