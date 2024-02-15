@@ -4,7 +4,7 @@ import TargetGetter from "./TargetGetter";
 export default function DataLoader() {
     return (
         <div className="data-loader-container">
-            <div style  = {{width : "100%"}}>
+            <div style  = {{width : "60%", margin : "0 auto"}}>
                 <h2>Fetch the data</h2>
                 <p>Starting off with analysis, we need data.
                     For now, you could use the in-built program to fetch data format

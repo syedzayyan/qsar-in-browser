@@ -4,9 +4,11 @@ interface ModalComponentProps {
   isOpen: boolean;
   children: ReactNode;
   closeModal: () => void;
+  width?: string,
+  height?: string
 }
 
-const ModalComponent: FC<ModalComponentProps> = ({ isOpen, children, closeModal }) => {
+const ModalComponent: FC<ModalComponentProps> = ({ isOpen, children, closeModal, width = "80", height = "80" }) => {
   if (!isOpen) {
     return null;
   }
@@ -41,10 +43,10 @@ const ModalComponent: FC<ModalComponentProps> = ({ isOpen, children, closeModal 
         .modal {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          height: 80vh;
-          width: 80vw;
+          height: ${height}vh;
+          width: ${width}vw;
           margin: 10%;
-          background: white;
+          background: var(--secondary-color);
           padding: 20px;
           border-radius: 8px;
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -61,6 +63,11 @@ const ModalComponent: FC<ModalComponentProps> = ({ isOpen, children, closeModal 
           border: none;
           border-radius: 4px;
           cursor: pointer;
+        }
+        @media screen and (max-width: 768px) {
+          .modal{
+            width: 90vw;
+          }
         }
       `}</style>
     </>

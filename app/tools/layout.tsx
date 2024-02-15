@@ -45,7 +45,11 @@ const menuItems: MenuItem[] = [
       }, {
         label: 'XGBoost',
         link: '/tools/ml#xgboost'
-      }]
+      }, {
+        label: 'Virtual Screening',
+        link: '/tools/screen'
+      }
+    ]
     },
   ];
 

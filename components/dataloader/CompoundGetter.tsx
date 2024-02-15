@@ -36,6 +36,7 @@ export default function CompoundGetter() {
   }
 
   function hehe() {
+    console.log(unit, binding)
     getFullActivityData(
       `/chembl/api/data/activity?format=json&target_chembl_id=${target}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`
     ).then((data) => {
@@ -47,36 +48,42 @@ export default function CompoundGetter() {
       })
       setLigand(data);
     });
+
+    localStorage.setItem("dataSource", "chembl")
   }
 
   return (
-    <div style={{ width: "90%", display: "flex", gap: "10px", flexDirection : "column", marginTop : "20px" }}>
+    <div style={{ width: "inherit", gap: "10px", display: "flex", flexDirection: "column", alignContent: "center", justifyContent: "center" }}>
       <label htmlFor="input-unit">Unit Type</label>
-      <input
-          id = "input-unit"
-          className="input"
-          placeholder="Input Unit. Default is Ki"
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
-        />
+      <select className="input" onChange={(e) => { setUnit(e.target.value) }}>
+        <option value="Ki">Ki</option>
+        <option value="IC50">IC50</option>
+        <option value="XC50">XC50</option>
+        <option value="EC50">EC50</option>
+        <option value="AC50">AC50</option>
+        <option value="Kd">Kd</option>
+        <option value="Potency">Potency</option>
+        <option value="ED50">ED50</option>
+      </select>
+
       <label htmlFor="input-assay-type">Assay Type</label>
-      <input
-          id = "input-assay-type"
-          className="input"
-          placeholder="Input Assay Type. Default is Binding (B)"
-          value={binding}
-          onChange={(e) => setBinding(e.target.value)}
-        />
-      <button className="button" onClick={hehe}>Download Data</button>
+      <select className="input" onChange={(e) => { setBinding(e.target.value) }}>
+        <option value="B">B (Binding)</option>
+        <option value="F">F (Functional)</option>
+        <option value="ADMET">ADMET (ADME Data)</option>
+        <option value="T">T  (Toxicity)</option>
+        <option value="P">P (Physiochemical)</option>
+        <option value="U">U (Unclassified)</option>
+      </select>
+      <button className="button" onClick={hehe}>Fetch Data</button>
       {loading && <div>
-        <progress className="progress-bar" value = {progress} max={100}></progress> 
-        <span style={{ textAlign: 'center'}}>{(Math.min(progress, 100)).toFixed(2)} %</span>
-        </div>}
-        <br></br>
-        {ligand.length > 0 && <div>
-          <Link className="button" href = '/tools/preprocess/#chembl'>Pre-Process Molecules</Link>
-          </div>}
+        <progress className="progress-bar" value={progress} max={100} style={{ width: "100%" }}></progress>
+        <span style={{ textAlign: 'center' }}>{(Math.min(progress, 100)).toFixed(2)} %</span>
+      </div>}
+      <br></br>
+      {ligand.length > 0 && <div>
+        <Link className="button" href='/tools/preprocess/'>Pre-Process Molecules</Link>
+      </div>}
     </div>
-    
   );
 }

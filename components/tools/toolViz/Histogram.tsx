@@ -45,66 +45,72 @@ export default function Histogram({ data, width, height, xLabel = "", yLabel = "
   }, [buckets, boundsHeight]);
 
   // Effect to update the chart when the scales or data change
-// Effect to update the chart when the scales or data change
-useEffect(() => {
-  // Select the SVG element
-  const svgElement = d3.select(svgRef.current);
+  // Effect to update the chart when the scales or data change
+  useEffect(() => {
+    // Select the SVG element
+    const svgElement = d3.select(svgRef.current);
 
-  // Remove existing elements within the SVG
-  svgElement.selectAll("*").remove();
+    // Remove existing elements within the SVG
+    svgElement.selectAll("*").remove();
 
-  // Create X-axis and position it
-  const xAxisGenerator = d3.axisBottom(xScale);
-  svgElement
-    .append("g")
-    .attr("transform", `translate(${MARGIN.left},${height - MARGIN.bottom})`)
-    .call(xAxisGenerator);
+    // Create X-axis and position it
+    const xAxisGenerator = d3.axisBottom(xScale);
+    svgElement
+      .append("g")
+      .attr("transform", `translate(${MARGIN.left},${height - MARGIN.bottom})`)
+      .call(xAxisGenerator);
 
-  // Add X-axis label
-  svgElement
-    .append("text")
-    .attr("transform", `translate(${width / 2},${height - MARGIN.bottom + 30})`)
-    .style("text-anchor", "middle")
-    .text(xLabel);
+    // Add X-axis label
+    svgElement
+      .append("text")
+      .attr("transform", `translate(${width / 2},${height - MARGIN.bottom + 30})`)
+      .style("text-anchor", "middle")
+      .text(xLabel);
 
-  // Create Y-axis and position it
-  const yAxisGenerator = d3.axisLeft(yScale);
-  svgElement
-    .append("g")
-    .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-    .call(yAxisGenerator);
+    // Create Y-axis and position it
+    const yAxisGenerator = d3.axisLeft(yScale);
+    svgElement
+      .append("g")
+      .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
+      .call(yAxisGenerator);
 
-  // Add Y-axis label
-  svgElement
-    .append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", MARGIN.left - 40)
-    .attr("x", 0 - height / 2)
-    .attr("dy", "1em")
-    .style("text-anchor", "middle")
-    .text(yLabel);
+    // Add Y-axis label
+    svgElement
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", MARGIN.left - 40)
+      .attr("x", 0 - height / 2)
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text(yLabel);
 
-  svgElement
-    .append("g")
-    .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-    .selectAll("rect")
-    .data(buckets)
-    .join("rect")
-    .attr("x", (d: d_bin) => xScale(d.x0) + BUCKET_PADDING / 2)
-    .attr("width", (d: d_bin) => Math.max(0, xScale(d.x1) - xScale(d.x0) - BUCKET_PADDING))
-    .attr("y", (d: d_bin) => yScale(d.length))
-    .attr("height", (d: d_bin) => boundsHeight - yScale(d.length))
-    .attr("fill", "#69b3a2");
-}, [xScale, yScale, buckets]);
+    svgElement
+      .append("g")
+      .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
+      .selectAll("rect")
+      .data(buckets)
+      .join("rect")
+      .attr("x", (d: d_bin) => xScale(d.x0) + BUCKET_PADDING / 2)
+      .attr("width", (d: d_bin) => Math.max(0, xScale(d.x1) - xScale(d.x0) - BUCKET_PADDING))
+      .attr("y", (d: d_bin) => yScale(d.length))
+      .attr("height", (d: d_bin) => boundsHeight - yScale(d.length))
+      .attr("fill", "#69b3a2");
+  }, [xScale, yScale, buckets]);
 
 
-  // Render the component with the SVG container
-  return (
-    <div className="container">
-      <svg width={width} height={height} ref={svgRef}>
-        <g ref={svgRef}>
-        </g>
-      </svg>
-    </div>
-  );
+  if (data === undefined) {
+    return (
+      <></>
+    )
+  } else {
+    return (
+      <div className="container">
+        <svg width={width} height={height} ref={svgRef}>
+          <g ref={svgRef}>
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
 }

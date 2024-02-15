@@ -34,7 +34,7 @@ export default function DataPreProcessToolKit() {
           id,
           canonical_smiles,
           activity_column,
-          ["neg_log_activity_column"]: window.location.hash === "#chembl" ? -Math.log10(activity_column * 10e-9).toFixed(2) : activity_column,
+          ["neg_log_activity_column"]: localStorage.getItem("dataSource") === "chembl" ? -Math.log10(activity_column * 10e-9).toFixed(2) : activity_column,
         };
       })
 
@@ -64,7 +64,6 @@ export default function DataPreProcessToolKit() {
 
 
       setLigand(de_dup_lig);
-      console.log(ligand)
       router.push('/tools/activity');
     }, 500)
   }
@@ -76,7 +75,7 @@ export default function DataPreProcessToolKit() {
       <div>
         <h1>Data Pre-Processing</h1>
         <details open={false}>
-          <summary>What does this even mean?</summary>
+          <summary>What does this mean?</summary>
           <p>In order for small molecules to be visualised, compounds need to be converted into something called a fingerprint.
             A collection of 0s and 1s that denote and absences and presences of chemical motifs or environments. This is purely,
             because computer have no idea what chemistry is and only understand binary. Naturally, many different types of fingerprints
@@ -92,7 +91,7 @@ export default function DataPreProcessToolKit() {
         <br></br>
         <form onSubmit={handleSubmit(dataProcessor)}>
           <label className="form-labels" htmlFor="fingerprint">Fingerprint Type: &nbsp;</label><br />
-          <select id="fingerprint" className="input" {...register("fingerprint")}>
+          <select id="fingerprint" className="input" {...register("fingerprint")} style = {{width : "40%"}}>
             <option value="maccs">MACCS Fingerprint</option>
             <option value="morgan">Morgan Fingerprint</option>
             <option value="rdkit_fp">RDKit Fingerprint</option>

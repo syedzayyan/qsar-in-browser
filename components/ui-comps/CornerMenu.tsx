@@ -25,7 +25,6 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
-
   return (
     <nav className={`corner-menu ${isOpen ? 'open' : ''}`}>
       <div className="hamburger" onClick={toggleMenu}>

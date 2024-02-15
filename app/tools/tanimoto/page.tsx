@@ -36,17 +36,30 @@ export default function Tanimoto(){
             const newSize = containerRef.current.getBoundingClientRect();
             setContainerSize({ width: newSize.width, height: newSize.height });
         };
+        tanimotoDist();
         handleResize();
         window.addEventListener("resize", handleResize);
         return () => {
             window.removeEventListener("resize", handleResize);
         };
+        
     }, []);
 
     
 
     return(
         <div className="tools-container" ref={containerRef}>
+            <details open = {false}>
+                <summary>What does this mean?</summary>
+                <p>
+                    Tanimoto indexes are a similarity score between two molecules. 
+                    The index is between 0 and 1 where a value closer to one indicated two molecules are very similar.
+                    If we have a reference molecule, which in this case is a random molecule, we could compare this molecule,
+                    to all the molecule in your database. This will help us understand, the diversity of our database,
+                    compared to a reference. This is still not the full picture, but adds a piece to the puzzle.
+                </p>
+            </details>
+            <label>SMILES string</label>
             <input defaultValue={anchorMol} type="text" className="input" onChange={(e) => setAnchorMol(e.target.value)}/>
             <button className="button" onClick={tanimotoDist}>Generate Graph</button>
             {taniData.length != 0 && 
