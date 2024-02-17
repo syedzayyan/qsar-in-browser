@@ -2,8 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import D3ColorLegend from './D3ColorLegend';
 import { Tooltip } from './ToolTip';
+import ModalComponent from '../../ui-comps/ModalComponent';
+import MoleculeStructure from '../toolComp/MoleculeStructure';
+import { randomInt } from 'mathjs';
 
-const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, wid = 800, heit = 600 }) => {
+const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, id, wid = 800, heit = 600 }) => {
   const margin = { top: 10, right: 30, bottom: 30, left: 60 };
 
   const parentRef = useRef(null);
@@ -14,6 +17,9 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
   const [selectedColorScale, setSelectedColorScale] = useState('Viridis');
 
   const [bubbleSize, setBubbleSize] = useState(8);
+
+  const [modalState, setModalState] = useState(false);
+  const [modalDets, setModalDets] = useState<any>(false)
 
   const colorScales = {
     Viridis: d3.interpolateViridis,
@@ -130,7 +136,8 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .style('fill', (_, i) => colorScaler(colorProperty[i]))
       .style('opacity', 0.5)
       .on('mouseenter', handleMouseOver)
-      .on('mouseleave', handleMouseEnd);
+      .on('mouseleave', handleMouseEnd)
+      .on('click', (_, d) => findModalDetails(event, d));
 
     svg.append('text')
       .attr('transform', `translate(${width / 2},${height + margin.top + 20})`)
@@ -148,12 +155,32 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, w
       .text(yAxisTitle);
   }, [data, dimensions, selectedColorScale, bubbleSize]);
 
+  async function findModalDetails(_, d){
+    await setModalDets({
+      activity: colorProperty[data.indexOf(d)],
+      canonical_smiles: hoverProp[data.indexOf(d)],
+      id: id[data.indexOf(d)],
+    });
+    setModalState(true)
+  }
+
   return (
     <div className='container' ref={parentRef}>
       <D3ColorLegend colorScale={colorScaler} width={dimensions.width} />
       <div id="dataviz_axisZoom" ref={svgRef}></div>
       <Tooltip interactionData={details} />
-
+      <ModalComponent width='50' isOpen = {modalState} closeModal={() => setModalState(false)}>
+        <div className='ml-forms'>
+          {modalDets && 
+            <div className='ml-forms'>
+              <span>Activity: {modalDets.activity}</span>
+              <span>ID: {localStorage.getItem("dataSource") === "chembl" ? 
+              <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${modalDets.id}/`}>{modalDets.id}</a> : modalDets.id }</span>
+              <MoleculeStructure height={500} width={500} structure={modalDets.canonical_smiles} key = {randomInt(0, 1000000).toString()} id ="smiles" />
+            </div>
+          }
+        </div>
+      </ModalComponent>
       <div>
         <details>
           <summary>Plot Settings</summary>

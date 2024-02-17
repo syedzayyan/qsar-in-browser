@@ -38,6 +38,7 @@ export default function DimRed(){
 
     var data = ligand.map((obj) => obj.neg_log_activity_column);
     var smi = ligand.map((obj) => obj.canonical_smiles);
+    var id = ligand.map((obj) => obj.id);
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
     async function runDimRed(){   
@@ -96,6 +97,7 @@ export default function DimRed(){
                         hoverProp={smi}
                         xAxisTitle={"Principal Component 1"}
                         yAxisTitle={"Principal Component 2"}
+                        id={id}
                     />
                 }
             </div>

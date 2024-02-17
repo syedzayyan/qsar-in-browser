@@ -1,9 +1,7 @@
 // https://github.com/Aiei/nsga2/blob/master/src/nsga2.ts
 
-export namespace MOEA 
-{
-    export class NSGA2 
-    {
+export namespace MOEA {
+    export class NSGA2 {
         chromosomeSize: number;
         objectiveSize: number;
         populationSize: number;
@@ -14,7 +12,7 @@ export namespace MOEA
         genomeFunction: Function;
 
         constructor(
-            chromosomeSize: number, 
+            chromosomeSize: number,
             objectiveSize: number,
             populationSize: number,
             maxGenerations: number,
@@ -29,7 +27,7 @@ export namespace MOEA
             this.objectiveFunction = objectiveFunction;
         }
 
-        optimize(frontOnly: boolean = false): any {
+        optimize(frontOnly: boolean = false, progressCallback?: Function): any {
             let timeStamp = Date.now();
             // First parents
             let pop: Individual[];
@@ -46,8 +44,7 @@ export namespace MOEA
                 let nextPop: Individual[] = [];
                 let sortedPopLength = sortedPop.length;
                 for (let i = 0; i < sortedPopLength; i++) {
-                    if (sortedPop[i].length + nextPop.length <= this.populationSize)
-                    {
+                    if (sortedPop[i].length + nextPop.length <= this.populationSize) {
                         nextPop = nextPop.concat(sortedPop[i]);
                     } else if (nextPop.length < this.populationSize) {
                         this.sortByCrowdingDistance(sortedPop[i]);
@@ -60,10 +57,17 @@ export namespace MOEA
                 }
                 pop = nextPop;
                 generationCount++;
+
+                // Callback for progress
+                if (progressCallback) {
+                    
+                    progressCallback(generationCount, this.maxGenerations);
+                }
             }
             // Timestamp
-            console.log("NSGA2 Finished in " + (Date.now() - timeStamp) + 
-                " milliseconds.");
+            console.log(
+                "NSGA2 Finished in " + (Date.now() - timeStamp) + " milliseconds."
+            );
             // Return pareto fronts only
             if (frontOnly) {
                 let fpop: Individual[] = [];
@@ -166,10 +170,10 @@ export namespace MOEA
                 individuals[lastIndex].crowdingDistance = Infinity;
                 for (let i = 1; i < individuals.length - 1; i++) {
                     individuals[i].crowdingDistance =
-                        individuals[i].crowdingDistance + 
+                        individuals[i].crowdingDistance +
                         (
-                            (individuals[i+1].objectives[m] - 
-                                individuals[i-1].objectives[m])
+                            (individuals[i + 1].objectives[m] -
+                                individuals[i - 1].objectives[m])
                             / (objectiveMax - objectiveMin)
                         );
                 }
@@ -181,9 +185,8 @@ export namespace MOEA
             let tmp;
             for (let i = 0; i < individuals.length; i++) {
                 for (let j = i; j > 0; j--) {
-                    if (individuals[j].objectives[objectiveId] - 
-                        individuals[j - 1].objectives[objectiveId] < 0) 
-                    {
+                    if (individuals[j].objectives[objectiveId] -
+                        individuals[j - 1].objectives[objectiveId] < 0) {
                         tmp = individuals[j];
                         individuals[j] = individuals[j - 1];
                         individuals[j - 1] = tmp;
@@ -206,9 +209,9 @@ export namespace MOEA
         protected mate(parentA: Individual, parentB: Individual): Individual[] {
             // Create two childs
             let childs = [new Individual(), new Individual()];
-            childs[0].chromosome = 
+            childs[0].chromosome =
                 parentA.chromosome.slice(0, this.chromosomeSize);
-            childs[1].chromosome = 
+            childs[1].chromosome =
                 parentB.chromosome.slice(0, this.chromosomeSize);
             // Crossovers
             this.crossover(childs[0], childs[1], this.crossoverRate);
@@ -242,7 +245,7 @@ export namespace MOEA
             let r: number[];
             do {
                 r = [
-                    Math.floor(Math.random() * parents.length), 
+                    Math.floor(Math.random() * parents.length),
                     Math.floor(Math.random() * parents.length)
                 ];
             } while (r[0] == r[1]);
@@ -257,7 +260,7 @@ export namespace MOEA
                     parents[r[1]].crowdingDistance) {
                     return parents[r[0]];
                 }
-                if (parents[r[0]].crowdingDistance < 
+                if (parents[r[0]].crowdingDistance <
                     parents[r[1]].crowdingDistance) {
                     return parents[r[1]];
                 }
@@ -268,9 +271,8 @@ export namespace MOEA
             let tmp;
             for (let i = 0; i < individuals.length; i++) {
                 for (let j = i; j > 0; j--) {
-                    if (individuals[j].crowdingDistance - 
-                        individuals[j - 1].crowdingDistance < 0) 
-                    {
+                    if (individuals[j].crowdingDistance -
+                        individuals[j - 1].crowdingDistance < 0) {
                         tmp = individuals[j];
                         individuals[j] = individuals[j - 1];
                         individuals[j - 1] = tmp;
@@ -281,8 +283,7 @@ export namespace MOEA
         }
     }
 
-    export class Individual 
-    {
+    export class Individual {
         chromosome: any[];
         objectives: number[];
         paretoRank: number;

@@ -1,3 +1,4 @@
+import { log10 } from "mathjs";
 import dynamic from "next/dynamic";
 const MoleculeStructure = dynamic(
   () => import("../toolComp/MoleculeStructure"),
@@ -10,11 +11,12 @@ export const Tooltip = ({ interactionData }) => {
   }
 
   return (
-    <div style={{ left: interactionData.xPos * 0.5 + 10, bottom: interactionData.yPos * 0.5}} className="tooltip">
+    <div style={{ right: interactionData.xPos * 0.8, bottom: interactionData.yPos * 0.5}} className="tooltip">
       <MoleculeStructure
       structure={interactionData.name}
       id="smiles"
     />
+    <span>Click to open</span>
       <style>{`
       .tooltip {
         position: absolute;

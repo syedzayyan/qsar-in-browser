@@ -1,8 +1,8 @@
-import { sum } from "mathjs"
+import { mean, sum } from "mathjs"
 
 export type coverageSets = {
     id: string,
-    smiles: string,
+    canonical_smiles: string,
     fingerprint: number[],
     predictions: number
 }
@@ -11,8 +11,7 @@ export var coverageNameSpace = (sFull: coverageSets[], sPrior: coverageSets[] = 
     if (sPrior.length != 0) {
         sFull = sFull.concat(sPrior)
     }
-    let fullFpCounts = getFpCounts(sFull)
-
+    let fullFpCounts = getFpCounts(sFull);
     function getFpCounts(subset: coverageSets[]) : {} {
         let fpCount = {};
         subset.map((x) => {
@@ -71,13 +70,12 @@ export var coverageNameSpace = (sFull: coverageSets[], sPrior: coverageSets[] = 
         });
     }
     
-    function calculateCoverageScore(sampledIndices: number[]) {
+    function calculateCoverageScore(sampledIndices: number[]) {       
         let sampled = sampledIndices.map(i => sFull[i]);
         if (sPrior.length != 0) {
             sampled = sFull.concat(sampled)
         };
         let sampledFpCounts = getFpCounts(sampled);
-
         let baseScores = getBaseCoverageScores(sampledFpCounts, fullFpCounts, sampled.length, sFull.length);
         let finalScores = getFinalCoverageScores(baseScores, sampledFpCounts, sampled.length);
         
@@ -91,7 +89,8 @@ export var coverageNameSpace = (sFull: coverageSets[], sPrior: coverageSets[] = 
         })
 
         let subsetScore = sum(cumulativeCompoundScore);
-        return subsetScore
+        let meanPreds = mean(sampled.map(x => x.predictions))
+        return [subsetScore, meanPreds]
     }
 
     return {

@@ -10,11 +10,10 @@ export default function TargetGetter() {
   const [targetDetails, setTargetDetails] = useState(dummyData.targets);
   const [loading, setLoading] = useState(false);
   const { target, setTarget } = useContext(TargetContext);
-  const [modalState, setModalState] = useState(target === "");
+  const [modalState, setModalState] = useState(target.target_name === "");
 
   function fetchTarget(e) {
     setLoading(true);
-    setTarget("");
     fetch(`https://www.ebi.ac.uk/chembl/api/data/target/search?format=json&q=${targetQuery}`)
       .then((response) => response.json())
       .then((data) => {
@@ -36,13 +35,12 @@ export default function TargetGetter() {
           className="input"
           placeholder="Search for relevant words to your Target"
           onChange={(e) => setTargetQuery(e.target.value)}
-          defaultValue={target}
+          defaultValue={target.target_name}
           required={true}
-
         />
         <input type="submit" onSubmit={fetchTarget} className="button" value="Search for your Target"/>
       </form>
-      {target === "" ? (
+      {target.target_name === "" ? (
         <div style={{ overflow: "scroll", height: "300px", minWidth: "300px", display: "flex", "justifyContent": "center" }}>
           {loading ? <Loader /> :
             <table className="custom-table">
@@ -55,7 +53,7 @@ export default function TargetGetter() {
               </thead>
               <tbody>
                 {targetDetails.map((tars) => (
-                  <tr key={tars.target_chembl_id} onClick={() => { setTarget(tars.target_chembl_id) }}>
+                  <tr key={tars.target_chembl_id} onClick={() => { setTarget({target_id : tars.target_chembl_id, target_name : tars.pref_name, target_organism : tars.organism}) }}>
                     <td>{tars.pref_name}</td>
                     <td>{tars.target_chembl_id}</td>
                     <td>{tars.organism}</td>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import React, { useContext, useEffect, useState } from 'react';
 import LigandContext from '../../context/LigandContext';
+import TargetContext from '../../context/TargetContext';
 
 export interface MenuItem {
   label: string;
@@ -17,6 +18,7 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
   const [isOpen, setIsOpen] = useState(true);
   const [stateOfLinks, setStateOfLinks] = useState("");
   const {ligand} = useContext(LigandContext);
+  const {target} = useContext(TargetContext);
 
   useEffect(() => {
     setStateOfLinks(window.location.href.split(window.location.host)[1]);
@@ -33,6 +35,7 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
         <div className="line"></div>
       </div>
       <div className={`menu-items ${isOpen ? 'open' : ''}`}>
+      <p style = {{fontSize : "small"}}>Current Target: {target.target_name}</p>
         <ul className='ac-container'>
           {props.items.map((item, index) => (
             <li key={index} className='corner-menu-list-item'>
@@ -70,6 +73,9 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
             </li>
           ))}
         </ul>
+        <div className='corner-menu-control-panel'>
+          <button className='button'>Save Work</button>          
+        </div>
       </div>
     </nav>
   );
