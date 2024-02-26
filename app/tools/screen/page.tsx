@@ -126,7 +126,7 @@ export default function Screen() {
                 <>
                     {screenData[0].predictions != undefined &&
                         <>
-                            <Histogram data={screenData.map(x => x.predictions)} width={600} height={600} />
+                            <Histogram data={screenData.map(x => x.predictions)} />
                             <br />
                             <button className="button" onClick={downloadCsv}>
                                 Download Predictions in CSV Format
