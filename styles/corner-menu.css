@@ -56,8 +56,8 @@
 @media screen and (max-width: 768px) {
   .hamburger {
     position: inherit;
-    top : 20px;
-    left : 45vw;
+    top : 60px;
+    right : 5px;
   }
 }
 

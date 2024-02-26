@@ -12,7 +12,6 @@ export default function Tanimoto(){
     const {rdkit} = useContext(RDKitContext);
     
     const containerRef = useRef(null);
-    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [taniData, setTaniData] = useState([]);
     const [anchorMol, setAnchorMol] = useState("CCO");
 
@@ -32,17 +31,7 @@ export default function Tanimoto(){
     }
 
     useEffect(() => {
-        const handleResize = () => {
-            const newSize = containerRef.current.getBoundingClientRect();
-            setContainerSize({ width: newSize.width, height: newSize.height });
-        };
         tanimotoDist();
-        handleResize();
-        window.addEventListener("resize", handleResize);
-        return () => {
-            window.removeEventListener("resize", handleResize);
-        };
-        
     }, []);
 
     
@@ -66,8 +55,6 @@ export default function Tanimoto(){
                 <>
                 <Histogram 
                     data = {taniData} 
-                    width={containerSize.width} 
-                    height={containerSize.height} 
                     xLabel="Tanimoto Scores" 
                     yLabel="Count"/>           
                 </>

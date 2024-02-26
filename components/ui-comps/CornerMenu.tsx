@@ -3,6 +3,7 @@ import { useSearchParams } from 'next/navigation';
 import React, { useContext, useEffect, useState } from 'react';
 import LigandContext from '../../context/LigandContext';
 import TargetContext from '../../context/TargetContext';
+import ModalComponent from './ModalComponent';
 
 export interface MenuItem {
   label: string;
@@ -19,6 +20,22 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
   const [stateOfLinks, setStateOfLinks] = useState("");
   const {ligand} = useContext(LigandContext);
   const {target} = useContext(TargetContext);
+
+  const [modalStae, setModalState] = useState(false);
+  const [fileName, setFileName] = useState("Untitled")
+
+  function saveWork(e){
+    e.preventDefault();
+    const combinedJSON = {target_data: target, ligand_data : ligand, source : localStorage.getItem("dataSource")};
+    const jsonString = JSON.stringify(combinedJSON, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const downloadLink = document.createElement('a');
+    downloadLink.href = window.URL.createObjectURL(blob);
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  }
 
   useEffect(() => {
     setStateOfLinks(window.location.href.split(window.location.host)[1]);
@@ -74,9 +91,16 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
           ))}
         </ul>
         <div className='corner-menu-control-panel'>
-          <button className='button'>Save Work</button>          
+          <button className='button' onClick={() => setModalState(true)}>Save Work</button>          
         </div>
       </div>
+      <ModalComponent isOpen = {modalStae} closeModal={() => setModalState(false)} height='20' width='20'>
+        <form onSubmit={saveWork} className='ml-forms' style = {{width : "18vw"}}>
+          <label htmlFor='save_label'>File Name</label>
+          <input className='input' id = "save_label" onChange={(e) => setFileName(e.target.value)} defaultValue = "Untitled"></input>   
+          <input type="submit" onSubmit={saveWork} className='button' value="Download File"/>       
+        </form>
+      </ModalComponent>
     </nav>
   );
 };

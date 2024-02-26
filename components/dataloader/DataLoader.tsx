@@ -1,4 +1,5 @@
 import CSVLoader from "./CSVLoader";
+import LoadFromWork from "./LoadFromWork";
 import TargetGetter from "./TargetGetter";
 
 export default function DataLoader() {
@@ -13,6 +14,7 @@ export default function DataLoader() {
                     ChEMBL is a bioactivity database, and you could find details about it&nbsp;
                     <a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener noreferrer">here</a>
                 </p>
+                <LoadFromWork />
             </div>
             <br />
             <div className="centered-self-container">

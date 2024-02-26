@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import GroupedBarChart from "../../../components/tools/toolViz/BarChart";
 import { mean } from "mathjs";
 import fpSorter from "../../../components/utils/fp_sorter";
+import Scatterplot from "../../../components/tools/toolViz/ScatterPlot";
 
 type RFModelInputs = {
     n_estimators: number,
@@ -27,6 +28,11 @@ type XGBoostModelInputs = {
     n_jobs: number
 }
 
+type dataChart = {
+    x: number,
+    y: number
+}
+
 export default function ML() {
 
     const { ligand } = useContext(LigandContext);
@@ -36,7 +42,9 @@ export default function ML() {
     const [results, setResults] = useState([]);
     const [oneOffSMILES, setOneOffSmiles] = useState('CCO');
     const [oneOffSMILESResult, setOneOffSmilesResult] = useState<number>();
-    const [screenData, setScreenData] = useState([])
+    
+    const [foldState, setFoldState] = useState<dataChart[]>()
+    const [foldNumSel, setFoldNumSel] = useState(0);
 
 
     const [loaded, setLoaded] = useState(true);
@@ -48,7 +56,6 @@ export default function ML() {
     useEffect(() => {
         setWhatMLModel(window.location.hash);
         setResults([]);
-        setScreenData([]);
     }, [useSearchParams()]);
 
     async function onSubmit(data) {
@@ -75,6 +82,15 @@ export default function ML() {
         const results_r2 = results.map((arr) => arr[1]);
         setResults([results_mae, results_r2])
 
+        let flatData = [];
+        globalThis.perFoldPreds.toJs().flatMap(subArray => {
+            let anArray = []
+            subArray[0].map((_ ,index) => {
+                anArray.push({ x : subArray[0][index], y : subArray[1][index] });
+            });
+            flatData.push(anArray);
+        });
+        setFoldState(flatData);
         setLoaded(true)
     }
 
@@ -164,6 +180,12 @@ export default function ML() {
                     <GroupedBarChart mae={results[0]} r2={results[1]} />
                     <span>Mean MAE: {mean(results[0])}</span> &nbsp;
                     <span>Mean R-Squared: {mean(results[1])}</span>
+                    <select className="input" onChange={(e) => setFoldNumSel(parseInt(e.target.value))}>
+                        {foldState.map((_, i) => (
+                            <option key={i} value={i}>Fold {i + 1}</option>
+                        ))}
+                    </select>
+                    <Scatterplot data={foldState[foldNumSel]} xAxisTitle="Predicted Activity" yAxisTitle="Experimental"/>
                     <hr></hr>
                     <details open>
                         <summary>Interpretation Guide</summary>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 const GroupedBarChart = ({ mae, r2 }) => {
@@ -7,16 +7,34 @@ const GroupedBarChart = ({ mae, r2 }) => {
     return <div>Error: Both mae and r2 arrays are required and must have the same length.</div>;
   }
 
+  
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const svgRef = useRef();
+  const parentRef = useRef(null);
+  
+  const getSvgContainerSize = () => {
+    const newWidth = parentRef.current.clientWidth;
+    const newHeight = parentRef.current.clientHeight;
+    setDimensions({ width: newWidth, height: newHeight });
+  };
+
+  useEffect(() => {
+    getSvgContainerSize();
+    window.addEventListener("resize", getSvgContainerSize);
+    return () => window.removeEventListener("resize", getSvgContainerSize);
+  }, []);
 
   useEffect(() => {
     // set the dimensions and margins of the graph
-    const margin = { top: 10, right: 30, bottom: 40, left: 70 }, // Increased left margin for the legend
-      width = 800 - margin.left - margin.right,
-      height = 400 - margin.top - margin.bottom;
+    const margin = { top: 10, right: 30, bottom: 10, left: 70 },
+    width = dimensions.width - margin.left - margin.right,
+    height = Math.max((dimensions.height - margin.top - margin.bottom), 300);
+
+    // width = 800 - margin.left - margin.right,
+    // height = 400 - margin.top - margin.bottom;
 
     const svgElement = d3.select(svgRef.current).select("svg");
-
+    d3.select(svgRef.current).selectAll('*').remove();
     if (svgElement.empty()) {
       // append the svg object to the body of the page
       const svg = d3.select(svgRef.current)
@@ -30,7 +48,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
       const folds = Array.from({ length: mae.length }, (_, i) => `Fold ${i + 1}`);
 
       // List of subgroups
-      const subgroups = ['MAE', 'R2'];
+      const subgroups = ['MAE', 'R²'];
 
       // Add X axis
       const x = d3.scaleBand()
@@ -100,11 +118,13 @@ const GroupedBarChart = ({ mae, r2 }) => {
         .style("font-size", "12px")
         .style("fill", "black");
     }
-  }, [mae, r2]); // dependencies include mae and r2 arrays
+  }, [mae, r2, dimensions]); // dependencies include mae and r2 arrays
 
   return (
-    <div id="my_dataviz" ref={svgRef}>
-      {/* SVG will be rendered here */}
+    <div className='container' ref={parentRef}>
+      <div id="my_dataviz" ref={svgRef}>
+        {/* SVG will be rendered here */}
+      </div>
     </div>
   );
 };

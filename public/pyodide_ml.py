@@ -39,7 +39,7 @@ if js.opts == 2:
             'learning_rate' : float(js_stuff['learning_rate']),
             'n_jobs' : int(js_stuff['n_jobs'])}
 
-
+per_fold_preds = []
 for train, test in kf.split(X, y):
   trainX = X[train]
   trainY = y[train]
@@ -60,8 +60,10 @@ for train, test in kf.split(X, y):
 
   print(metric)
   metrics.append(metric)
+  per_fold_preds.append([testY, pred])
 
 js.metrics = metrics
+js.perFoldPreds = per_fold_preds
 
 model = None
 if js.opts == 1:
@@ -71,26 +73,3 @@ if js.opts == 2:
     
 model.fit(X, y)
 joblib.dump(model, "model.pkl") 
-
-      #   `
-      #   )
-
-      # }
-      # function predictOneOff(){
-      #   const mol = rdkit.get_mol(onesmiles);
-      #   let mol_fp = mol.get_morgan_fp(JSON.stringify({ radius: 2, nBits: 2048 }));
-      #   mol_fp = bitStringToBitVector(mol_fp);
-      #   mol.delete();
-      #   globalThis.one_off_mol_fp = mol_fp;
-      #   pyodide.runPython(`
-      #   import js
-      #   from sklearn.ensemble import RandomForestRegressor
-      #   from sklearn.metrics import mean_absolute_error, r2_score
-      #   from sklearn.model_selection import KFold
-      #   import numpy as np
-      #   import joblib
-    
-      #   X = (js.globalThis.one_off_mol_fp).to_py()
-    
-      #   model = joblib.load("model.pkl")
-      #   js.one_off_y = model.predict([X])

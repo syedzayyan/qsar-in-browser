@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 
 const MARGIN = { top: 30, right: 30, bottom: 40, left: 50 };
@@ -7,12 +7,29 @@ const BUCKET_PADDING = 1;
 
 type d_bin = typeof d3.bins[number];
 
-export default function Histogram({ data, width, height, xLabel = "", yLabel = "" }) {
+export default function Histogram({ data, xLabel = "", yLabel = "" }) {
 
-  // Create a reference to the SVG element
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
   const svgRef = useRef(null);
+  const parentRef = useRef(null);
 
-  // Calculate the width and height of the chart area within the SVG
+  const getSvgContainerSize = () => {
+    const newWidth = parentRef.current.clientWidth;
+    const newHeight = parentRef.current.clientHeight;
+    setDimensions({ width: newWidth, height: newHeight });
+  };
+
+  useEffect(() => {
+    getSvgContainerSize();
+    window.addEventListener("resize", getSvgContainerSize);
+
+    return () => window.removeEventListener("resize", getSvgContainerSize);
+  }, []);
+
+  const width = dimensions.width;
+  const height = Math.min(dimensions.height, window.innerHeight - 200);
+
   const boundsWidth = width - 100 - MARGIN.right - MARGIN.left;
   const boundsHeight = height - MARGIN.top - MARGIN.bottom;
 
@@ -95,7 +112,7 @@ export default function Histogram({ data, width, height, xLabel = "", yLabel = "
       .attr("y", (d: d_bin) => yScale(d.length))
       .attr("height", (d: d_bin) => boundsHeight - yScale(d.length))
       .attr("fill", "#69b3a2");
-  }, [xScale, yScale, buckets]);
+  }, [xScale, yScale, buckets, dimensions]);
 
 
   if (data === undefined) {
@@ -104,7 +121,7 @@ export default function Histogram({ data, width, height, xLabel = "", yLabel = "
     )
   } else {
     return (
-      <div className="container">
+      <div className="container" ref={parentRef}>
         <svg width={width} height={height} ref={svgRef}>
           <g ref={svgRef}>
           </g>

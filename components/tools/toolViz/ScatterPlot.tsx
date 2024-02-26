@@ -6,7 +6,7 @@ import ModalComponent from '../../ui-comps/ModalComponent';
 import MoleculeStructure from '../toolComp/MoleculeStructure';
 import { randomInt } from 'mathjs';
 
-const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, id, wid = 800, heit = 600 }) => {
+const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAxisTitle, id = [] }) => {
   const margin = { top: 10, right: 30, bottom: 30, left: 60 };
 
   const parentRef = useRef(null);
@@ -53,7 +53,7 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, i
 
   useEffect(() => {
     const width = dimensions.width - margin.left - margin.right;
-    const height = Math.min(dimensions.height, window.innerHeight) - margin.top - margin.bottom;
+    const height = Math.min(dimensions.height, window.innerHeight - 200) - margin.top - margin.bottom;
 
     const handleMouseOver = (event, d) => {
       const [x, y] = d3.pointer(event);
@@ -133,11 +133,11 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, i
       .attr('cx', (d) => x(d.x))
       .attr('cy', (d) => y(d.y))
       .attr('r', bubbleSize)
-      .style('fill', (_, i) => colorScaler(colorProperty[i]))
+      .style('fill', (_, i) => colorProperty.length > 0 ? colorScaler(colorProperty[i]) : 'blue') // Use a default color if colorProperty is not provided
       .style('opacity', 0.5)
-      .on('mouseenter', handleMouseOver)
-      .on('mouseleave', handleMouseEnd)
-      .on('click', (_, d) => findModalDetails(event, d));
+      .on('mouseenter', hoverProp.length > 0 ? handleMouseOver : null) // Conditionally attach mouseover handler
+      .on('mouseleave', hoverProp.length > 0 ? handleMouseEnd : null) // Conditionally attach mouseleave handler
+      .on('click', hoverProp.length > 0 ? (_, d) => findModalDetails(event, d) : null); // Conditionally attach click handler
 
     svg.append('text')
       .attr('transform', `translate(${width / 2},${height + margin.top + 20})`)
@@ -155,7 +155,7 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, i
       .text(yAxisTitle);
   }, [data, dimensions, selectedColorScale, bubbleSize]);
 
-  async function findModalDetails(_, d){
+  async function findModalDetails(_, d) {
     await setModalDets({
       activity: colorProperty[data.indexOf(d)],
       canonical_smiles: hoverProp[data.indexOf(d)],
@@ -166,34 +166,40 @@ const Scatterplot = ({ data, colorProperty, hoverProp, xAxisTitle, yAxisTitle, i
 
   return (
     <div className='container' ref={parentRef}>
-      <D3ColorLegend colorScale={colorScaler} width={dimensions.width} />
+      {colorProperty.length > 0 && <D3ColorLegend colorScale={colorScaler} width={dimensions.width} />}
       <div id="dataviz_axisZoom" ref={svgRef}></div>
       <Tooltip interactionData={details} />
-      <ModalComponent width='50' isOpen = {modalState} closeModal={() => setModalState(false)}>
+      <ModalComponent width='50' isOpen={modalState} closeModal={() => setModalState(false)}>
         <div className='ml-forms'>
-          {modalDets && 
+          {modalDets &&
             <div className='ml-forms'>
               <span>Activity: {modalDets.activity}</span>
-              <span>ID: {localStorage.getItem("dataSource") === "chembl" ? 
-              <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${modalDets.id}/`}>{modalDets.id}</a> : modalDets.id }</span>
-              <MoleculeStructure height={500} width={500} structure={modalDets.canonical_smiles} key = {randomInt(0, 1000000).toString()} id ="smiles" />
+              <span>ID: {localStorage.getItem("dataSource") === "chembl" ?
+                <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${modalDets.id}/`}>{modalDets.id}</a> : modalDets.id}</span>
+              <MoleculeStructure height={500} width={500} structure={modalDets.canonical_smiles} key={randomInt(0, 1000000).toString()} id="smiles" />
             </div>
           }
         </div>
       </ModalComponent>
       <div>
+        <br />
         <details>
           <summary>Plot Settings</summary>
           <div className='ml-forms'>
-            <label htmlFor="colorScaleSelect">Select Color Scale:</label>
-            <select className='input' id="colorScaleSelect" onChange={handleColorScaleChange} value={selectedColorScale}>
-              {Object.keys(colorScales).map((scale) => (
-                <option key={scale} value={scale}>
-                  {scale}
-                </option>
-              ))}
-            </select>
-            <label htmlFor="myRange">Select Color Scale:</label>
+
+            {colorProperty.length > 0 &&
+              <>
+                <label htmlFor="colorScaleSelect">Select Color Scale:</label>
+                <select className='input' id="colorScaleSelect" onChange={handleColorScaleChange} value={selectedColorScale}>
+                  {Object.keys(colorScales).map((scale) => (
+                    <option key={scale} value={scale}>
+                      {scale}
+                    </option>
+                  ))}
+                </select>
+              </>
+            }
+            <label htmlFor="myRange">Select Dot Size:</label>
             <input type="range" min="1" max="10" className="slider" id="myRange" onChange={e => setBubbleSize(parseFloat(e.target.value))}></input>
           </div>
         </details>
