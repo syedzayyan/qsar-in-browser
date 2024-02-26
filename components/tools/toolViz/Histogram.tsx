@@ -9,7 +9,7 @@ type d_bin = typeof d3.bins[number];
 
 export default function Histogram({ data, xLabel = "", yLabel = "" }) {
 
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
 
   const svgRef = useRef(null);
   const parentRef = useRef(null);

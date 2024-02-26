@@ -194,6 +194,8 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: fixed;
+  width: 100vw;
 }
 
 .logo a {
@@ -354,10 +356,11 @@ _::-webkit-full-page-media, _:future, .theme-switcher .switch {
 }
 
 .container-for-cards {
-  display: grid;
-  width: 90%;
+  display: flex;
+  width: 100%;
   min-height: 80vh;
-  grid-template-columns: repeat(4, 1fr);
+  flex-direction: row; /* Set to row instead of column */
+  flex-wrap: wrap; /* Allow cards to wrap onto the next line */
 }
 
 .card-containers {
@@ -369,6 +372,7 @@ _::-webkit-full-page-media, _:future, .theme-switcher .switch {
   margin: 10px;
   transition: box-shadow 0.3s ease;
   text-align: center;
+  flex-wrap: wrap;
 }
 
 .card-containers:hover {

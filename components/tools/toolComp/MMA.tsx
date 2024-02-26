@@ -5,6 +5,9 @@ import Card from '../toolViz/Card';
 import MoleculeStructure from "./MoleculeStructure";
 import Loader from '../../ui-comps/Loader';
 import ModalComponent from "../../ui-comps/ModalComponent";
+import kstest from "@stdlib/stats-kstest";
+import cdf from "@stdlib/stats-base-dists-normal-cdf";
+import { ksTest } from "../../utils/ks_test";
 
 export default function MMA() {
     const { ligand } = useContext(LigandContext);
@@ -17,10 +20,10 @@ export default function MMA() {
 
 
     const openModal = () => {
-      setModalOpen(true);
+        setModalOpen(true);
     };
     const closeModal = () => {
-      setModalOpen(false);
+        setModalOpen(false);
     };
 
     useEffect(() => {
@@ -41,6 +44,7 @@ export default function MMA() {
     }, [stateOfRDKit])
 
     function scaffoldArrayGetter(row_list_s) {
+        let neg_log_activity_column = ligand.map((obj) => obj.neg_log_activity_column);
         let massive_array = [];
 
         row_list_s.map((x, i) => {
@@ -79,21 +83,41 @@ export default function MMA() {
         })
 
         let countArray = {};
+
         for (let i = 0; i < massive_array.length; i++) {
-            if (massive_array[i].length > 1) {
+            if (massive_array[i].length >= 5) { // Ensure there are at least 5 elements in the subarray
                 let secondElement = massive_array[i][1];
-                countArray[secondElement] = (countArray[secondElement] || 0) + 1;
+                let fifthElement = massive_array[i][4]; // Assuming the fifth element is at index 4
+
+                if (!countArray[secondElement]) {
+                    countArray[secondElement] = [0, []];
+                }
+
+                countArray[secondElement][0]++;
+                countArray[secondElement][1].push(fifthElement);
             }
         }
-        let scaffoldArray = Object.entries(countArray);
-        let filteredArrayOfScaffolds = scaffoldArray.filter(([_, count]) => typeof count === 'number' && count >= 2);
 
+        let scaffoldArray = Object.entries(countArray);
+        let filteredArrayOfScaffolds = scaffoldArray.filter(([key, count]) =>
+            typeof count[0] === 'number' &&
+            count[0] >= 2 &&
+            key.length > 9
+        );
+
+
+        filteredArrayOfScaffolds = filteredArrayOfScaffolds.map(x => {
+            return [x[0], [x[1][0], ksTest(x[1][1], neg_log_activity_column)]]
+        })
+
+        filteredArrayOfScaffolds.sort((a, b) => a[1][1] - b[1][1]);
+
+        console.log(filteredArrayOfScaffolds)
         return [filteredArrayOfScaffolds, massive_array];
     }
 
-    function scaffoldFinder(cores){
+    function scaffoldFinder(cores) {
         const selectedArrays = scaffCores[1].filter(array => {
-            // Replace 'condition' with your specific condition for the third component
             return array[1] === cores;
         });
         setSpecificMolArray(selectedArrays)
@@ -108,14 +132,14 @@ export default function MMA() {
                         <Card key={key}>
                             <MoleculeStructure structure={cores[0]} id={cores[0]} svgMode />
                             <br />
-                            <span>Count : {cores[1]}</span>
+                            <span>Count : {cores[1][0]}</span>
                             <br /><br />
-                            <button onClick={() => {scaffoldFinder(cores[0])}} className="button">Matched Molecules</button>
+                            <button onClick={() => { scaffoldFinder(cores[0]) }} className="button">Matched Molecules</button>
                         </Card>
                     ))}
                 </div>
                 <ModalComponent isOpen={isModalOpen} closeModal={closeModal}>
-                {specificMolArray.map((cores, key) => (
+                    {specificMolArray.map((cores, key) => (
                         <Card key={key}>
                             <MoleculeStructure structure={cores[0]} subStructure={cores[1]} id={cores[0]} svgMode />
                             <br></br>
@@ -129,7 +153,7 @@ export default function MMA() {
     } else {
         return (
             <div className="main-container">
-                <Loader loadingText="Chopping up molecules and analysing them....a bit"/>
+                <Loader loadingText="Chopping up molecules and analysing them....a bit" />
             </div>
         )
     }

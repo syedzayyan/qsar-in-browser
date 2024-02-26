@@ -39,7 +39,21 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
 
   useEffect(() => {
     setStateOfLinks(window.location.href.split(window.location.host)[1]);
-}, [useSearchParams()]);
+  }, [useSearchParams()]);
+
+
+  const getSvgContainerSize = () => {
+    if (window.innerWidth < 768){
+      setIsOpen(false)
+    }
+  };
+
+  useEffect(() => {
+    getSvgContainerSize();
+    window.addEventListener("resize", getSvgContainerSize);
+
+    return () => window.removeEventListener("resize", getSvgContainerSize);
+  }, []);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -53,6 +67,7 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
       </div>
       <div className={`menu-items ${isOpen ? 'open' : ''}`}>
       <p style = {{fontSize : "small"}}>Current Target: {target.target_name}</p>
+      <p style = {{fontSize : "small"}}>Number of Molecules: {ligand.length}</p>
         <ul className='ac-container'>
           {props.items.map((item, index) => (
             <li key={index} className='corner-menu-list-item'>

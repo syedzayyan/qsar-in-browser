@@ -8,7 +8,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
   }
 
   
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
   const svgRef = useRef();
   const parentRef = useRef(null);
   

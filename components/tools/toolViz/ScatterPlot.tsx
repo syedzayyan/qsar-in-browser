@@ -13,7 +13,7 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
   const svgRef = useRef();
   const [details, setDetails] = useState(null);
 
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
   const [selectedColorScale, setSelectedColorScale] = useState('Viridis');
 
   const [bubbleSize, setBubbleSize] = useState(8);

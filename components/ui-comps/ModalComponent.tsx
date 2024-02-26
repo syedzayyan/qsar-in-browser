@@ -37,7 +37,7 @@ const ModalComponent: FC<ModalComponentProps> = ({ isOpen, children, closeModal,
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1000;
+          z-index: 10000;
         }
 
         .modal {
