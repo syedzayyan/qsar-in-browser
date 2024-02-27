@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useContext } from "react";
+import { useContext } from "react";
 import LigandContext from "../../../context/LigandContext";
 import Histogram from "../../../components/tools/toolViz/Histogram";
 import { mean, median, mode } from "mathjs";
@@ -11,7 +11,7 @@ export default function Activity(){
 
     return(
         <div className="tools-container">
-            <Histogram data = {data} xLabel="Count" yLabel="Activity"/>
+            <Histogram data = {data} xLabel="Count" yLabel="Activity" toolTipData={ligand}/>
             <div className="">
                 <span>Activity Stats</span>     
                 <br />

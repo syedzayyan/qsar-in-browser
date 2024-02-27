@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
+import ModalComponent from "../../ui-comps/ModalComponent";
+import Card from "./Card";
+import MoleculeStructure from "../toolComp/MoleculeStructure";
 
 const MARGIN = { top: 30, right: 30, bottom: 40, left: 50 };
 const BUCKET_NUMBER = 70;
@@ -7,9 +10,11 @@ const BUCKET_PADDING = 1;
 
 type d_bin = typeof d3.bins[number];
 
-export default function Histogram({ data, xLabel = "", yLabel = "" }) {
+export default function Histogram({ data, xLabel = "", yLabel = "", toolTipData = [] }) {
 
   const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
+  const [modalState, setModalState] = useState(false);
+  const [modalDets, setModalDets] = useState([])
 
   const svgRef = useRef(null);
   const parentRef = useRef(null);
@@ -55,7 +60,6 @@ export default function Histogram({ data, xLabel = "", yLabel = "" }) {
       .domain(xScale.domain())
       .thresholds(xScale.ticks(BUCKET_NUMBER));
   }, [xScale]);
-
   // Generate histogram buckets based on the data
   const buckets = useMemo(() => bucketGenerator(data), [bucketGenerator, data]);
 
@@ -115,7 +119,29 @@ export default function Histogram({ data, xLabel = "", yLabel = "" }) {
       .attr("width", (d: d_bin) => Math.max(0, xScale(d.x1) - xScale(d.x0) - BUCKET_PADDING))
       .attr("y", (d: d_bin) => yScale(d.length))
       .attr("height", (d: d_bin) => boundsHeight - yScale(d.length))
-      .attr("fill", "#69b3a2");
+      .attr("fill", "#69b3a2")
+      .on("click", (d: d_bin) => handleClick(d));
+
+      function handleClick(event) {
+        if (toolTipData.length > 0) {
+          const clickedData = d3.select(event.currentTarget).data()[0];    
+          const indexesWithinRange = data.reduce((acc, value, index) => {
+              if (value >= clickedData.x0 && value <= clickedData.x1) {
+                  acc.push(index);
+              }
+              return acc;
+          }, []);    
+          let resultArr = indexesWithinRange.map(i => toolTipData[i]);
+          setModalDets(resultArr)
+          console.log(resultArr)
+          setModalState(true)         
+        }
+
+    }
+    
+    
+    
+
   }, [xScale, yScale, buckets, dimensions]);
 
 
@@ -130,6 +156,19 @@ export default function Histogram({ data, xLabel = "", yLabel = "" }) {
           <g ref={svgRef}>
           </g>
         </svg>
+        {modalState && <ModalComponent isOpen = {modalState} closeModal={() => setModalState(false)}>
+        <>
+          {modalDets.map((x, i) => 
+          <Card>
+            <MoleculeStructure structure={x.canonical_smiles} id={i.toString()} />
+            <span>pKi: {x.neg_log_activity_column} </span>
+            
+            <span>ID: {localStorage.getItem("dataSource") === "chembl" ?
+                <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${x.id}/`} target="_blank" rel="noopener noreferrer">{x.id}</a> : x.id}</span>
+
+          </Card>)}
+          </>
+          </ModalComponent>}
       </div>
     );
   }

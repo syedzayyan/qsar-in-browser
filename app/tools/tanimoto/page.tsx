@@ -55,6 +55,7 @@ export default function Tanimoto(){
                 <>
                 <Histogram 
                     data = {taniData} 
+                    toolTipData={ligand}
                     xLabel="Tanimoto Scores" 
                     yLabel="Count"/>           
                 </>

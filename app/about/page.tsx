@@ -3,7 +3,7 @@ import AboutSection from '../../README.md';
 
 export default function About(){
     return(
-        <div>
+        <div style = {{marginTop : "40px"}}>
             <ReactMarkdown skipHtml={true} children={AboutSection} />
         </div>
     )

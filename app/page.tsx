@@ -9,7 +9,7 @@ export default function IndexPage() {
   const router = useRouter();
 
   return (
-    <>
+    <div style = {{marginTop : "40px"}}>
         <div className="content-wrapper">
           <div className="image-container">
             <img src="logo.svg" alt="Logo" />
@@ -87,6 +87,6 @@ export default function IndexPage() {
             </p>
           </div>
         </div>
-    </>
+    </div>
   );
 }
