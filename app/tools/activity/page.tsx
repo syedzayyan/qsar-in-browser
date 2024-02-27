@@ -11,7 +11,7 @@ export default function Activity(){
 
     return(
         <div className="tools-container">
-            <Histogram data = {data} xLabel="Count" yLabel="Activity" toolTipData={ligand}/>
+            <Histogram data = {data} xLabel="Activity" yLabel="Count" toolTipData={ligand}/>
             <div className="">
                 <span>Activity Stats</span>     
                 <br />
