@@ -27,8 +27,12 @@ export default function Histogram({ data, xLabel = "", yLabel = "" }) {
     return () => window.removeEventListener("resize", getSvgContainerSize);
   }, []);
 
+  if (dimensions.width === 0 && dimensions.height === 0){
+    getSvgContainerSize();
+  }
+
   const width = dimensions.width;
-  const height = Math.min(dimensions.height, window.innerHeight - 200);
+  const height = Math.min(dimensions.height, window.innerHeight - 100);
 
   const boundsWidth = width - 100 - MARGIN.right - MARGIN.left;
   const boundsHeight = height - MARGIN.top - MARGIN.bottom;

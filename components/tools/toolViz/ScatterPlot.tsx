@@ -52,8 +52,11 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
   }, []);
 
   useEffect(() => {
+    if (dimensions.width === 0 && dimensions.height === 0){
+      getSvgContainerSize();
+    }
     const width = dimensions.width - margin.left - margin.right;
-    const height = Math.min(dimensions.height, window.innerHeight - 200) - margin.top - margin.bottom;
+    const height = Math.min(dimensions.height, window.innerHeight - 100) - margin.top - margin.bottom;
 
     const handleMouseOver = (event, d) => {
       const [x, y] = d3.pointer(event);

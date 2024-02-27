@@ -7,8 +7,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
     return <div>Error: Both mae and r2 arrays are required and must have the same length.</div>;
   }
 
-  
-  const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const svgRef = useRef();
   const parentRef = useRef(null);
   
@@ -19,19 +18,17 @@ const GroupedBarChart = ({ mae, r2 }) => {
   };
 
   useEffect(() => {
-    getSvgContainerSize();
     window.addEventListener("resize", getSvgContainerSize);
     return () => window.removeEventListener("resize", getSvgContainerSize);
   }, []);
 
   useEffect(() => {
-    // set the dimensions and margins of the graph
+    if (dimensions.width === 0 && dimensions.height === 0){
+      getSvgContainerSize();
+    }
     const margin = { top: 10, right: 30, bottom: 10, left: 70 },
     width = dimensions.width - margin.left - margin.right,
-    height = Math.max((dimensions.height - margin.top - margin.bottom), 300);
-
-    // width = 800 - margin.left - margin.right,
-    // height = 400 - margin.top - margin.bottom;
+    height = dimensions.height - margin.top - margin.bottom;
 
     const svgElement = d3.select(svgRef.current).select("svg");
     d3.select(svgRef.current).selectAll('*').remove();
