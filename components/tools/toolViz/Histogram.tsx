@@ -161,7 +161,7 @@ export default function Histogram({ data, xLabel = "", yLabel = "", toolTipData 
           {modalDets.map((x, i) => 
           <Card>
             <MoleculeStructure structure={x.canonical_smiles} id={i.toString()} />
-            <span>pKi: {x.neg_log_activity_column} </span>
+            <span>Activity: {x.neg_log_activity_column} </span>
             
             <span>ID: {localStorage.getItem("dataSource") === "chembl" ?
                 <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${x.id}/`} target="_blank" rel="noopener noreferrer">{x.id}</a> : x.id}</span>
