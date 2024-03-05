@@ -8,6 +8,7 @@ import { TargetProvider } from "../context/TargetContext";
 import { LigandProvider } from "../context/LigandContext";
 import { RDKitProvider } from "../context/RDKitContext";
 import { PyodideProvider } from "../context/PyodideContext";
+import { ErrorContextProvider } from "../context/ErrorContext";
 
 export default function RootLayout({
     children,
@@ -29,7 +30,9 @@ export default function RootLayout({
               <LigandProvider>
                 <RDKitProvider>
                   <PyodideProvider>
+                    <ErrorContextProvider>
                     {children} 
+                    </ErrorContextProvider>
                   </PyodideProvider>
                 </RDKitProvider>
               </LigandProvider>

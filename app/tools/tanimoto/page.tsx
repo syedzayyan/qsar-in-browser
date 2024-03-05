@@ -6,28 +6,39 @@ import Histogram from "../../../components/tools/toolViz/Histogram";
 import RDKitContext from "../../../context/RDKitContext";
 import TanimotoSimilarity from "../../../components/utils/tanimoto";
 import fpSorter from "../../../components/utils/fp_sorter";
+import ErrorContext from "../../../context/ErrorContext";
 
 export default function Tanimoto(){
     const {ligand} = useContext(LigandContext);
     const {rdkit} = useContext(RDKitContext);
+    const {setErrors} = useContext(ErrorContext);
+
+
+
     
     const containerRef = useRef(null);
     const [taniData, setTaniData] = useState([]);
     const [anchorMol, setAnchorMol] = useState("CCO");
 
     function tanimotoDist(){
-        const mol_fp = fpSorter(
-            localStorage.getItem("fingerprint"),
-            anchorMol,
-            rdkit,
-            parseInt(localStorage.getItem("path")),
-            parseInt(localStorage.getItem("nBits")),
-        )
-        const data = ligand.map((x) => {
-            const tanimoto = TanimotoSimilarity(x.fingerprint, mol_fp)
-            return tanimoto
-        })
-        setTaniData(data)
+        try{
+            const mol_fp = fpSorter(
+                localStorage.getItem("fingerprint"),
+                anchorMol,
+                rdkit,
+                parseInt(localStorage.getItem("path")),
+                parseInt(localStorage.getItem("nBits")),
+            )
+            const data = ligand.map((x) => {
+                const tanimoto = TanimotoSimilarity(x.fingerprint, mol_fp)
+                return tanimoto
+            })
+            setTaniData(data)
+        }catch (e) {
+            console.log(e)
+            setErrors("Most probably there is problem with your SMILES string")
+        }
+
     }
 
     useEffect(() => {

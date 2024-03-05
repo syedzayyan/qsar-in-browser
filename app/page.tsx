@@ -1,7 +1,5 @@
 "use client"
 
-import { useState } from "react";
-import DataLoader from "../components/dataloader/DataLoader";
 import { useRouter } from "next/navigation";
 
 export default function IndexPage() {
@@ -9,7 +7,7 @@ export default function IndexPage() {
   const router = useRouter();
 
   return (
-    <div style = {{marginTop : "40px"}}>
+    <div style = {{marginTop : "60px"}}>
         <div className="content-wrapper">
           <div className="image-container">
             <img src="logo.svg" alt="Logo" />

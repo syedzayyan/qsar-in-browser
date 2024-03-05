@@ -36,7 +36,6 @@ export default function CompoundGetter() {
   }
 
   function hehe() {
-    console.log(unit, binding)
     getFullActivityData(
       `/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`
     ).then((data) => {

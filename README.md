@@ -7,13 +7,17 @@ This project was borne out of a virtual screening campaign that was conducted fo
 For some, it will be a quick and dirty tool to analyze various targets and drugs to work on while for others it will be their foray into cheminformatics and analysis of small molecules. The hope is to make this website a powerful and versatile tool.
 
 ### Where is QITB?
-Just in your browser. All the code runs in the browser. Using WASM and JS The technologies include:
+Just in your browser. All the code runs in the browser. Using WASM and JS. The technologies include:
 
-- Next.js. Don't ask me why. I think it's for SEO. SSR with normal React is horrendous. SveltKit is in its infancy compared to React and I don't know how to use Vue. I have a penchant for headaches. That too!
-- (RDKit JS)[https://github.com/rdkit/rdkit/tree/master/Code/MinimalLib]. This is a custom build of the JS version with hopes for more contributions to the RDKit JS repo to import more functionalities into QITB. I need people with C++ knowledge to fix things.
-- Pyodide and Scikit-Learn. 
-
-Big thanks to ChEMBL for existing.
+- Next.js. Mostly the routing is easier. I have tried Vanilla ReactJS and it's not easy to set up everything from scratch. SvelteJS routing is weird, I never understood how to work with SvelteKit and host it on Github Pages. Part of the reason why QITB remains FREE forever is it is a static website.
+- (https://github.com/rdkit/rdkit/tree/master/Code/MinimalLib)[RDKit JS]. This is a custom build of the JS version with hopes for more contributions to the RDKit MinimalLib to import more functionalities into QITB. I need people with C++ knowledge to fix things. I have started porting things.
+- Pyodide and Scikit-Learn. What a gift to mankind.
+- Big thanks to ChEMBL for existing.
 
 ### How is QITB?
 You tell? Found an issue and want to fix it? Please feel free to make a PR. Will look forward to people turning and tossing my code to make it better.
+
+### Who is behind QITB and What Do They Do?
+- Me (Syed Zayyan Masud): Horrible, uncommented, untestable code.
+- Theo Redfern-Nichols: Making the UI Useable and Combing through my bad Design Choices and coming up with VERY useful Suggestions.
+- Professor Graham Ladds: For believing that I could do an MPhil and continue to let me work on QITB
