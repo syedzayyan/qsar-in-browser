@@ -6,27 +6,13 @@ import PyodideContext from "../../../context/PyodideContext";
 import { useSearchParams } from "next/navigation";
 import Loader from "../../../components/ui-comps/Loader";
 import RDKitContext from "../../../context/RDKitContext";
-import { useForm } from "react-hook-form";
 import GroupedBarChart from "../../../components/tools/toolViz/BarChart";
 import { mean } from "mathjs";
 import fpSorter from "../../../components/utils/fp_sorter";
 import Scatterplot from "../../../components/tools/toolViz/ScatterPlot";
-
-type RFModelInputs = {
-    n_estimators: number,
-    criterion: string,
-    max_features: string,
-    n_jobs: number,
-}
-
-type XGBoostModelInputs = {
-    max_depth: number,
-    min_child_weight: number,
-    subsample: number,
-    colsample_bytree: number,
-    learning_rate: number,
-    n_jobs: number
-}
+import RF from "../../../components/ml-forms/RF";
+import XGB from "../../../components/ml-forms/XGB";
+import ErrorContext from "../../../context/ErrorContext";
 
 type dataChart = {
     x: number,
@@ -42,16 +28,13 @@ export default function ML() {
     const [results, setResults] = useState([]);
     const [oneOffSMILES, setOneOffSmiles] = useState('CCO');
     const [oneOffSMILESResult, setOneOffSmilesResult] = useState<number>();
-    
+
     const [foldState, setFoldState] = useState<dataChart[]>()
     const [foldNumSel, setFoldNumSel] = useState(0);
 
+    const { setErrors } = useContext(ErrorContext)
 
     const [loaded, setLoaded] = useState(true);
-
-    const { register, handleSubmit, watch, formState: { errors }, } = useForm<RFModelInputs>()
-    const { register: register2, handleSubmit: handleSubmit2,
-        watch: watch2, formState: { errors: errors2 }, } = useForm<XGBoostModelInputs>()
 
     useEffect(() => {
         setWhatMLModel(window.location.hash);
@@ -59,39 +42,44 @@ export default function ML() {
     }, [useSearchParams()]);
 
     async function onSubmit(data) {
-        if (whatMLModel == "#rf") {
-            globalThis.opts = 1;
-        } else if (whatMLModel == "#xgboost") {
-            globalThis.opts = 2;
-            await pyodide.loadPackage(['xgboost']);
-        } else {
-            globalThis.opts = 3
-        }
+        try {
+            if (whatMLModel == "#rf") {
+                globalThis.opts = 1;
+            } else if (whatMLModel == "#xgboost") {
+                globalThis.opts = 2;
+                await pyodide.loadPackage(['xgboost']);
+            } else {
+                globalThis.opts = 3
+            }
 
 
-        setLoaded(false)
-        globalThis.model_parameters = data;
+            setLoaded(false)
+            globalThis.model_parameters = data;
 
-        globalThis.neg_log_activity_column = ligand.map((obj) => obj.neg_log_activity_column);
-        globalThis.fp = ligand.map((obj) => obj.fingerprint);
+            globalThis.neg_log_activity_column = ligand.map((obj) => obj.neg_log_activity_column);
+            globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
-        await pyodide.runPython(await (await fetch("/pyodide_ml.py")).text());
+            await pyodide.runPython(await (await fetch("/pyodide_ml.py")).text());
 
-        const results = globalThis.metrics.toJs();
-        const results_mae = results.map((arr) => arr[0]);
-        const results_r2 = results.map((arr) => arr[1]);
-        setResults([results_mae, results_r2])
+            const results = globalThis.metrics.toJs();
+            const results_mae = results.map((arr) => arr[0]);
+            const results_r2 = results.map((arr) => arr[1]);
+            setResults([results_mae, results_r2])
 
-        let flatData = [];
-        globalThis.perFoldPreds.toJs().flatMap(subArray => {
-            let anArray = []
-            subArray[0].map((_ ,index) => {
-                anArray.push({ x : subArray[0][index], y : subArray[1][index] });
+            let flatData = [];
+            globalThis.perFoldPreds.toJs().flatMap(subArray => {
+                let anArray = []
+                subArray[0].map((_, index) => {
+                    anArray.push({ x: subArray[0][index], y: subArray[1][index] });
+                });
+                flatData.push(anArray);
             });
-            flatData.push(anArray);
-        });
-        setFoldState(flatData);
-        setLoaded(true)
+            setFoldState(flatData);
+            setLoaded(true)
+        } catch (e) {
+            setErrors("Error in ML Model Training: " + e.message + "Most probably Pyodide has not loaded yet, please try in a few seconds. If you are adventurous you could always load up the console and observe the errors there :)")
+            setLoaded(true)
+        }
     }
 
     async function oneOffPred() {
@@ -112,68 +100,17 @@ export default function ML() {
             <div className="tools-container">
                 <details open={results.length == 0}>
                     <summary>Model Settings</summary>
-                    <p style={{ margin: "10px 0" }}>If you are confused, I'd suggest leaving these to the default and just press on
+                    <p style={{ margin: "10px 0" }}>If you are new to the world of ML, I'd suggest leaving these to the default and just press on
                         Run Model button down below. It'll generate you a report of the model performance. These parameters only help you control
                         the ML model performance and maybe tune it to your dataset. These default values have been tried and tested and should give you
                         decent performance.
                     </p>
                     {whatMLModel == "#rf" &&
-                        <form className="ml-forms" onSubmit={handleSubmit(onSubmit)}>
-                            <p>The Python Scikit Learn with the Random Forest Regressor is used. You could consult those docs
-                                for clarity
-                            </p>
-                            <label className="form-labels" htmlFor="n_estimators">Number of Estimators: &nbsp;</label>
-                            <input id="n_estimators" className="input" type="number" defaultValue={120} {...register("n_estimators")} />
-                            <br />
-                            <label className="form-labels" htmlFor="criterion">Criterion: &nbsp;</label>
-                            <select id="criterion" className="input" defaultValue={1} {...register("criterion", { required: true })}>
-                                <option value="squared_error">squared_error</option>
-                                <option value="absolute_error">absolute_error</option>
-                                <option value="friedman_mse">friedman_mse</option>
-                                <option value="poisson">poisson</option>
-                            </select>
-                            <br />
-                            <label className="form-labels" htmlFor="max_features">Maximum Features: &nbsp;</label>
-                            <select id="max_features" className="input" defaultValue={1} {...register("max_features", { required: true })}>
-                                <option value="sqrt">sqrt</option>
-                                <option value="log2">log2</option>
-                                <option value="None">None</option>
-                            </select>
-                            <br />
-                            <label className="form-labels" htmlFor="n_jobs">Number of CPUs: &nbsp;</label>
-                            <input id="n_jobs" className="input" type="number" defaultValue={2} {...register("n_jobs", { required: true })} />
-                            <br />
-                            <br />
-                            <input value={"Train and Test RF Model"} className="button" type="submit" />
-                        </form>
+                        <RF onSubmit={onSubmit} />
                     }
 
                     {whatMLModel == "#xgboost" &&
-                        <form className="ml-forms" onSubmit={handleSubmit2(onSubmit)}>
-                            <p>The python XGBoost library is used. You could consult those docs
-                                for clarity
-                            </p>
-                            <label className="form-labels" htmlFor="learning_rate">Learning Rate: &nbsp;</label>
-                            <input className="input" id="learning_rate" type="number" defaultValue={0.15} {...register2("learning_rate")} />
-                            <br />
-                            <label className="form-labels" htmlFor="max_depth">Maximum Depth: &nbsp;</label>
-                            <input className="input" id="max_depth" type="number" defaultValue={8} {...register2("max_depth")} />
-                            <br />
-                            <label className="form-labels" htmlFor="min_child_weight">Minimum Child Weight: &nbsp;</label>
-                            <input className="input" id="min_child_weight" type="number" defaultValue={7} {...register2("min_child_weight")} />
-                            <br />
-                            <label className="form-labels" htmlFor="subsample">Subsample: &nbsp;</label>
-                            <input className="input" id="subsample" type="number" defaultValue={1} {...register2("subsample")} />
-                            <br />
-                            <label className="form-labels" htmlFor="colsample_bytree">colsample_bytree: &nbsp;</label>
-                            <input className="input" id="colsample_bytree" type="number" defaultValue={1} {...register2("colsample_bytree")} />
-                            <br />
-                            <label className="form-labels" htmlFor="n_jobs">Number of CPUs: &nbsp;</label>
-                            <input className="input" id="n_jobs" type="number" defaultValue={2} {...register2("n_jobs", { required: true })} />
-                            <br />
-                            <br />
-                            <input value={"Train and Test XGBoost Model"} className="button" type="submit" />
-                        </form>
+                        <XGB onSubmit={onSubmit} />
                     }
                 </details>
                 {results.length != 0 && <>
@@ -185,7 +122,7 @@ export default function ML() {
                             <option key={i} value={i}>Fold {i + 1}</option>
                         ))}
                     </select>
-                    <Scatterplot data={foldState[foldNumSel]} xAxisTitle="Predicted Activity" yAxisTitle="Experimental"/>
+                    <Scatterplot data={foldState[foldNumSel]} xAxisTitle="Predicted Activity" yAxisTitle="Experimental" />
                     <hr></hr>
                     <details open>
                         <summary>Interpretation Guide</summary>

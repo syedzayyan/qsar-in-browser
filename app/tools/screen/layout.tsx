@@ -4,7 +4,7 @@ import fpSorter from "../../../components/utils/fp_sorter";
 import RDKitContext from "../../../context/RDKitContext";
 import PyodideContext from "../../../context/PyodideContext";
 import Loader from "../../../components/ui-comps/Loader";
-import ScreeningCompoundsLoader from "../../../components/dataloader/ScreeningCompoundsLoader";
+import CSVLoader from "../../../components/dataloader/CSVLoader";
 
 // Create a new context for screenData
 export const ScreenDataContext = createContext([]);
@@ -30,7 +30,7 @@ export default function ScreenLayout({ children }) {
                         parseInt(localStorage.getItem("path")),
                         parseInt(localStorage.getItem("nBits")),
                     )
-                    x["id"] = data.id_column
+                    x["id"] = x[data.id_column]
                     return x
                 } catch (error) {
                     console.error("Error processing element:", error);
@@ -73,10 +73,13 @@ export default function ScreenLayout({ children }) {
     return (
         <div className="tools-container">
             <ScreenDataContext.Provider value={screenDataContextValue}>
-                <ScreeningCompoundsLoader
-                    callofScreenFunction={callofScreenFunction}
-                    setScreenData={setScreenData}
-                />
+                <div style = {{height : "20vh"}}>
+                    <CSVLoader
+                        callofScreenFunction={callofScreenFunction}
+                        csvSetter={setScreenData}
+                        act_col={false}
+                    />                    
+                </div>
                 {screenData.length > 0 && children}
             </ScreenDataContext.Provider>
         </div>

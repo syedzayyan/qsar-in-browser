@@ -199,6 +199,7 @@ main {
   align-items: center;
   position: fixed;
   width: 100vw;
+  z-index: 100000000000000000;
 }
 
 .logo a {
@@ -427,4 +428,13 @@ _::-webkit-full-page-media, _:future, .theme-switcher .switch {
 
 p{
   line-height: 140%;
+}
+.hehe-weird{
+  width : 60%;
+  margin : 0 auto;
+}
+@media screen and (max-width: 768px) {
+  .hehe-weird {
+      width: 100%;
+  }
 }

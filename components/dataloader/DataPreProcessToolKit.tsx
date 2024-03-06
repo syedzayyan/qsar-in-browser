@@ -15,6 +15,15 @@ type FingerPrintSettings = {
 }
 
 
+/**
+ * Component for data pre-processing.
+ * This component handles the form submission and processing of molecules.
+ * It allows the user to select a fingerprint type, specify radius size and fingerprint size,
+ * enable data de-duplication, and submit the form to process the molecules.
+ *
+ * @returns The JSX element representing the data pre-processing form.
+ */
+
 export default function DataPreProcessToolKit() {
   const router = useRouter();
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<FingerPrintSettings>();

@@ -26,7 +26,7 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
 
   function saveWork(e){
     e.preventDefault();
-    const combinedJSON = {target_data: target, ligand_data : ligand, source : localStorage.getItem("dataSource")};
+    const combinedJSON = {target_data: target, ligand_data : ligand, source : localStorage.getItem("dataSource"), fpPath : localStorage.getItem("path"), nBits : localStorage.getItem("nBits"), fp_type : localStorage.getItem("fingerprint")};
     const jsonString = JSON.stringify(combinedJSON, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const downloadLink = document.createElement('a');

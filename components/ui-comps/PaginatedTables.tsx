@@ -7,6 +7,7 @@ import { randomInt } from "mathjs";
 const Table = ({ data, rowsPerPage }) => {
     const [page, setPage] = useState(1);
     const { slice, range } = useTable(data, page, rowsPerPage);
+    console.log(slice)
     return (
         <>
             <table className="table">

@@ -41,7 +41,7 @@ export default function TargetGetter() {
         <input type="submit" onSubmit={fetchTarget} className="button" value="Search for your Target"/>
       </form>
       {target.target_name === "" ? (
-        <div style={{ overflow: "scroll", height: "300px", minWidth: "300px", display: "flex", "justifyContent": "center" }}>
+        <div style={{ overflow: "scroll", height: "300px", display: "flex", "justifyContent": "center" }}>
           {loading ? <Loader /> :
             <table className="custom-table">
               <thead>

@@ -7,6 +7,12 @@ export type coverageSets = {
     predictions: number
 }
 
+/**
+ * Calculates the coverage score for a given set of coverage data.
+ * @param sFull - An array of coverage sets representing the full coverage data.
+ * @param sPrior - An optional array of compounds for biasing coverage score. Defaults to an empty array.
+ * @returns An object with a `calculateCoverageScore` function that calculates the coverage score.
+ */
 export var coverageNameSpace = (sFull: coverageSets[], sPrior: coverageSets[] = []) => {
     if (sPrior.length != 0) {
         sFull = sFull.concat(sPrior)
