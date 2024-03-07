@@ -6,7 +6,7 @@ const Navbar = () => {
         <nav className="navbar">
             <div className="logo">
                 <a href="/">
-                    QSAR IN THE BROWSER
+                    WORK IN PROGRESS
                 </a>
             </div>
             <ul className="navLinks">
