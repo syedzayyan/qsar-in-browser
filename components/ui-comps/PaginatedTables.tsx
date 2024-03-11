@@ -7,7 +7,9 @@ import { randomInt } from "mathjs";
 const Table = ({ data, rowsPerPage }) => {
     const [page, setPage] = useState(1);
     const { slice, range } = useTable(data, page, rowsPerPage);
-    console.log(slice)
+
+    
+
     return (
         <>
             <table className="table">
@@ -16,7 +18,7 @@ const Table = ({ data, rowsPerPage }) => {
                         <th className="tableHeader">ID</th>
                         <th className="tableHeader">SMILES</th>
                         <th className="tableHeader">Representation</th>
-                        <th className="tableHeader">Prediction</th>
+                        <th className="tableHeader">{slice.length > 0 && slice[0].predictions === null ? "Activity" : "Prediction"}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -25,7 +27,7 @@ const Table = ({ data, rowsPerPage }) => {
                             <td className="tableCell">{el.id}</td>
                             <td className="tableCell">{el.canonical_smiles}</td>
                             <td className="tableCell"><MoleculeStructure structure={el.canonical_smiles} id = {i.toString()}/></td>
-                            <td className="tableCell">{el.predictions}</td>
+                            <td className="tableCell">{el.predictions} {el.neg_log_activity_column}</td>
                         </tr>
                     ))}
                 </tbody>

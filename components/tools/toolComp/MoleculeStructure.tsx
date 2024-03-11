@@ -21,7 +21,10 @@ interface MoleculeStructureState {
   rdKitError: boolean;
 }
 
-class MoleculeStructure extends Component<MoleculeStructureProps, MoleculeStructureState> {
+class MoleculeStructure extends Component<
+  MoleculeStructureProps,
+  MoleculeStructureState
+> {
   static propTypes = {
     id: PropTypes.string.isRequired,
     className: PropTypes.string,
@@ -94,7 +97,9 @@ class MoleculeStructure extends Component<MoleculeStructureProps, MoleculeStruct
       const svg = mol.get_svg_with_highlights(this.getMolDetails(mol, qmol));
       this.setState({ svg });
     } else if (isValidMol) {
-      const canvas = document.getElementById(this.props.id) as HTMLCanvasElement;
+      const canvas = document.getElementById(
+        this.props.id,
+      ) as HTMLCanvasElement;
       mol.draw_to_canvas_with_highlights(canvas, this.getMolDetails(mol, qmol));
     }
 
@@ -108,14 +113,18 @@ class MoleculeStructure extends Component<MoleculeStructureProps, MoleculeStruct
 
   private getMolDetails(mol: any, qmol: any) {
     if (this.isValidMol(mol) && this.isValidMol(qmol)) {
-      const subStructHighlightDetails = JSON.parse(mol.get_substruct_matches(qmol));
-      const subStructHighlightDetailsMerged = !_.isEmpty(subStructHighlightDetails)
+      const subStructHighlightDetails = JSON.parse(
+        mol.get_substruct_matches(qmol),
+      );
+      const subStructHighlightDetailsMerged = !_.isEmpty(
+        subStructHighlightDetails,
+      )
         ? subStructHighlightDetails.reduce(
             (acc, { atoms, bonds }) => ({
               atoms: [...acc.atoms, ...atoms],
               bonds: [...acc.bonds, ...bonds],
             }),
-            { bonds: [], atoms: [] }
+            { bonds: [], atoms: [] },
           )
         : subStructHighlightDetails;
 
@@ -140,11 +149,11 @@ class MoleculeStructure extends Component<MoleculeStructureProps, MoleculeStruct
         try {
           this.draw();
         } catch (err) {
-          console.log(err);
+          console.error(err);
         }
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         this.setState({ rdKitError: true });
       });
   }

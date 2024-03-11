@@ -143,6 +143,6 @@
 }
 
 .ac-container input:checked ~ article[class^="sub-col-menu-"] {
-  min-height: 80px;
-  overflow: inherit;
+  min-height: 80px; /* Adjust the value as needed */
+  overflow:scroll;
 }

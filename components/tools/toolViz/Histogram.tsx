@@ -8,13 +8,17 @@ const MARGIN = { top: 30, right: 30, bottom: 40, left: 50 };
 const BUCKET_NUMBER = 70;
 const BUCKET_PADDING = 1;
 
-type d_bin = typeof d3.bins[number];
+type d_bin = (typeof d3.bins)[number];
 
-export default function Histogram({ data, xLabel = "", yLabel = "", toolTipData = [] }) {
-
+export default function Histogram({
+  data,
+  xLabel = "",
+  yLabel = "",
+  toolTipData = [],
+}) {
   const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
   const [modalState, setModalState] = useState(false);
-  const [modalDets, setModalDets] = useState([])
+  const [modalDets, setModalDets] = useState([]);
 
   const svgRef = useRef(null);
   const parentRef = useRef(null);
@@ -32,7 +36,7 @@ export default function Histogram({ data, xLabel = "", yLabel = "", toolTipData 
     return () => window.removeEventListener("resize", getSvgContainerSize);
   }, []);
 
-  if (dimensions.width === 0 && dimensions.height === 0){
+  if (dimensions.width === 0 && dimensions.height === 0) {
     getSvgContainerSize();
   }
 
@@ -66,7 +70,11 @@ export default function Histogram({ data, xLabel = "", yLabel = "", toolTipData 
   // Create Y scale based on the histogram buckets
   const yScale = useMemo(() => {
     const max = d3.max(buckets, (bucket: d_bin) => bucket.length);
-    return d3.scaleLinear().range([boundsHeight, 0]).domain([0, max || 0]).nice();
+    return d3
+      .scaleLinear()
+      .range([boundsHeight, 0])
+      .domain([0, max || 0])
+      .nice();
   }, [buckets, boundsHeight]);
 
   // Effect to update the chart when the scales or data change
@@ -88,7 +96,10 @@ export default function Histogram({ data, xLabel = "", yLabel = "", toolTipData 
     // Add X-axis label
     svgElement
       .append("text")
-      .attr("transform", `translate(${width / 2},${height - MARGIN.bottom + 30})`)
+      .attr(
+        "transform",
+        `translate(${width / 2},${height - MARGIN.bottom + 30})`,
+      )
       .style("text-anchor", "middle")
       .text(xLabel);
 
@@ -116,61 +127,72 @@ export default function Histogram({ data, xLabel = "", yLabel = "", toolTipData 
       .data(buckets)
       .join("rect")
       .attr("x", (d: d_bin) => xScale(d.x0) + BUCKET_PADDING / 2)
-      .attr("width", (d: d_bin) => Math.max(0, xScale(d.x1) - xScale(d.x0) - BUCKET_PADDING))
+      .attr("width", (d: d_bin) =>
+        Math.max(0, xScale(d.x1) - xScale(d.x0) - BUCKET_PADDING),
+      )
       .attr("y", (d: d_bin) => yScale(d.length))
       .attr("height", (d: d_bin) => boundsHeight - yScale(d.length))
       .attr("fill", "#69b3a2")
       .on("click", (d: d_bin) => handleClick(d));
 
-      function handleClick(event) {
-        if (toolTipData.length > 0) {
-          const clickedData = d3.select(event.currentTarget).data()[0];    
-          const indexesWithinRange = data.reduce((acc, value, index) => {
-              if (value >= clickedData.x0 && value <= clickedData.x1) {
-                  acc.push(index);
-              }
-              return acc;
-          }, []);    
-          let resultArr = indexesWithinRange.map(i => toolTipData[i]);
-          setModalDets(resultArr)
-          console.log(resultArr)
-          setModalState(true)         
-        }
-
+    function handleClick(event) {
+      if (toolTipData.length > 0) {
+        const clickedData = d3.select(event.currentTarget).data()[0];
+        const indexesWithinRange = data.reduce((acc, value, index) => {
+          if (value >= clickedData.x0 && value <= clickedData.x1) {
+            acc.push(index);
+          }
+          return acc;
+        }, []);
+        let resultArr = indexesWithinRange.map((i) => toolTipData[i]);
+        setModalDets(resultArr);
+        setModalState(true);
+      }
     }
-    
-    
-    
-
   }, [xScale, yScale, buckets, dimensions]);
 
-
   if (data === undefined) {
-    return (
-      <></>
-    )
+    return <></>;
   } else {
     return (
       <div className="container" ref={parentRef}>
         <svg width={width} height={height} ref={svgRef}>
-          <g ref={svgRef}>
-          </g>
+          <g ref={svgRef}></g>
         </svg>
-        {modalState && <ModalComponent isOpen = {modalState} closeModal={() => setModalState(false)}>
-        <>
-          {modalDets.map((x, i) => 
-          <Card>
-            <MoleculeStructure structure={x.canonical_smiles} id={i.toString()} />
-            <span>Activity: {x.neg_log_activity_column} </span>
-            
-            <span>ID: {localStorage.getItem("dataSource") === "chembl" ?
-                <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${x.id}/`} target="_blank" rel="noopener noreferrer">{x.id}</a> : x.id}</span>
+        {modalState && (
+          <ModalComponent
+            isOpen={modalState}
+            closeModal={() => setModalState(false)}
+          >
+            <>
+              {modalDets.map((x, i) => (
+                <Card>
+                  <MoleculeStructure
+                    structure={x.canonical_smiles}
+                    id={i.toString()}
+                  />
+                  <span>Activity: {x.neg_log_activity_column} </span>
 
-          </Card>)}
-          </>
-          </ModalComponent>}
+                  <span>
+                    ID:{" "}
+                    {localStorage.getItem("dataSource") === "chembl" ? (
+                      <a
+                        href={`https://www.ebi.ac.uk/chembl/compound_report_card/${x.id}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {x.id}
+                      </a>
+                    ) : (
+                      x.id
+                    )}
+                  </span>
+                </Card>
+              ))}
+            </>
+          </ModalComponent>
+        )}
       </div>
     );
   }
-
 }
