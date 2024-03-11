@@ -99,11 +99,13 @@ const GraphEvents: React.FC = () => {
       touchmove: (e) => {
         if (draggedNode) {
           // Get new position of node
+          // @ts-ignore
           const pos = sigma.viewportToGraph(e);
           sigma.getGraph().setNodeAttribute(draggedNode, "x", pos.x);
           sigma.getGraph().setNodeAttribute(draggedNode, "y", pos.y);
 
           // Prevent sigma to move camera:
+          // @ts-ignore
           e.preventSigmaDefault();
           e.original.preventDefault();
           e.original.stopPropagation();
