@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+// TabWrapper.jsx
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 const TabWrapper = ({ children }) => {
-    const [activeTab, setActiveTab] = useState(0);
+    const [activeTab, setActiveTab] = useState(1);
 
     const handleTabChange = (index) => {
         setActiveTab(index);
@@ -12,28 +13,22 @@ const TabWrapper = ({ children }) => {
         <div className="tab-wrapper">
             <div className="tab-header">
                 {React.Children.map(children, (child, index) =>
-                    React.cloneElement(child, {
+                    React.cloneElement(child as React.ReactElement<any>, {
                         isActive: index === activeTab,
                         onTabClick: () => handleTabChange(index),
                     })
                 )}
             </div>
             <div className="tab-content">
-                {React.Children.map(children, (child, index) =>
-                    index === activeTab ? child.props.children : null
-                )}
+                {(React.Children.toArray(children)[activeTab] as React.ReactElement<any>).props.children}
             </div>
         </div>
     );
 };
 
-TabWrapper.propTypes = {
-    children: PropTypes.node.isRequired,
-};
-
 export default TabWrapper;
 
-export const Tabs = ({ title, isActive, onTabClick }) => {
+export const Tabs = ({ title, isActive, onTabClick, children }) => {
     return (
         <div className={`tab ${isActive ? 'active' : ''}`} onClick={onTabClick}>
             {title}
@@ -43,6 +38,7 @@ export const Tabs = ({ title, isActive, onTabClick }) => {
 
 Tabs.propTypes = {
     title: PropTypes.string.isRequired,
-    isActive: PropTypes.bool.isRequired,
-    onTabClick: PropTypes.func.isRequired,
+    isActive: PropTypes.bool,
+    onTabClick: PropTypes.func,
+    content: PropTypes.node,
 };
