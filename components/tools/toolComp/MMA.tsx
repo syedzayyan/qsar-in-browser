@@ -5,8 +5,6 @@ import Card from "../toolViz/Card";
 import MoleculeStructure from "./MoleculeStructure";
 import Loader from "../../ui-comps/Loader";
 import ModalComponent from "../../ui-comps/ModalComponent";
-import kstest from "@stdlib/stats-kstest";
-import cdf from "@stdlib/stats-base-dists-normal-cdf";
 import { ksTest } from "../../utils/ks_test";
 
 export default function MMA() {
