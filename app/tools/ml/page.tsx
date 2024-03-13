@@ -131,8 +131,8 @@ export default function ML() {
                             each fold is tested. This validation technique helps mitigate splitting biases.
                         </p>
                         <p>&emsp;Considering <a href="https://pubs.acs.org/doi/10.1021/ci400099q">the error rates in experimental assays and in general with ChEMBL</a>,
-                            the mean absolute error (MAE) value of about 0.45 - 0.85 is a good ballpark range. Anything below 0.45 is freakishly low and possibly overfitting.
-                            The R-squared value of near to one is desirable, but again given error rates, anything above 0.90ish is freakishly high.</p>
+                            the mean absolute error (MAE) value of about 0.45 - 0.85 is a good ballpark range. Anything below 0.45 is low and possibly overfitting.
+                            The R-squared value of near to one is desirable, but again given error rates, anything above 0.90ish is high.</p>
                         <p>&emsp;Now that you have an idea how the model performs, and how the training data looks like, this trained model could be used, to virtually screen
                             new molecules against your target. You could supply your own molecule using the CSV loader, or use ZINC (Both of these features are coming soon).
                             For now you could test one smile at a time.
