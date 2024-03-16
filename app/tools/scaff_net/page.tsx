@@ -40,8 +40,14 @@ export default function DisplayGraph() {
 
   return (
     <div className="tools-container">
+      <h1>Scaffold Network</h1>
       <TabWrapper>
-        <Tabs title="Scaffold Details">
+        <Tabs title="Network Settings">
+          <div>
+            <p>Settings go here</p>
+          </div>
+        </Tabs>
+        <Tabs title="Network Details">
           <ScaffNetDets graph={graph} />
         </Tabs>
         <Tabs title="Whole Network">

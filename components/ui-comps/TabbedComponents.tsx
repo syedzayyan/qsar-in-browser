@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
-const TabWrapper = ({ children }) => {
-    const [activeTab, setActiveTab] = useState(1);
+const TabWrapper = ({ children, defaultTab = 0 }) => {
+    const [activeTab, setActiveTab] = useState(defaultTab);
 
     const handleTabChange = (index) => {
         setActiveTab(index);

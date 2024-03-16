@@ -65,13 +65,13 @@ const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120 }) => {
     simulation.on("tick", () => {
       link
         .attr("x1", d => d.source.x)
-        .attr("y1", d => height - d.source.y) // Reverse the y-coordinate for source
+        .attr("y1", d => d.source.y) // Reverse the y-coordinate for source
         .attr("x2", d => d.target.x)
-        .attr("y2", d => height - d.target.y); // Reverse the y-coordinate for target
+        .attr("y2", d => d.target.y); // Reverse the y-coordinate for target
     
       node
         .attr("x", d => d.x)
-        .attr("y", d => height - d.y); // Reverse the y-coordinate for nodes
+        .attr("y", d => d.y); // Reverse the y-coordinate for nodes
     });
 
     // Reheat the simulation when drag starts, and fix the subject position.
