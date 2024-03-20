@@ -4,7 +4,7 @@ import ModalComponent from "../../ui-comps/ModalComponent";
 import Card from "./Card";
 import MoleculeStructure from "../toolComp/MoleculeStructure";
 
-const MARGIN = { top: 30, right: 30, bottom: 40, left: 50 };
+const MARGIN = { top: 30, right: 30, bottom: 50, left: 80 };
 const BUCKET_NUMBER = 70;
 const BUCKET_PADDING = 1;
 
@@ -91,16 +91,19 @@ export default function Histogram({
     svgElement
       .append("g")
       .attr("transform", `translate(${MARGIN.left},${height - MARGIN.bottom})`)
-      .call(xAxisGenerator);
+      .call(xAxisGenerator)
+      .selectAll('text') // Select all the text elements for x-axis ticks
+      .style('font-size', '1.5em'); 
 
     // Add X-axis label
     svgElement
       .append("text")
       .attr(
         "transform",
-        `translate(${width / 2},${height - MARGIN.bottom + 30})`,
+        `translate(${width / 2},${height - MARGIN.bottom + 45})`,
       )
       .style("text-anchor", "middle")
+      .style('font-size', '1.5em')
       .text(xLabel);
 
     // Create Y-axis and position it
@@ -108,16 +111,19 @@ export default function Histogram({
     svgElement
       .append("g")
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-      .call(yAxisGenerator);
+      .call(yAxisGenerator)
+      .selectAll('text') // Select all the text elements for x-axis ticks
+      .style('font-size', '1.5em'); 
 
     // Add Y-axis label
     svgElement
       .append("text")
       .attr("transform", "rotate(-90)")
-      .attr("y", MARGIN.left - 40)
+      .attr("y", MARGIN.left - 70)
       .attr("x", 0 - height / 2)
       .attr("dy", "1em")
       .style("text-anchor", "middle")
+      .style('font-size', '1.5em')
       .text(yLabel);
 
     svgElement

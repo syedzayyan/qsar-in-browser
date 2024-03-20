@@ -26,7 +26,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
     if (dimensions.width === 0 && dimensions.height === 0){
       getSvgContainerSize();
     }
-    const margin = { top: 10, right: 30, bottom: 10, left: 70 },
+    const margin = { top: 40, right: 60, bottom: 40, left: 70 },
     width = dimensions.width - margin.left - margin.right,
     height = dimensions.height - margin.top - margin.bottom;
 
@@ -54,6 +54,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
         .padding([0.2]);
       svg.append("g")
         .attr("transform", `translate(0, ${height})`)
+        .style('font-size', '1.2em')
         .call(d3.axisBottom(x).tickSize(0));
 
       // Add Y axis
@@ -61,6 +62,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
         .domain([0, d3.max([...mae, ...r2])])
         .range([height, 0]);
       svg.append("g")
+      .style('font-size', '1.2em')
         .call(d3.axisLeft(y));
 
       // Another scale for subgroup position
@@ -93,7 +95,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
 
       // Add legend
       const legend = svg.append("g")
-        .attr("transform", `translate(${width - 30}, 0)`);
+        .attr("transform", `translate(${width - 15}, 0)`);
 
       legend.selectAll("rect")
         .data(subgroups)

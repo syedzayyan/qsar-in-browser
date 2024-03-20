@@ -7,7 +7,7 @@ import MoleculeStructure from '../toolComp/MoleculeStructure';
 import { randomInt } from 'mathjs';
 
 const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAxisTitle, id = [] }) => {
-  const margin = { top: 10, right: 30, bottom: 30, left: 60 };
+  const margin = { top: 10, right: 20, bottom: 60, left: 70 };
 
   const parentRef = useRef(null);
   const svgRef = useRef();
@@ -52,7 +52,7 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
   }, []);
 
   useEffect(() => {
-    if (dimensions.width === 0 && dimensions.height === 0){
+    if (dimensions.width === 0 && dimensions.height === 0) {
       getSvgContainerSize();
     }
     const width = dimensions.width - margin.left - margin.right;
@@ -100,6 +100,12 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
       xAxis.call(d3.axisBottom(newX));
       yAxis.call(d3.axisLeft(newY));
 
+      yAxis.selectAll('text') // Select all the text elements for x-axis ticks
+        .style('font-size', '1.5em'); 
+
+        xAxis.selectAll('text') // Select all the text elements for x-axis ticks
+        .style('font-size', '1.5em'); 
+
       scatter
         .selectAll('circle')
         .attr('cx', (d) => newX(d.x))
@@ -111,13 +117,19 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
       .range([0, width]);
     const xAxis = svg.append('g')
       .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x));
+      .call(d3.axisBottom(x))
+
+    xAxis.selectAll('text') // Select all the text elements for x-axis ticks
+      .style('font-size', '1.5em'); 
 
     const y = d3.scaleLinear()
       .domain([d3.min(data, d => d.y), d3.max(data, d => d.y)])
       .range([height, 0]);
     const yAxis = svg.append('g')
-      .call(d3.axisLeft(y));
+      .call(d3.axisLeft(y))
+
+    yAxis.selectAll('text') // Select all the text elements for x-axis ticks
+      .style('font-size', '1.5em'); 
 
     svg.append('defs').append('clipPath')
       .attr('id', 'clip')
@@ -143,18 +155,20 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
       .on('click', hoverProp.length > 0 ? (_, d) => findModalDetails(event, d) : null); // Conditionally attach click handler
 
     svg.append('text')
-      .attr('transform', `translate(${width / 2},${height + margin.top + 20})`)
+      .attr('transform', `translate(${width / 2},${height + margin.top + 40})`)
       .style('text-anchor', 'middle')
       .style('fill', 'var(--text-color)')
+      .style('font-size', '1.2em')
       .text(xAxisTitle);
 
     svg.append('text')
       .attr('transform', 'rotate(-90)')
       .attr('y', 0 - margin.left)
       .attr('x', 0 - height / 2)
-      .attr('dy', '1em')
+      .attr('dy', '1.4em')
       .style('text-anchor', 'middle')
       .style('fill', 'var(--text-color)')
+      .style('font-size', '1.2em')
       .text(yAxisTitle);
   }, [data, dimensions, selectedColorScale, bubbleSize]);
 

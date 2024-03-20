@@ -7,9 +7,9 @@ import Scatterplot from "../../../components/tools/toolViz/ScatterPlot";
 import { useSearchParams } from "next/navigation";
 import Loader from "../../../components/ui-comps/Loader";
 
-export default function DimRed(){
+export default function DimRed() {
 
-    const {ligand} = useContext(LigandContext);
+    const { ligand, setLigand } = useContext(LigandContext);
     const { pyodide } = useContext(PyodideContext);
     const [pca, setPCA] = useState<any[]>([])
     const [whatDimRed, setWhatDimRef] = useState(window.location.href.split("#")[1])
@@ -23,17 +23,40 @@ export default function DimRed(){
         setWhatDimRef(window.location.href.split("#")[1]);
         if (window.location.href.split("#")[1] === "pca") {
             globalThis.opts = 1
-        } else if (window.location.href.split("#")[1] === "tsne"){
-            if (pcaCorrectTSNE){
+        } else if (window.location.href.split("#")[1] === "tsne") {
+            if (pcaCorrectTSNE) {
                 globalThis.opts = 2
             } else {
                 globalThis.opts = 3
             }
         } else {
             throw new Error("opts is not properly set.");
-        }  
-        setLoaded(false);  
-        setTimeout(() => {runDimRed()}, 1000);
+        }
+        setLoaded(false);
+        setTimeout(() => {
+            const previousDataExistsPCA = ligand.some(obj => obj.tsne);
+            const previousDataExiststSNE = ligand.some(obj => obj.tsne);
+            const dimRedType = window.location.href.split("#")[1];
+
+            if (!previousDataExistsPCA && !previousDataExiststSNE) {
+                runDimRed();
+            } else {
+                if (dimRedType === "pca") {
+                    if (previousDataExistsPCA) {
+                        setPCA(ligand.map((obj) => obj.pca));
+                    } else {
+                        runDimRed();
+                    }
+                } else if (dimRedType === "tsne") {
+                    if (previousDataExistsPCA) {
+                        setPCA(ligand.map((obj) => obj.tsne));
+                    } else {
+                        runDimRed();
+                    }
+                }
+                setLoaded(true);
+            }
+        }, 100);
     }, [useSearchParams()])
 
     var data = ligand.map((obj) => obj.neg_log_activity_column);
@@ -41,8 +64,8 @@ export default function DimRed(){
     var id = ligand.map((obj) => obj.id);
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
-    async function runDimRed(){   
-        setLoaded(false);       
+    async function runDimRed() {
+        setLoaded(false);
         await pyodide.runPython(`
             from sklearn.decomposition import PCA
             from sklearn.manifold import TSNE
@@ -66,33 +89,44 @@ export default function DimRed(){
         `)
         const pca_result = (globalThis.pca).toJs();;
         const pca_data_in = pca_result.map(([x, y]) => ({ x, y }));
-        setPCA(pca_data_in)
+        let new_ligand = ligand.map((obj, index) => {
+            if (globalThis.opts === 1) {
+                return { ...obj, pca: pca_data_in[index] };
+            } else {
+                return { ...obj, tsne: pca_data_in[index] };
+            }
+        });
+        setLigand(new_ligand);
+        setPCA(pca_data_in);
         setLoaded(true)
     }
     if (loaded) {
-        return(
+        return (
             <div className="tools-container" ref={containerRef}>
                 {whatDimRed === "pca" && (
                     <>
                     </>
                 )}
                 {whatDimRed === "tsne" && (
-                    <details open = {pca.length < 0}>
+                    <details open={pca.length < 0}>
                         <summary>tSNE settings</summary>
                         <form>
-                            <input type = "checkbox" defaultChecked onChange = {(e) => {setPCACorrectTSNE(e.target.checked)}}></input>
+                            <label htmlFor="tsne_perplexity">PCA Correction</label>
+                            <input type="checkbox" defaultChecked onChange={(e) => { setPCACorrectTSNE(e.target.checked) }}></input>
+                            <br />
                             <label htmlFor="tsne_perplexity">Perplexity</label>
-                            <input className="input" id = "tsne_perplexity"></input>
+                            <input className="input" id="tsne_perplexity"></input>
+                            <br />
                             <label htmlFor="tsne_n_iter">Number of Iterations</label>
-                            <input className="input" id = "tsne_n_iter"></input>
+                            <input className="input" id="tsne_n_iter"></input>
+                            <br />
                             <button className="button" onClick={() => runDimRed()}>Run tSNE</button>
-                        </form>                        
+                        </form>
                     </details>
-
                 )}
-                {pca.length > 0 && 
-                    <Scatterplot 
-                        data = {pca} 
+                {pca.length > 0 &&
+                    <Scatterplot
+                        data={pca}
                         colorProperty={data}
                         hoverProp={smi}
                         xAxisTitle={"Principal Component 1"}
@@ -101,11 +135,11 @@ export default function DimRed(){
                     />
                 }
             </div>
-        )        
+        )
     } else {
         return (
             <div className="tools-container">
-                <Loader loadingText="Doing Dimension Reduction Magic"/>
+                <Loader loadingText="Doing Dimension Reduction Magic" />
             </div>
         )
     }
