@@ -97,14 +97,20 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
       const newX = event.transform.rescaleX(x);
       const newY = event.transform.rescaleY(y);
 
-      xAxis.call(d3.axisBottom(newX));
-      yAxis.call(d3.axisLeft(newY));
+      xAxis.call(d3.axisBottom(newX).tickSize(-height));
+      yAxis.call(d3.axisLeft(newY).tickSize(-width));
+
+      xAxis.selectAll('.tick line') // Select all the grid lines
+        .style('opacity', 0.2);
+
+      yAxis.selectAll('.tick line') // Select all the grid lines
+        .style('opacity', 0.2);
 
       yAxis.selectAll('text') // Select all the text elements for x-axis ticks
-        .style('font-size', '1.5em'); 
+        .style('font-size', '1.5em');
 
-        xAxis.selectAll('text') // Select all the text elements for x-axis ticks
-        .style('font-size', '1.5em'); 
+      xAxis.selectAll('text') // Select all the text elements for x-axis ticks
+        .style('font-size', '1.5em');
 
       scatter
         .selectAll('circle')
@@ -117,19 +123,27 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
       .range([0, width]);
     const xAxis = svg.append('g')
       .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x))
+      .call(d3.axisBottom(x).tickSize(-height))
+
+    xAxis.selectAll('.tick line') // Select all the grid lines
+      .style('opacity', 0.2);
+
 
     xAxis.selectAll('text') // Select all the text elements for x-axis ticks
-      .style('font-size', '1.5em'); 
+      .style('font-size', '1.5em');
 
     const y = d3.scaleLinear()
       .domain([d3.min(data, d => d.y), d3.max(data, d => d.y)])
       .range([height, 0]);
     const yAxis = svg.append('g')
-      .call(d3.axisLeft(y))
+      .call(d3.axisLeft(y).tickSize(-width))
+
+    yAxis.selectAll('.tick line') // Select all the grid lines
+      .style('opacity', 0.2);
+
 
     yAxis.selectAll('text') // Select all the text elements for x-axis ticks
-      .style('font-size', '1.5em'); 
+      .style('font-size', '1.5em');
 
     svg.append('defs').append('clipPath')
       .attr('id', 'clip')
