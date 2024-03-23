@@ -5,6 +5,7 @@ import { Tooltip } from './ToolTip';
 import ModalComponent from '../../ui-comps/ModalComponent';
 import MoleculeStructure from '../toolComp/MoleculeStructure';
 import { randomInt } from 'mathjs';
+import Screenshotter from '../../utils/d3toPNG';
 
 const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAxisTitle, id = [] }) => {
   const margin = { top: 10, right: 20, bottom: 60, left: 70 };
@@ -74,9 +75,6 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
     d3.select(svgRef.current).selectAll('*').remove();
 
     const svg = d3.select(svgRef.current)
-      .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -198,7 +196,11 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
   return (
     <div className='container' ref={parentRef}>
       {colorProperty.length > 0 && <D3ColorLegend colorScale={colorScaler} width={dimensions.width} />}
-      <div id="dataviz_axisZoom" ref={svgRef}></div>
+      <svg id="dataviz_axisZoom" ref={svgRef}
+        height={Math.min(dimensions.height, window.innerHeight - 100)}
+        width={dimensions.width}
+      ></svg>
+      <Screenshotter svgRef={svgRef} />
       <Tooltip interactionData={details} />
       <ModalComponent width='50' isOpen={modalState} closeModal={() => setModalState(false)}>
         <div className='ml-forms'>

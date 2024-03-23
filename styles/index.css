@@ -7,6 +7,8 @@
 @import "./tabs.css";
 @import "./tags.css";
 
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
 html,
 body,
 div,
@@ -92,6 +94,7 @@ video {
     padding: 0;
     border: 0;
     vertical-align: baseline;
+    font-family: 'Montserrat', sans-serif;
 }
 
 /* HTML5 display-role reset for older browsers */

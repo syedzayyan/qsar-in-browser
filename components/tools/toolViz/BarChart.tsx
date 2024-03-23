@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import Screenshotter from '../../utils/d3toPNG';
 
 const GroupedBarChart = ({ mae, r2 }) => {
   // Check if both mae and r2 are provided and have the same length
@@ -28,16 +29,13 @@ const GroupedBarChart = ({ mae, r2 }) => {
     }
     const margin = { top: 40, right: 60, bottom: 40, left: 70 },
     width = dimensions.width - margin.left - margin.right,
-    height = dimensions.height - margin.top - margin.bottom;
+    height = Math.min(dimensions.height, window.innerHeight - 20) - margin.top - margin.bottom;
 
     const svgElement = d3.select(svgRef.current).select("svg");
     d3.select(svgRef.current).selectAll('*').remove();
     if (svgElement.empty()) {
       // append the svg object to the body of the page
       const svg = d3.select(svgRef.current)
-        .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -121,9 +119,10 @@ const GroupedBarChart = ({ mae, r2 }) => {
 
   return (
     <div className='container' ref={parentRef}>
-      <div id="my_dataviz" ref={svgRef}>
+      <svg id="my_dataviz" ref={svgRef} height={Math.min(dimensions.height, window.innerHeight - 20)} width={dimensions.width}>
         {/* SVG will be rendered here */}
-      </div>
+      </svg>
+      <Screenshotter svgRef={svgRef} />
     </div>
   );
 };

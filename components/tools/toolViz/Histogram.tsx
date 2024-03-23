@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import ModalComponent from "../../ui-comps/ModalComponent";
 import Card from "./Card";
 import MoleculeStructure from "../toolComp/MoleculeStructure";
+import Screenshotter from "../../utils/d3toPNG";
 
 const MARGIN = { top: 30, right: 30, bottom: 50, left: 80 };
 const BUCKET_NUMBER = 70;
@@ -10,12 +11,21 @@ const BUCKET_PADDING = 1;
 
 type d_bin = (typeof d3.bins)[number];
 
+type HistogramProps = {
+  data: number[];
+  xLabel?: string;
+  yLabel?: string;
+  toolTipData?: any[]; // Update the type as needed
+  children?: React.ReactNode; // Make children optional
+};
+
 export default function Histogram({
   data,
   xLabel = "",
   yLabel = "",
   toolTipData = [],
-}) {
+  children
+} : HistogramProps) {
   const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
   const [modalState, setModalState] = useState(false);
   const [modalDets, setModalDets] = useState([]);
@@ -162,9 +172,11 @@ export default function Histogram({
   } else {
     return (
       <div className="container" ref={parentRef}>
+        {children}
         <svg width={width} height={height} ref={svgRef}>
           <g ref={svgRef}></g>
         </svg>
+        <Screenshotter svgRef={svgRef}/>
         {modalState && (
           <ModalComponent
             isOpen={modalState}

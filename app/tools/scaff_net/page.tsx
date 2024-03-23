@@ -12,6 +12,7 @@ import TabWrapper, {
   Tabs,
 } from "../../../components/ui-comps/TabbedComponents";
 import ScaffNetDets from "../../../components/tools/toolComp/ScaffNetDets";
+import ScaffoldSettings from "../../../components/tools/toolComp/ScaffoldSettings";
 
 export default function DisplayGraph() {
   const { rdkit } = useContext(RDKitContext);
@@ -22,10 +23,10 @@ export default function DisplayGraph() {
   useEffect(() => {
     setLoaded(false);
     setTimeout(() => {
-      let smiles_list = ligand.map((x) => x.canonical_smiles);
-      const network = scaffold_net_chunking_method(smiles_list, 50, rdkit);
-      const graph = loadGraphFromScaffNet(network, smiles_list, rdkit);
-      setGraph(graph);
+      // let smiles_list = ligand.map((x) => x.canonical_smiles);
+      // const network = scaffold_net_chunking_method(smiles_list, 50, rdkit);
+      // const graph = loadGraphFromScaffNet(network, smiles_list, rdkit);
+      // setGraph(graph);
       setLoaded(true);
     }, 80);
   }, []);
@@ -43,9 +44,7 @@ export default function DisplayGraph() {
       <h1>Scaffold Network</h1>
       <TabWrapper>
         <Tabs title="Network Settings">
-          <div>
-            <p>Settings go here</p>
-          </div>
+          <ScaffoldSettings />
         </Tabs>
         <Tabs title="Network Details">
           <ScaffNetDets graph={graph} />
