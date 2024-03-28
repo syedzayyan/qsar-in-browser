@@ -19,8 +19,10 @@ export function scaffold_net_chunking_method(
   array: any[],
   chunkSize: number,
   rdkit,
+  params
 ) {
   var scaffold_net_ins = new rdkit.ScaffoldNetwork();
+  scaffold_net_ins.set_scaffold_params(JSON.stringify(params))
   let scaffold_net;
   for (let i = 0; i < array.length; i += chunkSize) {
     let smiles_mol_list;

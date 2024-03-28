@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import Loader from "../../../components/ui-comps/Loader";
 import RDKitContext from "../../../context/RDKitContext";
 import GroupedBarChart from "../../../components/tools/toolViz/BarChart";
-import { mean } from "mathjs";
+import { mean, round } from "mathjs";
 import fpSorter from "../../../components/utils/fp_sorter";
 import Scatterplot from "../../../components/tools/toolViz/ScatterPlot";
 import RF from "../../../components/ml-forms/RF";
@@ -98,6 +98,12 @@ export default function ML() {
     if (loaded) {
         return (
             <div className="tools-container">
+                {whatMLModel == "#rf" &&
+                    <h1>Random Forest</h1>
+                }
+                {whatMLModel == "#xgboost" &&
+                    <h1>XGBoost</h1>
+                }
                 <details open={results.length == 0}>
                     <summary>Model Settings</summary>
                     <p style={{ margin: "10px 0" }}>If you are new to the world of ML, I'd suggest leaving these to the default and just press on
@@ -114,9 +120,9 @@ export default function ML() {
                     }
                 </details>
                 {results.length != 0 && <>
-                    <GroupedBarChart mae={results[0]} r2={results[1]} />
-                    <span>Mean MAE: {mean(results[0])}</span> &nbsp;
-                    <span>Mean R-Squared: {mean(results[1])}</span>
+                    <GroupedBarChart mae={results[0]} r2={results[1]}>
+                        <span>Mean MAE: {round(mean(results[0]), 2)} || Mean R-Squared: {round(mean(results[1]), 2)}</span>
+                    </GroupedBarChart>
                     <select className="input" onChange={(e) => setFoldNumSel(parseInt(e.target.value))}>
                         {foldState.map((_, i) => (
                             <option key={i} value={i}>Fold {i + 1}</option>

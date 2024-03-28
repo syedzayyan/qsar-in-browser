@@ -1,6 +1,9 @@
 import { useForm } from "react-hook-form"
 import RDKitContext from "../../../context/RDKitContext"
 import { useContext } from "react"
+import LigandContext from "../../../context/LigandContext"
+import { scaffold_net_chunking_method } from "../../utils/rdkit_loader"
+import loadGraphFromScaffNet from "../../utils/loadGraphFromScaffNet"
 
 type ScaffoldNetParams = {
     includeGenericScaffolds: boolean
@@ -16,20 +19,41 @@ type ScaffoldNetParams = {
     bondBreakersRxns: string
 }
 
-export default function ScaffoldSettings(){
+export default function ScaffoldSettings({setGraph, setLoaded, activeTabChange}){
     const { rdkit } = useContext(RDKitContext);
-    const { register, handleSubmit, watch, formState: { errors }, } = useForm<ScaffoldNetParams>();
+    const { ligand } = useContext(LigandContext);
+    const { register, handleSubmit, formState: { errors }, } = useForm<ScaffoldNetParams>();
 
     const onSubmit = (data: ScaffoldNetParams) => {
-        console.log(data);
+        setLoaded(false);
         try{
-            var scaffold_net_ins = new rdkit.ScaffoldNetwork();
-            scaffold_net_ins.update_scaffold_params(true, true, true, true, true, true, true, true, true, true, []);
+            let params = {
+                includeGenericScaffolds: data.includeGenericScaffolds,
+                includeGenericBondScaffolds: data.includeGenericBondScaffolds,
+                includeScaffoldsWithoutAttachments: data.includeScaffoldsWithoutAttachments,
+                includeScaffoldsWithAttachments: data.includeScaffoldsWithAttachments,
+                keepOnlyFirstFragment: data.keepOnlyFirstFragment,
+                pruneBeforeFragmenting: data.pruneBeforeFragmenting,
+                flattenIsotopes: data.flattenIsotopes,
+                flattenChirality: data.flattenChirality,
+                flattenKeepLargest: data.flattenKeepLargest,
+                collectMolCounts: data.collectMolCounts
+            };
+            if (data.bondBreakersRxns) {
+                params["bondBreakersRxns"] = data.bondBreakersRxns;
+            }     
+            setTimeout(() => {
+                let smiles_list = ligand.map((x) => x.canonical_smiles);
+                const network = scaffold_net_chunking_method(smiles_list, 50, rdkit, params);
+                const graph = loadGraphFromScaffNet(network, smiles_list, rdkit);  
+                setGraph(graph);
+                setLoaded(true);  
+                activeTabChange(1);            
+            }, 80);
         }catch(e){
             console.log(e);
         }
     }
-
     return (
         <div>
             <form className="ml-forms" onSubmit={handleSubmit(onSubmit)}>
@@ -39,7 +63,7 @@ export default function ScaffoldSettings(){
                 </label>
                 
                 <label>
-                    <input type="checkbox" name="includeGenericBondScaffolds" {...register("includeGenericBondScaffolds")} defaultChecked/>
+                    <input type="checkbox" name="includeGenericBondScaffolds" {...register("includeGenericBondScaffolds")}/>
                     includeGenericBondScaffolds
                 </label>
                 

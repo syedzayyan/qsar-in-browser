@@ -105,9 +105,12 @@ export default function DimRed() {
             <div className="tools-container" ref={containerRef}>
                 {whatDimRed === "pca" && (
                     <>
+                        <h1>Principal Component Analysis</h1>
                     </>
                 )}
                 {whatDimRed === "tsne" && (
+                    <>
+                    <h1>t-distributed Stochastic Neighbor Embedding</h1>
                     <details open={pca.length < 0}>
                         <summary>tSNE settings</summary>
                         <form>
@@ -123,6 +126,7 @@ export default function DimRed() {
                             <button className="button" onClick={() => runDimRed()}>Run tSNE</button>
                         </form>
                     </details>
+                    </>
                 )}
                 {pca.length > 0 &&
                     <Scatterplot

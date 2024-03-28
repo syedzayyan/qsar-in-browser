@@ -2,7 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import Screenshotter from '../../utils/d3toPNG';
 
-const GroupedBarChart = ({ mae, r2 }) => {
+
+type GroupedBarChartProps = {
+  mae: number[];
+  r2?: number[];
+  children?: React.ReactNode; // Make children optional
+};
+
+const GroupedBarChart = ({ mae, r2, children }: GroupedBarChartProps) => {
   // Check if both mae and r2 are provided and have the same length
   if (!mae || !r2 || mae.length !== r2.length) {
     return <div>Error: Both mae and r2 arrays are required and must have the same length.</div>;
@@ -119,6 +126,7 @@ const GroupedBarChart = ({ mae, r2 }) => {
 
   return (
     <div className='container' ref={parentRef}>
+      {children}
       <svg id="my_dataviz" ref={svgRef} height={Math.min(dimensions.height, window.innerHeight - 20)} width={dimensions.width}>
         {/* SVG will be rendered here */}
       </svg>

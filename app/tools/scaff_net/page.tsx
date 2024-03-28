@@ -1,35 +1,16 @@
 "use client";
 
-import { useContext, useEffect, useState } from "react";
-import RDKitContext from "../../../context/RDKitContext";
-import LigandContext from "../../../context/LigandContext";
-
-import { scaffold_net_chunking_method } from "../../../components/utils/rdkit_loader";
+import { useState } from "react";
 import Loader from "../../../components/ui-comps/Loader";
 import ScaffoldNetworkWholeGraph from "../../../components/tools/toolComp/ScaffoldNetworkWholeGraph";
-import loadGraphFromScaffNet from "../../../components/utils/loadGraphFromScaffNet";
-import TabWrapper, {
-  Tabs,
-} from "../../../components/ui-comps/TabbedComponents";
+import TabWrapper, { Tabs } from "../../../components/ui-comps/TabbedComponents";
 import ScaffNetDets from "../../../components/tools/toolComp/ScaffNetDets";
 import ScaffoldSettings from "../../../components/tools/toolComp/ScaffoldSettings";
 
 export default function DisplayGraph() {
-  const { rdkit } = useContext(RDKitContext);
-  const { ligand } = useContext(LigandContext);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(true);
   const [graph, setGraph] = useState<any>();
-
-  useEffect(() => {
-    setLoaded(false);
-    setTimeout(() => {
-      // let smiles_list = ligand.map((x) => x.canonical_smiles);
-      // const network = scaffold_net_chunking_method(smiles_list, 50, rdkit);
-      // const graph = loadGraphFromScaffNet(network, smiles_list, rdkit);
-      // setGraph(graph);
-      setLoaded(true);
-    }, 80);
-  }, []);
+  const [defaultTab, setDefaultTab] = useState(0);
 
   if (!loaded) {
     return (
@@ -42,9 +23,13 @@ export default function DisplayGraph() {
   return (
     <div className="tools-container">
       <h1>Scaffold Network</h1>
-      <TabWrapper>
+      <TabWrapper defaultTab={defaultTab}>
         <Tabs title="Network Settings">
-          <ScaffoldSettings />
+          <ScaffoldSettings
+            setGraph={setGraph}
+            setLoaded={setLoaded}
+            activeTabChange = {setDefaultTab}
+          />
         </Tabs>
         <Tabs title="Network Details">
           <ScaffNetDets graph={graph} />
