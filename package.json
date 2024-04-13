@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "export": "next export"
+    "export": "next export",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "d3": "^7.8.5",
@@ -28,10 +30,20 @@
     "react-papaparse": "^4.4.0"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^1.3.1",
     "@pyodide/webpack-plugin": "^1.3.2",
+    "@storybook/addon-essentials": "^8.0.6",
+    "@storybook/addon-interactions": "^8.0.6",
+    "@storybook/addon-links": "^8.0.6",
+    "@storybook/addon-onboarding": "^8.0.6",
+    "@storybook/blocks": "^8.0.6",
+    "@storybook/nextjs": "^8.0.6",
+    "@storybook/react": "^8.0.6",
+    "@storybook/test": "^8.0.6",
     "@testing-library/react": "^14.2.1",
     "@types/mocha": "^10.0.6",
     "@types/react": "18.2.53",
+    "storybook": "^8.0.6",
     "typescript": "5.3.3"
   }
 }

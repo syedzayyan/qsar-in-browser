@@ -6,6 +6,7 @@
 @import "./corner-menu.css";
 @import "./tabs.css";
 @import "./tags.css";
+@import "./sidebar.css";
 
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 
@@ -88,6 +89,7 @@ section,
 summary,
 time,
 mark,
+svg,
 audio,
 video {
     margin: 0;
@@ -201,9 +203,9 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: fixed;
-    width: 100vw;
+    width: calc(100vw - 10px);
     z-index: 100000000000000000;
+    position: fixed;
 }
 
 .logo a {
@@ -231,8 +233,7 @@ main {
 
 .about-container {
     min-height: calc(100vh - 110px);
-    width: calc(100vw - 30px);
-    padding: 15px;
+    width: 100vw;
     background-color: var(--background-color);
     color: var(--text-color);
 }
@@ -303,6 +304,7 @@ _:future,
 .theme-switcher .switch {
     -webkit-margin-before: -34px;
 }
+
 .theme-switcher .switch img {
     width: 60%;
     height: auto;
@@ -323,15 +325,15 @@ _:future,
     display: none;
 }
 
-.theme-switcher input:checked + .switch {
+.theme-switcher input:checked+.switch {
     left: 20px;
 }
 
-.theme-switcher input:checked + .switch .sun {
+.theme-switcher input:checked+.switch .sun {
     opacity: 1;
 }
 
-.theme-switcher input:checked + .switch .moon {
+.theme-switcher input:checked+.switch .moon {
     opacity: 0;
 }
 
@@ -359,8 +361,10 @@ _:future,
     display: flex;
     width: 100%;
     min-height: 80vh;
-    flex-direction: row; /* Set to row instead of column */
-    flex-wrap: wrap; /* Allow cards to wrap onto the next line */
+    flex-direction: row;
+    /* Set to row instead of column */
+    flex-wrap: wrap;
+    /* Allow cards to wrap onto the next line */
 }
 
 .card-containers {
@@ -400,25 +404,33 @@ _:future,
 }
 
 .tools-container {
-    width: 95vw;
+    width: calc(100vw - 400px);
     min-height: 90vh;
+    display: inline-block;
+    padding: 20px;
     margin-top: 60px;
+}
+
+.tools-main-container {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 850px) {
+    .tools-container {
+        width: 100vw;
+        padding:0;
+    }
+    .tools-main-container {
+        grid-template-columns: 1fr;
+    }
 }
 
 .form-labels {
     display: inline-block;
-}
-
-@media screen and (min-width: 768px) {
-    .tools-container {
-        margin-left: 20vw;
-        width: 70vw;
-    }
-
-    .about-container {
-        width: calc(100vw - 120px);
-        padding: 60px;
-    }
 }
 
 .chembl-loader {
@@ -439,10 +451,12 @@ _:future,
 p {
     line-height: 140%;
 }
+
 .hehe-weird {
     width: 60%;
     margin: 0 auto;
 }
+
 @media screen and (max-width: 768px) {
     .hehe-weird {
         width: 100%;

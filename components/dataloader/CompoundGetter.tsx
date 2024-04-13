@@ -7,7 +7,7 @@ import FAQComp from "../ui-comps/FAQComp";
 export default function CompoundGetter() {
   const [unit, setUnit] = useState("Ki");
   const [binding, setBinding] = useState("B");
-  const { target } = useContext(TargetContext);
+  const { target, setTarget } = useContext(TargetContext);
   const { ligand, setLigand } = useContext(LigandContext);
   const [ligandSearch, setLigandSearch] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -47,6 +47,8 @@ export default function CompoundGetter() {
         return x;
       });
       setLigand(data);
+      let temp_target = target;
+      temp_target.activity_type = unit;
     });
     localStorage.setItem("dataSource", "chembl");
   }

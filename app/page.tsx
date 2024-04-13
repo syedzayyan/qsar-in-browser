@@ -7,14 +7,13 @@ export default function IndexPage() {
   const router = useRouter();
 
   return (
-    <div style = {{marginTop : "60px"}}>
-        <div className="content-wrapper">
+    <div className="container">
+        <div className="content-wrapper" style = {{marginTop : "60px"}}>
           <div className="image-container">
             <img src="logo.svg" alt="Logo" />
           </div>
           <div className="text-container">
             <h1>Cheminformatics in Your Browser Without Writing Code!</h1>
-            <br></br>
             <p className="larger-text">
               QITB simplifies the world of chemistry and data analysis. Easily
               upload chemical data or fetch it from trusted resources, and the
@@ -25,7 +24,7 @@ export default function IndexPage() {
               Also....the code behind this app is open source.
             </p>
             <br></br>
-            <button className="button" onClick={() => {router.push("/load_data")}}>
+            <button className="button" onClick={() => {router.push("/tools/load_data")}}>
               <h1>Start Here!</h1>
             </button>
           </div>

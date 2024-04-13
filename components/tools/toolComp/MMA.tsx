@@ -6,9 +6,12 @@ import MoleculeStructure from "./MoleculeStructure";
 import Loader from "../../ui-comps/Loader";
 import ModalComponent from "../../ui-comps/ModalComponent";
 import { ksTest } from "../../utils/ks_test";
+import TargetContext from "../../../context/TargetContext";
 
 export default function MMA() {
   const { ligand } = useContext(LigandContext);
+  const { target } = useContext(TargetContext);
+
   const [RDKit, setRDKit] = useState(null);
   const [stateOfRDKit, setStateOfRDKit] = useState(false);
   const [scaffCores, setScaffCores] = useState([]);
@@ -160,7 +163,7 @@ export default function MMA() {
                 svgMode
               />
               <br></br>
-              <span>Activity : {cores[4]}</span>
+              <span>{target.activity_type} : {cores[4]}</span>
             </Card>
           ))}
         </ModalComponent>

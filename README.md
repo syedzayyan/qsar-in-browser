@@ -10,7 +10,7 @@ For some, it will be a quick and dirty tool to analyze various targets and drugs
 Just in your browser. All the code runs in the browser. Using WASM and JS. The technologies include:
 
 - Next.js. Mostly the routing is easier. I have tried Vanilla ReactJS and it's not easy to set up everything from scratch. SvelteJS routing is weird, I never understood how to work with SvelteKit and host it on Github Pages. Part of the reason why QITB remains FREE forever is it is a static website.
-- (https://github.com/rdkit/rdkit/tree/master/Code/MinimalLib)[RDKit JS]. This is a custom build of the JS version with hopes for more contributions to the RDKit MinimalLib to import more functionalities into QITB. I need people with C++ knowledge to fix things. I have started porting things.
+- (https://github.com/rdkit/rdkit/tree/master/Code/MinimalLib)[RDKit JS]. This is a custom build of the JS version with hopes for more contributions to the RDKit MinimalLib to import more functionalities into QITB. I need people with C++ knowledge to fix things. I have started porting things though.
 - Pyodide and Scikit-Learn. What a gift to mankind.
 - Big thanks to ChEMBL for existing.
 

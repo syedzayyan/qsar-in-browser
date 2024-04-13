@@ -25,5 +25,8 @@
 
     --input-back: #4b4a4a;
     --input-color: #294797;
-  
+}
+
+:root{
+    --sidebar-link-color: #ffdbad;
 }

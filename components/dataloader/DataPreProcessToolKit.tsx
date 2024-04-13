@@ -6,6 +6,7 @@ import RDKitContext from "../../context/RDKitContext";
 
 import { useForm } from "react-hook-form";
 import fpSorter from "../utils/fp_sorter";
+import TargetContext from "../../context/TargetContext";
 
 type FingerPrintSettings = {
   fingerprint: "maccs" | "morgan" | "rdkit_fp",
@@ -29,6 +30,7 @@ export default function DataPreProcessToolKit() {
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<FingerPrintSettings>();
   const fpOption = watch("fingerprint");
   const { ligand, setLigand } = useContext(LigandContext);
+  const { target, setTarget } = useContext(TargetContext);
   const { rdkit } = useContext(RDKitContext)
   const [loaded, setLoaded] = useState(true);
 
@@ -71,6 +73,12 @@ export default function DataPreProcessToolKit() {
         }
       })
 
+      let temp_target = target;
+      temp_target.pre_processed = true;
+      if (localStorage.getItem("dataSource") === "chembl") {
+        temp_target.activity_type = "p" + temp_target.activity_type;
+      }
+      setTarget(temp_target);
 
       setLigand(de_dup_lig);
       router.push('/tools/activity');

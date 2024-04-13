@@ -7,6 +7,7 @@ import LigandContext from "../../context/LigandContext";
 import { useRouter } from "next/navigation";
 import ErrorContext from "../../context/ErrorContext";
 import ModalComponent from "../ui-comps/ModalComponent";
+import TabWrapper, { Tabs } from "../ui-comps/TabbedComponents";
 
 export default function DataLoader() {
   const { ligand, setLigand } = useContext(LigandContext);
@@ -35,8 +36,8 @@ export default function DataLoader() {
   };
 
   return (
-    <div className="data-loader-container">
-      <div style={{ width: "60%", margin: "0 auto" }}>
+    <div className="tools-container">
+      <div style={{ width: "80%", margin: "0 auto" }}>
         <h2>Fetch the data</h2>
         <p>
           Starting off with analysis, we need data. For now, you could use the
@@ -55,10 +56,18 @@ export default function DataLoader() {
         </p>
       </div>
       <br />
-      <div className="hehe-weird">
-        <TargetGetter />
-        <CSVLoader callofScreenFunction={onSubmit} csvSetter={setLigand} />
-        <LoadFromWork />
+      <div>
+        <TabWrapper>
+          <Tabs title="ChEMBL">
+          <TargetGetter />
+          </Tabs>
+          <Tabs title="External File (CSV)">
+          <CSVLoader callofScreenFunction={onSubmit} csvSetter={setLigand} />
+          </Tabs>
+          <Tabs title="QITB JSON">
+          <LoadFromWork />
+          </Tabs>
+        </TabWrapper>
       </div>
       <ModalComponent
         isOpen={modalState}

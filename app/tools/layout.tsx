@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useState } from "react";
-import CornerMenu, { MenuItem } from "../../components/ui-comps/CornerMenu";
+import CornerMenu from "../../components/ui-comps/CornerMenu";
 import PyodideContext from "../../context/PyodideContext";
 import RDKitContext from "../../context/RDKitContext";
 import { initRDKit } from "../../components/utils/rdkit_loader";
@@ -12,86 +12,6 @@ import { useRouter } from "next/navigation";
 import ModalComponent from "../../components/ui-comps/ModalComponent";
 import ErrorContext from "../../context/ErrorContext";
 
-const menuItems: MenuItem[] = [
-  {
-    label: "Pre-Processing",
-    link: "/tools/preprocess",
-  },
-  {
-    label: "Distributions",
-    link: "#",
-    subMenuItems: [
-      {
-        label: "Activity",
-        link: "/tools/activity",
-      },
-      {
-        label: "Tanimoto",
-        link: "/tools/tanimoto",
-      },
-      {
-        label: "Table Of Compounds",
-        link: "/tools/toc",
-      },
-    ],
-  },
-  {
-    label: "Dimensionality Reduction",
-    link: "#",
-    subMenuItems: [
-      {
-        label: "PCA",
-        link: "/tools/dim-red#pca",
-      },
-      {
-        label: "tSNE",
-        link: "/tools/dim-red#tsne",
-      },
-    ],
-  },
-  {
-    label: "Scaffold Analysis",
-    link: "#",
-    subMenuItems: [
-      {
-        label: "MMA",
-        link: "/tools/mma",
-      },
-      {
-        label: "Scaffold Network",
-        link: "/tools/scaff_net",
-      },
-    ],
-  },
-  {
-    label: "Machine Learning",
-    link: "#",
-    subMenuItems: [
-      {
-        label: "Random Forest",
-        link: "/tools/ml#rf",
-      },
-      {
-        label: "XGBoost",
-        link: "/tools/ml#xgboost",
-      },
-    ],
-  },
-  {
-    label: "Virtual Screening",
-    link: "#",
-    subMenuItems: [
-      {
-        label: "Full Data",
-        link: "/tools/screen",
-      },
-      {
-        label: "Coverage Score",
-        link: "/tools/screen/cov_score",
-      },
-    ],
-  },
-];
 
 export default function DashboardLayout({
   children,
@@ -115,7 +35,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (ligand.length < 1) {
-      router.push("/load_data");
+      router.push("/tools/load_data");
     }
   }, []);
 
@@ -142,30 +62,31 @@ export default function DashboardLayout({
     }
   }
 
-  if (ligand.length > 1) {
-    return (
-      <div className="main-container">
-        <Script
-          src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"
-          onLoad={pyodideLoaded}
-        ></Script>
-        {loading ? (
+  return (
+    <>
+      <Script
+        src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"
+        onLoad={pyodideLoaded}
+      ></Script>
+      {loading ? (
+        <div>
+          <div className="tools-container" style = {{width : "100%"}}>
           <Loader loadingText={loadingText} />
-        ) : (
-          <>
-            <CornerMenu items={menuItems} />
-            <ModalComponent
-              isOpen={modalState}
-              closeModal={() => setModalState(false)}
-            >
-              {errors}
-            </ModalComponent>
-            {children}
-          </>
-        )}
-      </div>
-    );
-  } else {
-    return <></>;
-  }
+          </div>
+          </div>
+      ) : (
+        <div className="tools-main-container">
+          <CornerMenu />
+          {children}
+        </div>
+      )}
+      <ModalComponent
+        isOpen={modalState}
+        closeModal={() => setModalState(false)}
+      >
+        {errors}
+      </ModalComponent>
+
+    </>
+  );
 }

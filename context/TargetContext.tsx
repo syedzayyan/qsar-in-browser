@@ -4,6 +4,8 @@ export type targetType = {
     target_id: string,
     target_name: string,
     target_organism: string,
+    pre_processed: boolean,
+    activity_type?: string,
 }
 
 interface TargetContextProps {
@@ -12,7 +14,7 @@ interface TargetContextProps {
 }
 
 const TargetContext = createContext<TargetContextProps>({
-    target: { target_id: "", target_name: "", target_organism: "" },
+    target: { target_id: "", target_name: "", target_organism: "", pre_processed: false},
     setTarget: () => {},
 });
 
@@ -25,6 +27,7 @@ export function TargetProvider({ children }: TargetProviderProps) {
         target_id: "",
         target_name: "",
         target_organism: "",
+        pre_processed: false,
     });
 
     return (

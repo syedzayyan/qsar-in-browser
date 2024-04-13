@@ -1,32 +1,23 @@
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import LigandContext from '../../context/LigandContext';
 import TargetContext from '../../context/TargetContext';
+
+import SideBar from "./SideBar/SideBar";
 import ModalComponent from './ModalComponent';
+import { SideBarDropDownItem, SideBarItem, SideBarLink } from './SideBar/SideBarItems';
 
-export interface MenuItem {
-  label: string;
-  link: string;
-  subMenuItems?: MenuItem[];
-}
 
-interface CornerMenuProps {
-  items: MenuItem[];
-}
-
-const CornerMenu: React.FC<CornerMenuProps> = (props) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const [stateOfLinks, setStateOfLinks] = useState("");
-  const {ligand} = useContext(LigandContext);
-  const {target} = useContext(TargetContext);
-
+export default function CornerMenu() {
+  const [fileName, setFileName] = useState("Untitled");
   const [modalStae, setModalState] = useState(false);
-  const [fileName, setFileName] = useState("Untitled")
 
-  function saveWork(e){
+  const { ligand } = useContext(LigandContext);
+  const { target } = useContext(TargetContext);
+
+
+  function saveWork(e) {
     e.preventDefault();
-    const combinedJSON = {target_data: target, ligand_data : ligand, source : localStorage.getItem("dataSource"), fpPath : localStorage.getItem("path"), nBits : localStorage.getItem("nBits"), fp_type : localStorage.getItem("fingerprint")};
+    const combinedJSON = { target_data: target, ligand_data: ligand, source: localStorage.getItem("dataSource"), fpPath: localStorage.getItem("path"), nBits: localStorage.getItem("nBits"), fp_type: localStorage.getItem("fingerprint") };
     const jsonString = JSON.stringify(combinedJSON, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const downloadLink = document.createElement('a');
@@ -37,87 +28,61 @@ const CornerMenu: React.FC<CornerMenuProps> = (props) => {
     document.body.removeChild(downloadLink);
   }
 
-  useEffect(() => {
-    setStateOfLinks(window.location.href.split(window.location.host)[1]);
-  }, [useSearchParams()]);
-
-
-  const getSvgContainerSize = () => {
-    if (window.innerWidth < 768){
-      setIsOpen(false)
-    }
-  };
-
-  useEffect(() => {
-    getSvgContainerSize();
-    window.addEventListener("resize", getSvgContainerSize);
-
-    return () => window.removeEventListener("resize", getSvgContainerSize);
-  }, []);
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
   return (
-    <nav className={`corner-menu ${isOpen ? 'open' : ''}`}>
-      <div className="hamburger" onClick={toggleMenu}>
-        <div className="line"></div>
-        <div className="line"></div>
-        <div className="line"></div>
-      </div>
-      <div className={`menu-items ${isOpen ? 'open' : ''}`}>
-      <p style = {{fontSize : "small"}}>Current Target: {target.target_name}</p>
-      <p style = {{fontSize : "small"}}>Number of Molecules: {ligand.length}</p>
-        <ul className='ac-container'>
-          {props.items.map((item, index) => (
-            <li key={index} className='corner-menu-list-item'>
-              {item.subMenuItems ? (
-                <>
-                  <input
-                    defaultChecked={index === 0}
-                    className="collapsed-menu collapsed-menu-open"
-                    type="radio"
-                    name="menu"
-                    id={`collapsed-menu-${index}`}
-                    disabled = {ligand[0].fingerprint === undefined}
-                    
-                  />
-                  <label
-                    htmlFor={`collapsed-menu-${index}`}
-                    className="collapsible-label"
-                    style = {{backgroundColor : stateOfLinks.split('#')[0] === item.subMenuItems[0].link.split('#')[0] && "var(--background-color)", textDecoration : "none"}}
-                  >
-                    {item.label}
-                  </label>
-                  <article className={`sub-col-menu-${index}`}>
-                    {item.subMenuItems.map((subItem, subIndex) => (
-                      <Link 
-                        style = {{backgroundColor : stateOfLinks === subItem.link && "var(--accent-color)"}}
-                        className='submenu-links' key={subIndex} href={subItem.link}>{subItem.label}</Link>
-                    ))}
-                  </article>
-                </>
-              ) : (
-                  <Link 
-                    style = {{backgroundColor : stateOfLinks === item.link && "var(--accent-color)", textDecoration : "none"}}
-                    className='collapsible-menu' href={item.link}>{item.label}</Link>
-              )}
-            </li>
-          ))}
-        </ul>
-        <div className='corner-menu-control-panel'>
-          <button className='button' onClick={() => setModalState(true)}>Save Work</button>          
+    <SideBar>
+      <SideBarItem>
+        <div>
+          <p style={{ fontSize: "small" }}>Current Target: {target.target_name}</p>
+          <p style = {{fontSize : "small"}}>Number of Molecules: {ligand.length}</p>
         </div>
-      </div>
-      <ModalComponent isOpen = {modalStae} closeModal={() => setModalState(false)} height='20' width='20'>
-        <form onSubmit={saveWork} className='ml-forms' style = {{width : "18vw"}}>
-          <label htmlFor='save_label'>File Name</label>
-          <input className='input' id = "save_label" onChange={(e) => setFileName(e.target.value)} defaultValue = "Untitled"></input>   
-          <input type="submit" onSubmit={saveWork} className='button' value="Download File"/>       
-        </form>
-      </ModalComponent>
-    </nav>
-  );
-};
+      </SideBarItem>
+      <SideBarDropDownItem name_of="Data Operations">
+        <SideBarLink to="/tools/load_data">Upload Data</SideBarLink>
+        <SideBarLink to="/tools/preprocess">Pre-process Data</SideBarLink>
+        <SideBarLink to="/tools/toc">Explore Data</SideBarLink>
+      </SideBarDropDownItem>
 
-export default CornerMenu;
+      {target.pre_processed && (
+        <>
+          <div onClick={() => setModalState(true)}>
+            <SideBarItem>Save Work <img height="30px" width="30px" src="/save_disk.svg"></img></SideBarItem>
+          </div>
+          <div style={{ height: "40px" }}></div>
+
+          <SideBarDropDownItem name_of="Distributions">
+            <SideBarLink to="/tools/activity">Activity</SideBarLink>
+            <SideBarLink to="/tools/tanimoto">Tanimoto</SideBarLink>
+          </SideBarDropDownItem>
+
+          <SideBarDropDownItem name_of="Dimension Reduction">
+            <SideBarLink to="/tools/dim-red/pca">PCA</SideBarLink>
+            <SideBarLink to="/tools/dim-red/tsne">tSNE</SideBarLink>
+          </SideBarDropDownItem>
+
+          <SideBarDropDownItem name_of="Scaffold Operations">
+            <SideBarLink to="/tools/mma">MMA</SideBarLink>
+            <SideBarLink to="/tools/scaff_net">Scaffold Networks</SideBarLink>
+          </SideBarDropDownItem>
+
+          <SideBarDropDownItem name_of="Machine Learning">
+            <SideBarLink to="/tools/ml/rf">Random Forest</SideBarLink>
+            <SideBarLink to="/tools/ml/xgboost">XGBoost</SideBarLink>
+          </SideBarDropDownItem>
+
+          <SideBarDropDownItem name_of="Virtual Screening">
+            <SideBarLink to="/tools/screen">Overview</SideBarLink>
+            <SideBarLink to="/tools/screen/cov_score">Coverage Score</SideBarLink>
+          </SideBarDropDownItem>
+
+          <ModalComponent isOpen={modalStae} closeModal={() => setModalState(false)} height='20' width='20'>
+            <form onSubmit={saveWork} className='ml-forms' style={{ width: "18vw" }}>
+              <label htmlFor='save_label'>File Name</label>
+              <input className='input' id="save_label" onChange={(e) => setFileName(e.target.value)} defaultValue="Untitled"></input>
+              <input type="submit" onSubmit={saveWork} className='button' value="Download File" />
+            </form>
+          </ModalComponent>
+        </>
+      )}
+    </SideBar>
+  )
+}

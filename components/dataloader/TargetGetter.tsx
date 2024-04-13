@@ -67,7 +67,7 @@ export default function TargetGetter() {
         {loading ? (
           <Loader />
         ) : (
-          <table className="custom-table">
+          <table className="custom-table" style = {{marginLeft : "0"}}>
             <thead>
               <tr>
                 <th>Target Name</th>
@@ -84,6 +84,7 @@ export default function TargetGetter() {
                       target_id: tars.target_chembl_id,
                       target_name: tars.pref_name,
                       target_organism: tars.organism,
+                      pre_processed: false,
                     });
                     setModalState(true);
                   }}
