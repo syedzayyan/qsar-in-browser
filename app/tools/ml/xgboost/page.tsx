@@ -2,10 +2,10 @@
 
 import { useContext, useState } from "react";
 import PyodideContext from "../../../../context/PyodideContext";
-import { MLResultsContext } from "../layout";
 import MLUtils from "../utils";
 import Loader from "../../../../components/ui-comps/Loader";
 import XGB from "../../../../components/ml-forms/XGB";
+import { MLResultsContext } from "../../../../context/MLResultsContext";
 
 export default function RandomForest() {
     const { pyodide } = useContext(PyodideContext);

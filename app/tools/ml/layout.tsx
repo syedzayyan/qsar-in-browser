@@ -11,13 +11,12 @@ import fpSorter from "../../../components/utils/fp_sorter";
 import RDKitContext from "../../../context/RDKitContext";
 import PyodideContext from "../../../context/PyodideContext";
 import TargetContext from "../../../context/TargetContext";
+import { MLResultsContext } from "../../../context/MLResultsContext";
 
 type dataChart = {
     x: number,
     y: number
 }
-
-export const MLResultsContext = createContext<React.Dispatch<React.SetStateAction<any[]>>>(null);
 
 export default function MLLayout({ children }) {
     const [screenData, setScreenData] = useState([]);
