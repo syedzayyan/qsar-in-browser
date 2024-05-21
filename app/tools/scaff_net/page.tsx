@@ -32,10 +32,10 @@ export default function DisplayGraph() {
           />
         </Tabs>
         <Tabs title="Network Details">
-          <ScaffNetDets graph={graph} />
+        {graph != undefined && <ScaffNetDets graph={graph} />}
         </Tabs>
         <Tabs title="Whole Network">
-          <ScaffoldNetworkWholeGraph graph={graph} />
+          {graph != undefined && <ScaffoldNetworkWholeGraph graph={graph} imageSize={200}/>}
         </Tabs>
       </TabWrapper>
     </div>

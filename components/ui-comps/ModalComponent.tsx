@@ -6,6 +6,7 @@ interface ModalComponentProps {
   closeModal: () => void;
   width?: string;
   height?: string;
+  card?: boolean;
 }
 
 const ModalComponent: FC<ModalComponentProps> = ({
@@ -14,6 +15,7 @@ const ModalComponent: FC<ModalComponentProps> = ({
   closeModal,
   width = "80",
   height = "80",
+  card = true
 }) => {
   const handleOverlayClick = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>,
@@ -55,8 +57,12 @@ const ModalComponent: FC<ModalComponentProps> = ({
         }
 
         .modal {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          ${card && 
+            `
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            `
+          }
           height: ${height}vh;
           width: ${width}vw;
           margin: 10%;

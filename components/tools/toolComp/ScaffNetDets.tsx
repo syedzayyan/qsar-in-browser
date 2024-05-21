@@ -2,8 +2,13 @@ import React, { useState, useEffect } from "react";
 import MoleculeStructure from "./MoleculeStructure";
 import Card from "../toolViz/Card";
 import TagComponent from "../../ui-comps/Tags";
+import ModalComponent from "../../ui-comps/ModalComponent";
+import { subgraph } from "graphology-operators";
+import ScaffoldNetworkWholeGraph from "./ScaffoldNetworkWholeGraph";
 
 const GraphComponent: React.FC<any> = ({ graph }) => {
+    const [modalState, setModalState] = useState(false);
+
     // Function to get nodes connected to a specific label in the graph
     function getNodesConnectedToLabel(graph, label) {
         const nodes = [];
@@ -25,7 +30,7 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
             setDisplayNodesArray(nodesArray);
         }
     }
-
+    
     // State declarations
     const [currentPage, setCurrentPage] = useState(1);
     const [nodesArray, setNodesArray] = useState<{ node: any, smiles: string, size: number }[]>([]);
@@ -73,6 +78,13 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
         setCurrentPage(pageNumber);
     };
 
+    const [subGraph, setGraph] = useState<any>();
+    function filterNodes(nodeEnquired: string, attr, depthSet: number) {
+        let filteredGraph = subgraph(graph, [nodeEnquired, ...graph.neighbors(nodeEnquired)]);;
+        setGraph(filteredGraph);
+        setModalState(true);
+    }
+
     return (
         <div>
             {/* Component for filtering tags */}
@@ -87,9 +99,20 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
                             <p>Node ID: {node}</p>
                             <MoleculeStructure structure={smiles} id={node} />
                             <p>Scaffold Matches: {size}</p>
+                            <button className="button" onClick={() => filterNodes(node, "attr", 3)}>Neighbour Nodes</button>
                         </Card>
                     ))}
             </div>
+
+            <ModalComponent isOpen = {modalState} closeModal={() => setModalState(false)} card = {false}>
+                <div>
+                    <h2>Neighbouring Nodes</h2>
+                    {modalState && 
+                        <ScaffoldNetworkWholeGraph graph={subGraph} imageSize={300} height={500} /> 
+                    }  
+                </div>
+                  
+            </ModalComponent>
 
             {/* Pagination buttons */}
             <div>

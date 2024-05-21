@@ -1,20 +1,25 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import ScaffEdgeLegend from './ScaffLegend';
 
-const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120 }) => {
+const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120, width = 928, height = 680 }) => {
   const svgRef = useRef(null);
 
   useEffect(() => {
-    const width = 928;
-    const height = 680;
+    // Clear previous SVG elements
+    d3.select(svgRef.current).selectAll("*").remove();
 
     // Create a fake root node
     const fakeRoot = { id: 'fakeRoot', children: [] };
     const graph_ex = graph.export();
     const { nodes, links } = {
       nodes: [fakeRoot, ...graph_ex.nodes.map(n => ({ id: n.key, ...n.attributes }))],
-      links: graph_ex.edges
-    }
+      links: graph_ex.edges.map(e => ({
+        source: e.source,
+        target: e.target,
+        ...e.attributes
+      }))
+    };
 
     // Make all existing root nodes children of the fake root node
     nodes.forEach(node => {
@@ -23,81 +28,92 @@ const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120 }) => {
       }
     });
 
-    const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(50)) // Increase link distance
-    .force("charge", d3.forceManyBody().strength(-30)) // Decrease repulsion strength
-    .force("center", d3.forceCenter(width / 2, height / 2)); // Center the graph around the middle of the SVG
-
     const svg = d3.select(svgRef.current)
       .attr("viewBox", [0, 0, width, height])
       .attr("style", "max-width: 100%; height: auto;")
-      .call(d3.zoom().on("zoom", function (event) {
-        svg.attr("transform", event.transform);
-      }));
+      .call(d3.zoom()
+        .scaleExtent([0.1, 10])
+        .on("zoom", (event) => {
+          svgGroup.attr("transform", event.transform);
+        })
+      );
 
-    const link = svg.append("g")
+    const svgGroup = svg.append("g");
+
+    const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id).distance(100)) // Increase link distance
+      .force("charge", d3.forceManyBody().strength(-300)) // Increase repulsion strength
+      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("collide", d3.forceCollide().radius(imageSize * 0.2)); // Add collision force to prevent overlap
+
+    const link = svgGroup.append("g")
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
       .selectAll("line")
       .data(links)
-      .enter()
-      .append("line")
-      .attr("stroke-width", 0.6)
-      .attr("stroke", d => d.attributes.color) // Set the stroke color dynamically based on data
-      .attr("stroke-opacity", 0.5);
+      .enter().append("line")
+      .attr("stroke-width", d => Math.sqrt(d.value))
+      .attr("stroke", d => d.color);
 
-    const node = svg.append("g")
+    const node = svgGroup.append("g")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1.5)
       .selectAll("image")
       .data(nodes)
-      .join("image")
+      .enter().append("image")
       .attr("xlink:href", d => d.image) // Function to get image URL
-      .attr("width", d => d.id === 'fakeRoot' ? 0 : imageSize * 0.2 ) // Adjust image width
-      .attr("height", d => d.id === 'fakeRoot' ? 0 : imageSize * 0.2 ); // Adjust image height
+      .attr("width", d => d.id === 'fakeRoot' ? 0 : imageSize * 0.2) // Adjust image width
+      .attr("height", d => d.id === 'fakeRoot' ? 0 : imageSize * 0.2) // Adjust image height
+      .call(drag(simulation));
 
     node.append("title")
       .text(d => d.smiles);
 
-    // Add a drag behavior.
-    node.call(d3.drag()
-      .on("start", dragstarted)
-      .on("drag", dragged)
-      .on("end", dragended));
-
-    // Set the position attributes of links and nodes each time the simulation ticks.
     simulation.on("tick", () => {
       link
         .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y) // Reverse the y-coordinate for source
+        .attr("y1", d => d.source.y)
         .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y); // Reverse the y-coordinate for target
-    
+        .attr("y2", d => d.target.y);
+
       node
-        .attr("x", d => d.x)
-        .attr("y", d => d.y); // Reverse the y-coordinate for nodes
+        .attr("x", d => d.x - imageSize * 0.1) // Center the image
+        .attr("y", d => d.y - imageSize * 0.1); // Center the image
     });
 
-    // Reheat the simulation when drag starts, and fix the subject position.
-    function dragstarted(event) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
-    }
-    function dragged(event) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
-    }
-    function dragended(event) {
-      if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
+    function drag(simulation) {
+      function dragstarted(event) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        event.subject.fx = event.subject.x;
+        event.subject.fy = event.subject.y;
+      }
+
+      function dragged(event) {
+        event.subject.fx = event.x;
+        event.subject.fy = event.y;
+      }
+
+      function dragended(event) {
+        if (!event.active) simulation.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+      }
+
+      return d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended);
     }
 
-    // When this cell is re-run, stop the previous simulation. (This doesn’t
-    // really matter since the target alpha is zero and the simulation will
-    // stop naturally, but it’s a good practice.)
-    // // invalidation.then(() => simulation.stop());
+  }, [graph, imageSize]); // Ensure the effect runs only when `graph` or `imageSize` changes
 
-  }, [graph]);
-
-  return <svg ref={svgRef} height="600px" width="100%"/>;
+  return (
+    <>
+      <ScaffEdgeLegend />
+      <svg ref={svgRef} height="600px" width="100%" />
+    </>
+  
+);
 };
 
 export default ScaffoldNetworkWholeGraph;

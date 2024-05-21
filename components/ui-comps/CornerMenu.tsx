@@ -5,6 +5,7 @@ import TargetContext from '../../context/TargetContext';
 import SideBar from "./SideBar/SideBar";
 import ModalComponent from './ModalComponent';
 import { SideBarDropDownItem, SideBarItem, SideBarLink } from './SideBar/SideBarItems';
+import ThemeContext from '../../context/ThemeContext';
 
 
 export default function CornerMenu() {
@@ -13,6 +14,7 @@ export default function CornerMenu() {
 
   const { ligand } = useContext(LigandContext);
   const { target } = useContext(TargetContext);
+  const { theme } = useContext(ThemeContext);
 
 
   function saveWork(e) {
@@ -45,7 +47,7 @@ export default function CornerMenu() {
       {target.pre_processed && (
         <>
           <div onClick={() => setModalState(true)}>
-            <SideBarItem>Save Work <img height="30px" width="30px" src="/save_disk.svg"></img></SideBarItem>
+            <SideBarItem>Save Work <img height="30px" width="30px" src="/save_disk.svg" style = {{filter : theme === "dark" ? "invert(1)" : ""}}></img></SideBarItem>
           </div>
           <div style={{ height: "40px" }}></div>
 

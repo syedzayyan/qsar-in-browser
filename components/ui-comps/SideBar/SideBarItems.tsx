@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import ThemeContext from "../../../context/ThemeContext";
 
 export function SideBarItem({ children }) {
     return (
@@ -12,6 +13,7 @@ export function SideBarItem({ children }) {
 
 export function SideBarDropDownItem({ name_of, children, disabled = false }) {
     const [isOpen, setIsOpen] = useState(false);
+    const { theme } = useContext(ThemeContext);
 
     return (
         <div className="sidebar-dropdown-link">
@@ -28,6 +30,7 @@ export function SideBarDropDownItem({ name_of, children, disabled = false }) {
                         opacity: 1,
                         width: '30px', // Set the width of the icon
                         height: '30px',
+                        filter : theme === "dark" ? "invert(1)" : "",
                     }}
                 >
                 </img>
