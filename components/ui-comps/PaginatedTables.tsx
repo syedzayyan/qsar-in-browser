@@ -2,13 +2,10 @@ import React, { useState } from "react";
 import TableFooter from "./TableFooter";
 import useTable from "../../hooks/useTable";
 import MoleculeStructure from "../tools/toolComp/MoleculeStructure";
-import { randomInt } from "mathjs";
 
 const Table = ({ data, rowsPerPage }) => {
     const [page, setPage] = useState(1);
     const { slice, range } = useTable(data, page, rowsPerPage);
-
-    
 
     return (
         <>
@@ -23,7 +20,7 @@ const Table = ({ data, rowsPerPage }) => {
                 </thead>
                 <tbody>
                     {slice.map((el, i) => (
-                        <tr className="tableRowItems" key={randomInt(0, 100000000)}>
+                        <tr className="tableRowItems" key={i}>
                             <td className="tableCell">{el.id}</td>
                             <td className="tableCell">{el.canonical_smiles}</td>
                             <td className="tableCell"><MoleculeStructure structure={el.canonical_smiles} id = {i.toString()}/></td>

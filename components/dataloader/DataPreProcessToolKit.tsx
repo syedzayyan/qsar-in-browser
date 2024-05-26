@@ -1,140 +1,155 @@
-import { useContext, useState } from "react";
-import LigandContext from "../../context/LigandContext";
+import React, { useContext, useState } from 'react';
+import { useForm } from "react-hook-form";
+import FAQComp from '../ui-comps/FAQComp';
+import molDataCleanUp from '../utils/mol_cleanup';
+import LigandContext from '../../context/LigandContext';
+import RDKitContext from '../../context/RDKitContext';
 import Loader from '../ui-comps/Loader';
 import { useRouter } from 'next/navigation';
-import RDKitContext from "../../context/RDKitContext";
-
-import { useForm } from "react-hook-form";
-import fpSorter from "../utils/fp_sorter";
-import TargetContext from "../../context/TargetContext";
+import TargetContext from '../../context/TargetContext';
 
 type FingerPrintSettings = {
   fingerprint: "maccs" | "morgan" | "rdkit_fp",
   radius?: number,
   nBits?: number,
   dedup: boolean,
+  log10: boolean,
 }
 
+const DataPreProcessToolKit = () => {
+  const [loaded, setLoaded] = useState(true);
+  const [stage, setStage] = useState('choose'); // Initial stage is 'choose'
+  const [selection, setSelection] = useState(null);
+  const { ligand, setLigand } = useContext(LigandContext);
+  const { rdkit } = useContext(RDKitContext);
+  const { target, setTarget } = useContext(TargetContext);
 
-/**
- * Component for data pre-processing.
- * This component handles the form submission and processing of molecules.
- * It allows the user to select a fingerprint type, specify radius size and fingerprint size,
- * enable data de-duplication, and submit the form to process the molecules.
- *
- * @returns The JSX element representing the data pre-processing form.
- */
-
-export default function DataPreProcessToolKit() {
-  const router = useRouter();
+  const [advancedSelection, setAdvancedSelection] = useState(null);
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<FingerPrintSettings>();
   const fpOption = watch("fingerprint");
-  const { ligand, setLigand } = useContext(LigandContext);
-  const { target, setTarget } = useContext(TargetContext);
-  const { rdkit } = useContext(RDKitContext)
-  const [loaded, setLoaded] = useState(true);
 
-  function dataProcessor(formStuff) {
+  const router = useRouter();
+
+  const handleChooseSubmit = (e) => {
+    e.preventDefault();
+    if (selection === 'express') {
+      setLoaded(false);
+      setTimeout(async () => {
+        var lig_data = await molDataCleanUp(rdkit, ligand, target.activity_columns); 
+        setLigand(lig_data[0]);
+        setTarget({...target, activity_columns: lig_data[1], pre_processed : true});
+        setLoaded(true);
+        router.push('/tools/activity');
+      }, 100);
+    } else if (selection === 'advanced') {
+      setStage('advanced');
+    }
+  };
+
+  const handleBack = () => {
+    setStage('choose');
+    setAdvancedSelection(null); // Optionally reset advanced selection
+  };
+
+  const dataProcessor = (formStuff) => {
     setLoaded(false);
-    localStorage.setItem("fingerprint", formStuff.fingerprint);
-    localStorage.setItem("path", formStuff.radius);
-    localStorage.setItem("nBits", formStuff.nBits);
     setTimeout(async () => {
-      var de_dup_lig = ligand.map(({ id, canonical_smiles, activity_column }) => {
-        return {
-          id,
-          canonical_smiles,
-          activity_column,
-          ["neg_log_activity_column"]: localStorage.getItem("dataSource") === "chembl" ? -Math.log10(activity_column * 10e-9).toFixed(2) : activity_column,
-        };
-      })
-
-      if (formStuff.dedup) {
-        de_dup_lig = await de_dup_lig.filter((ligand, index, self) =>
-          index === self.findIndex((t) => (
-            t.id === ligand.id &&
-            t.canonical_smiles === ligand.canonical_smiles && 
-            ligand.activity_column
-          )));
-      }
-
-      await de_dup_lig.map((lig, i) => {
-        try {
-          const mol_fp = fpSorter(
-            formStuff.fingerprint,
-            lig.canonical_smiles,
-            rdkit,
-            formStuff.radius,
-            formStuff.nBits
-          )
-          de_dup_lig[i]['fingerprint'] = mol_fp;
-        } catch (e) {
-          console.error(e);
-        }
-      })
-
-      let temp_target = target;
-      temp_target.pre_processed = true;
-      if (localStorage.getItem("dataSource") === "chembl") {
-        temp_target.activity_type = "p" + temp_target.activity_type;
-      }
-      setTarget(temp_target);
-
-      setLigand(de_dup_lig);
-      router.push('/tools/activity');
-    }, 500)
+      let lig_data = await molDataCleanUp(
+      rdkit, 
+      ligand, 
+      target.activity_columns,
+      formStuff
+    );
+    setLigand(lig_data[0]);
+    setTarget({...target, activity_columns: lig_data[1], pre_processed : true});
+    setLoaded(true);
+  }, 100)
+    setLoaded(false);
+    router.push('/tools/activity');
   }
 
+  if (!loaded){
+    return(
+      <Loader loadingText='Processing Molecules'/>
+    )
+  }
 
+  return (
+    <div>
+      <FAQComp>
+        <p>In order for small molecules to be visualised, compounds need to be converted into something called a fingerprint.
+          A collection of 0s and 1s that denote and absences and presences of chemical motifs or environments. This is purely,
+          because computer have no idea what chemistry is and only understand binary. Naturally, many different types of fingerprints
+          have been developed over the years. In this web app, three are included. Each have their own strengths but for for all things
+          Machine Learning, the Morgan Fingerprint is superior (usually) and is kept the default
+        </p>
+        <p>
+          &emsp; If you have downloaded data from ChEMBL, there are duplicates. Additionally, your standard assay unit of
+          Ki, EC50 etc is easier to visualise and manage when converted to logarithm. However, you might prefer raw Ki, EC50 values, thus the options
+          to not convert to logarithm values.
+        </p>
+      </FAQComp>
+      {stage === 'choose' && (
+        <form onSubmit={handleChooseSubmit}>
+          <h1>Pre-Processing Molecules</h1>
 
-  if (loaded) {
-    return (
-      <div>
-        <h1>Data Pre-Processing</h1>
-        <details open={false}>
-          <summary>What does this mean?</summary>
-          <p>In order for small molecules to be visualised, compounds need to be converted into something called a fingerprint.
-            A collection of 0s and 1s that denote and absences and presences of chemical motifs or environments. This is purely,
-            because computer have no idea what chemistry is and only understand binary. Naturally, many different types of fingerprints
-            have been developed over the years. In this web app, three are included. Each have their own strengths but for for all things
-            Machine Learning, the Morgan Fingerprint is superior (usually) and is kept the default
-          </p>
-          <p>
-            &emsp; If you have downloaded data from ChEMBL, there are duplicates. Additionally, your standard assay unit of
-            Ki, EC50 etc is easier to visualise and manage when converted to logarithm. However, you might prefer raw Ki, EC50 values, thus the options
-            to not convert to logarithm values.
-          </p>
-        </details>
-        <br></br>
-        <form onSubmit={handleSubmit(dataProcessor)}>
-          <label className="form-labels" htmlFor="fingerprint">Fingerprint Type: &nbsp;</label><br />
-          <select id="fingerprint" className="input" {...register("fingerprint")} style = {{width : "40%"}}>
-            <option value="maccs">MACCS Fingerprint</option>
-            <option value="morgan">Morgan Fingerprint</option>
-            <option value="rdkit_fp">RDKit Fingerprint</option>
-          </select>
+          <label className='custom-label'>
+            <input
+              type="radio"
+              name="setting"
+              value="express"
+              className='custom-radio'
+              onChange={(e) => setSelection(e.target.value)}
+            />
+            Express
+          </label>
           <br />
-          {fpOption === "morgan" || fpOption === "rdkit_fp" ?
-            <div className="ml-forms">
-              <label>Radius Size: </label>
-              <input className="input" type="number" defaultValue={2}></input>
-              <label>Fingerprint Size: </label>
-              <input className="input" type="number" defaultValue={2048}></input>
-            </div> : null}
+          <label className='custom-label'>
+            <input
+              type="radio"
+              name="setting"
+              value="advanced"
+              className='custom-radio'
+              onChange={(e) => setSelection(e.target.value)}
+            />
+            Advanced
+          </label>
           <br />
-          <input type="checkbox" defaultChecked={true} {...register("dedup")}></input>
-          <label>Data De-Duplication</label>
-          <br />
-          <input type="submit" className="button" value="Process Molecule"></input>
+          <button type="submit" disabled={!selection} className='button'>Submit</button>
         </form>
-        <br />
-      </div>
-    )
-  } else {
-    return (
-      <div>
-        <Loader loadingText="Processing Molecules" />
-      </div>
-    )
-  }
-}
+      )}
+      {stage === 'advanced' && (
+        <div>
+          <button className='button' type="button" onClick={handleBack}>←</button>
+          <form onSubmit={handleSubmit(dataProcessor)}>
+            <label className="form-labels" htmlFor="fingerprint">Fingerprint Type: &nbsp;</label><br />
+            <select id="fingerprint" className="input" {...register("fingerprint")} style={{ width: "40%" }}>
+              <option value="maccs">MACCS Fingerprint</option>
+              <option value="morgan">Morgan Fingerprint</option>
+              <option value="rdkit_fp">RDKit Fingerprint</option>
+            </select>
+            <br />
+            {fpOption === "morgan" || fpOption === "rdkit_fp" ?
+              <div className="ml-forms">
+                <label>Radius Size: </label>
+                <input className="input" type="number" defaultValue={2} {...register("radius")}></input>
+                <label>Fingerprint Size: </label>
+                <input className="input" type="number" defaultValue={2048} {...register("nBits")}></input>
+              </div> : null}
+            <br />
+            <input className='radio-buttons' type="checkbox" defaultChecked={true} {...register("dedup")}></input>
+            <label>Data De-Duplication (By ID Column)</label>
+            <br />
+            <input type="checkbox" defaultChecked={true} {...register("log10")}></input>
+            <label>Convert to negative logarithm (base 10)</label>
+            <br />
+            <input type="submit" className="button" value="Process Molecule"></input>
+          </form>
+
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataPreProcessToolKit;

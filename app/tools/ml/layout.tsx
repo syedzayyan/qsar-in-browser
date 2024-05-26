@@ -12,6 +12,8 @@ import RDKitContext from "../../../context/RDKitContext";
 import PyodideContext from "../../../context/PyodideContext";
 import TargetContext from "../../../context/TargetContext";
 import { MLResultsContext } from "../../../context/MLResultsContext";
+import JSME from "../../../components/tools/toolViz/JSMEComp";
+import Dropdown from "../../../components/tools/toolViz/DropDown";
 
 type dataChart = {
     x: number,
@@ -29,7 +31,7 @@ export default function MLLayout({ children }) {
 
     const { ligand } = useContext(LigandContext);
 
-    globalThis.neg_log_activity_column = ligand.map((obj) => obj.neg_log_activity_column);
+    globalThis.neg_log_activity_column = ligand.map((obj) => obj[target.activity_columns[0]]);
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
     useEffect(() => {
@@ -49,7 +51,7 @@ export default function MLLayout({ children }) {
         await pyodide.runPython(await (await fetch("/pyodide_ml_screen.py")).text());
         setOneOffSmilesResult((globalThis.one_off_y).toJs())
     }
-    
+
     return (
         <div className="tools-container">
             <MLResultsContext.Provider value={setScreenData}>
@@ -57,6 +59,15 @@ export default function MLLayout({ children }) {
             </MLResultsContext.Provider>
             {screenData.length > 0 && (
                 <>
+                    <input style={{ width: "40%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
+                    &nbsp;
+                    <Dropdown buttonText="Draw the molecule">
+                        <JSME width="300px" height="300px" onChange={(smiles) => setOneOffSmiles(smiles)} id="jsme_comp_1" />
+                    </Dropdown>
+                    &nbsp;
+                    <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>
+                    <br />
+                    <span>Predicted {target.activity_columns[0]}: {oneOffSMILESResult}</span>
                     <GroupedBarChart mae={screenData[0]} r2={screenData[1]}>
                         <span>Mean MAE: {round(mean(screenData[0]), 2)} || Mean R-Squared: {round(mean(screenData[1]), 2)}</span>
                     </GroupedBarChart>
@@ -66,11 +77,6 @@ export default function MLLayout({ children }) {
                         ))}
                     </select>
                     <Scatterplot data={screenData[2][foldNumSel]} xAxisTitle="Experimental Activity" yAxisTitle="Predicted Activity" />
-
-                    <input className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
-                    <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>
-                    <span>Predicted {target.activity_type}: {oneOffSMILESResult}</span>
-
                 </>
             )}
         </div>

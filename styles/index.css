@@ -7,6 +7,7 @@
 @import "./tabs.css";
 @import "./tags.css";
 @import "./sidebar.css";
+@import "./form-comps.css";
 
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 
@@ -418,6 +419,8 @@ _:future,
     grid-template-columns: 1fr 1fr;
     gap: 20px;
 }
+
+
 
 @media (max-width: 850px) {
     .tools-container {

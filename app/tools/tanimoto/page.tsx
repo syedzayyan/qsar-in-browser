@@ -7,6 +7,8 @@ import RDKitContext from "../../../context/RDKitContext";
 import TanimotoSimilarity from "../../../components/utils/tanimoto";
 import fpSorter from "../../../components/utils/fp_sorter";
 import ErrorContext from "../../../context/ErrorContext";
+import JSME from "../../../components/tools/toolViz/JSMEComp";
+import Dropdown from "../../../components/tools/toolViz/DropDown";
 
 export default function Tanimoto() {
   const { ligand } = useContext(LigandContext);
@@ -55,13 +57,19 @@ export default function Tanimoto() {
           the full picture, but adds a piece to the puzzle.
         </p>
       </details>
-      <label>SMILES string</label>
+      <label>SMILES string:  </label>
       <input
         defaultValue={anchorMol}
         type="text"
         className="input"
         onChange={(e) => setAnchorMol(e.target.value)}
+        style = {{width: "40%"}}
       />
+      &nbsp;
+      <Dropdown buttonText = "Draw the molecule">
+        <JSME width="300px" height="300px" onChange={(smiles) => setAnchorMol(smiles)} id = "jsme_comp" />
+      </Dropdown>
+      &nbsp;
       <button className="button" onClick={tanimotoDist}>
         Generate Graph
       </button>

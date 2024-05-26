@@ -41,16 +41,14 @@ export default function CompoundGetter() {
       `/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`,
     ).then((data) => {
       data.map((x) => {
-        x["activity_column"] = x["standard_value"];
+        x["Ki"] = x["standard_value"];
         x["id"] = x["molecule_chembl_id"];
         delete x["standard_value"];
         return x;
       });
       setLigand(data);
-      let temp_target = target;
-      temp_target.activity_type = unit;
     });
-    localStorage.setItem("dataSource", "chembl");
+    setTarget({ ...target, activity_columns: [unit], data_source: "chembl"});
   }
 
   return (

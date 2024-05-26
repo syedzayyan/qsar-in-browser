@@ -7,6 +7,7 @@ import Loader from "../../ui-comps/Loader";
 import ModalComponent from "../../ui-comps/ModalComponent";
 import { ksTest } from "../../utils/ks_test";
 import TargetContext from "../../../context/TargetContext";
+import { round } from "mathjs";
 
 export default function MMA() {
   const { ligand } = useContext(LigandContext);
@@ -44,9 +45,8 @@ export default function MMA() {
   }, [stateOfRDKit]);
 
   function scaffoldArrayGetter(row_list_s) {
-    let neg_log_activity_column = ligand.map(
-      (obj) => obj.neg_log_activity_column,
-    );
+    let curr_activity_column = ligand.map((obj) => obj[target.activity_columns[0]]);
+    console.log(curr_activity_column);
     let massive_array = [];
 
     row_list_s.map((x, i) => {
@@ -65,7 +65,6 @@ export default function MMA() {
               fragments.push(m_frag.get_smiles());
               m_frag.delete();
             }
-            molList.delete();
             cores_smiles_list.push(fragments.at(0));
             sidechains_smiles_list.push(fragments.at(1));
             massive_array.push([
@@ -73,8 +72,9 @@ export default function MMA() {
               fragments.at(0),
               fragments.at(1),
               x.id,
-              x.neg_log_activity_column,
+              x[target.activity_columns[0]],
             ]);
+            molList.delete();
             m.delete();
             mol_frags.cores.delete();
             mol_frags.sidechains.delete();
@@ -114,12 +114,11 @@ export default function MMA() {
     );
 
     filteredArrayOfScaffolds = filteredArrayOfScaffolds.map((x) => {
-      return [x[0], [x[1][0], ksTest(x[1][1], neg_log_activity_column)]];
+      return [x[0], [x[1][0], ksTest(x[1][1], curr_activity_column)]];
     });
 
     filteredArrayOfScaffolds.sort((a, b) => a[1][1] - b[1][1]);
 
-    console.log(filteredArrayOfScaffolds);
     return [filteredArrayOfScaffolds, massive_array];
   }
 
@@ -163,7 +162,7 @@ export default function MMA() {
                 svgMode
               />
               <br></br>
-              <span>{target.activity_type} : {cores[4]}</span>
+              <span>{target.activity_columns[0]} : {round(cores[4], 2)}</span>
             </Card>
           ))}
         </ModalComponent>

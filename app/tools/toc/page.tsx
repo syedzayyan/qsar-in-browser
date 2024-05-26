@@ -9,7 +9,7 @@ export default function TOC(){
     const { ligand } = useContext(LigandContext);
     const { jsonToCSV } = usePapaParse();
 
-    const results = jsonToCSV(ligand, { delimiter: ',' });
+    const results = jsonToCSV(ligand, { delimiter: ';' });
 
     function downloadCSV(csv: any){
         const blob = new Blob([csv], { type: 'text/csv' });

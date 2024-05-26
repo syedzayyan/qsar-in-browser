@@ -81,6 +81,7 @@ export default function TargetGetter() {
                   key={tars.target_chembl_id}
                   onClick={() => {
                     setTarget({
+                      ...target,
                       target_id: tars.target_chembl_id,
                       target_name: tars.pref_name,
                       target_organism: tars.organism,

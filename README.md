@@ -17,6 +17,10 @@ Just in your browser. All the code runs in the browser. Using WASM and JS. The t
 ### How is QITB?
 You tell? Found an issue and want to fix it? Please feel free to make a PR. Will look forward to people turning and tossing my code to make it better.
 
+### How to make QITB better?
+
+
+
 ### Who is behind QITB and What Do They Do?
 - Me (Syed Zayyan Masud): Horrible, uncommented, untestable code.
 - Theo Redfern-Nichols: Making the UI Useable and Combing through my bad Design Choices and coming up with VERY useful Suggestions.

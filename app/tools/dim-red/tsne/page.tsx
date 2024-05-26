@@ -5,9 +5,11 @@ import LigandContext from "../../../../context/LigandContext";
 import PyodideContext from "../../../../context/PyodideContext";
 import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
 import Loader from "../../../../components/ui-comps/Loader";
+import TargetContext from "../../../../context/TargetContext";
 
 export default function TSNE() {
   const { ligand, setLigand } = useContext(LigandContext);
+  const { target } = useContext(TargetContext)
   const { pyodide } = useContext(PyodideContext);
   const [pca, setPCA] = useState<any[]>([]);
   const [pcaCorrectTSNE, setPCACorrectTSNE] = useState(true);
@@ -83,7 +85,7 @@ export default function TSNE() {
       {pca.length > 0 && (
         <Scatterplot
           data={pca}
-          colorProperty={ligand.map((obj) => obj.neg_log_activity_column)}
+          colorProperty={ligand.map((obj) => obj[target.activity_columns[0]])}
           hoverProp={ligand.map((obj) => obj.canonical_smiles)}
           xAxisTitle={"t-SNE Dimension 1"}
           yAxisTitle={"t-SNE Dimension 2"}
