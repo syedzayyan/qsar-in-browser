@@ -1,6 +1,6 @@
 "use client"
 
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Table from "../../../components/ui-comps/PaginatedTables";
 import LigandContext from "../../../context/LigandContext";
 import { usePapaParse } from 'react-papaparse';
@@ -15,10 +15,16 @@ export default function TOC() {
     const { target } = useContext(TargetContext);
     const { jsonToCSV } = usePapaParse();
     const { rdkit } = useContext(RDKitContext);
-
+    const inputRef = useRef(null);
 
     const [searchSmi, setSearchSmi] = useState('');
     const [searchRes, setSearchRes] = useState(ligand);
+
+    useEffect(() => {
+        if (inputRef.current) {
+          inputRef.current.value = searchSmi;
+        }
+      }, [searchSmi]);
 
     const results = jsonToCSV(ligand, { delimiter: ';' });
 
@@ -56,7 +62,7 @@ export default function TOC() {
             <div >
                 <button className="button" onClick={() => downloadCSV(results)}>Download Ligand Data as CSV</button>
                 <br />
-                <input className = "input" type="text" placeholder="Search By Substructure/SMILES" onChange={(e) => setSearchSmi(e.target.value)}/>
+                <input ref={inputRef} className = "input" type="text" placeholder="Search By Substructure/SMILES" onChange={(e) => setSearchSmi(e.target.value)}/>
                 &nbsp;
                 <Dropdown buttonText="Draw the molecule">
                     <JSME width="300px" height="300px" onChange={(smiles) => setSearchSmi(smiles)} id="jsme_comp_2" />

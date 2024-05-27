@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import GroupedBarChart from "../../../components/tools/toolViz/BarChart";
 import Scatterplot from "../../../components/tools/toolViz/ScatterPlot";
 import { round } from "mathjs";
@@ -28,6 +28,13 @@ export default function MLLayout({ children }) {
     const { target } = useContext(TargetContext);
     const [oneOffSMILESResult, setOneOffSmilesResult] = useState<number>();
     const { pyodide } = useContext(PyodideContext);
+
+    const inputRef = useRef(null);
+    useEffect(() => {
+        if (inputRef.current) {
+          inputRef.current.value = oneOffSMILES;
+        }
+      }, [oneOffSMILES]);
 
     const { ligand } = useContext(LigandContext);
 
@@ -62,7 +69,7 @@ export default function MLLayout({ children }) {
                     &nbsp;
                     <div style={{ borderColor: "10px solid black", margin: "20px 0", gap: "10px" }}>
                         <h2>Predict the activity of a single molecule</h2>
-                        <input style={{ width: "40%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
+                        <input ref={inputRef} style={{ width: "40%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
                         <br />
                         <Dropdown buttonText="Draw the molecule">
                             <JSME width="300px" height="300px" onChange={(smiles) => setOneOffSmiles(smiles)} id="jsme_comp_1" />

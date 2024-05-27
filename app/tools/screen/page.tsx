@@ -32,7 +32,7 @@ export default function Screen() {
                                 Download Predictions in CSV Format
                             </button>
                             &nbsp;
-                            <Table data={screenData} rowsPerPage={5} />
+                            <Table data={screenData} rowsPerPage={5} act_column={["predictions"]}/>
                         </>
                     }
                 </>
