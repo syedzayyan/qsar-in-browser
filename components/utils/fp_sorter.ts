@@ -1,7 +1,13 @@
 import bitStringToBitVector from "./bit_vect";
 
 export default function fpSorter(fpType : string, smilesString: string, rdkit, path? : number, nBits?: number){
-    const mol = rdkit.get_mol(smilesString);
+    let mol;
+    try {
+        mol = rdkit.get_mol(smilesString);
+    } catch {
+        return null;
+    }
+
     let molFP;
     if (fpType === "maccs"){
         molFP = mol.get_maccs_fp();
@@ -13,5 +19,6 @@ export default function fpSorter(fpType : string, smilesString: string, rdkit, p
         throw new Error("Error has happened")
     }
     mol.delete();
-    return bitStringToBitVector(molFP)
+    return bitStringToBitVector(molFP);
+    
 }

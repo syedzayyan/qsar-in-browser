@@ -59,15 +59,20 @@ export default function MLLayout({ children }) {
             </MLResultsContext.Provider>
             {screenData.length > 0 && (
                 <>
-                    <input style={{ width: "40%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
                     &nbsp;
-                    <Dropdown buttonText="Draw the molecule">
-                        <JSME width="300px" height="300px" onChange={(smiles) => setOneOffSmiles(smiles)} id="jsme_comp_1" />
-                    </Dropdown>
-                    &nbsp;
-                    <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>
-                    <br />
-                    <span>Predicted {target.activity_columns[0]}: {oneOffSMILESResult}</span>
+                    <div style={{ borderColor: "10px solid black", margin: "20px 0", gap: "10px" }}>
+                        <h2>Predict the activity of a single molecule</h2>
+                        <input style={{ width: "40%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
+                        <br />
+                        <Dropdown buttonText="Draw the molecule">
+                            <JSME width="300px" height="300px" onChange={(smiles) => setOneOffSmiles(smiles)} id="jsme_comp_1" />
+                        </Dropdown>
+                        <br />
+                        <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>
+                        <br />
+                        <span>Predicted {target.activity_columns[0]}: {oneOffSMILESResult}</span>
+                    </div>
+
                     <GroupedBarChart mae={screenData[0]} r2={screenData[1]}>
                         <span>Mean MAE: {round(mean(screenData[0]), 2)} || Mean R-Squared: {round(mean(screenData[1]), 2)}</span>
                     </GroupedBarChart>

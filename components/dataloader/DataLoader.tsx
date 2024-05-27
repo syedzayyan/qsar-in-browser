@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import ErrorContext from "../../context/ErrorContext";
 import ModalComponent from "../ui-comps/ModalComponent";
 import TabWrapper, { Tabs } from "../ui-comps/TabbedComponents";
+import SDFFileLoader from "./SDFFileLoader";
 
 export default function DataLoader() {
   const { ligand, setLigand } = useContext(LigandContext);
@@ -59,13 +60,20 @@ export default function DataLoader() {
       <div>
         <TabWrapper>
           <Tabs title="ChEMBL">
-          <TargetGetter />
+            <TargetGetter />
           </Tabs>
-          <Tabs title="External File (CSV)">
-          <CSVLoader callofScreenFunction={onSubmit} csvSetter={setLigand} />
+          <Tabs title="External File">
+            <TabWrapper>
+              <Tabs title="Upload CSV">
+                <CSVLoader callofScreenFunction={onSubmit} csvSetter={setLigand} />
+              </Tabs>
+              <Tabs title="Upload SDF">
+                <SDFFileLoader />
+              </Tabs>
+            </TabWrapper>
           </Tabs>
           <Tabs title="QITB JSON">
-          <LoadFromWork />
+            <LoadFromWork />
           </Tabs>
         </TabWrapper>
       </div>

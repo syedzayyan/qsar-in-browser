@@ -14,7 +14,7 @@ export default function Activity() {
     return (
         <div className="tools-container">
             <Histogram data={data} xLabel={target.activity_columns[0]} yLabel="Count" toolTipData={ligand}>
-                <span>Mean : {round(mean(data), 2) } || Median : {round(median(data), 2)} || Mode : {round(mode(data), 2)}</span>
+                <span>Mean : {round(mean(data), 2) || ""} || Median : {round(median(data), 2) || ""} || Mode : {round(mode(data), 2) || ""}</span>
             </Histogram>
         </div>
     )

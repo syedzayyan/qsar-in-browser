@@ -19,7 +19,7 @@ type FingerPrintSettings = {
 const DataPreProcessToolKit = () => {
   const [loaded, setLoaded] = useState(true);
   const [stage, setStage] = useState('choose'); // Initial stage is 'choose'
-  const [selection, setSelection] = useState(null);
+  const [selection, setSelection] = useState('express');
   const { ligand, setLigand } = useContext(LigandContext);
   const { rdkit } = useContext(RDKitContext);
   const { target, setTarget } = useContext(TargetContext);
@@ -100,6 +100,7 @@ const DataPreProcessToolKit = () => {
               value="express"
               className='custom-radio'
               onChange={(e) => setSelection(e.target.value)}
+              defaultChecked = {true}
             />
             Express
           </label>

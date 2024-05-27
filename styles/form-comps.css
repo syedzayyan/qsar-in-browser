@@ -1,3 +1,11 @@
+.input {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-top: 8px;
+    min-width:200px;
+}
+
 /* Radio buttons with class 'custom-radio' */
 input.custom-radio[type=radio] {
     --s: 1.5em;     /* control the size */
@@ -48,4 +56,36 @@ input.custom-radio[type=radio]:disabled {
     gap: 10px;
     margin: 5px 0;
     cursor: pointer;
+}
+
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-icon {
+    background-color: var(--accent-color);
+    border: none;
+    color: white;
+    padding: 12px;
+    margin:5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.dropdown-icon:hover {
+    background-color: #3e8e41;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    z-index: 1;
+    top: 100%; /* Position it below the button */
+    left: 50%;
+    transform: translateX(-50%); /* Center it horizontally */
+}
+
+.dropdown-content.visible {
+    display: block;
 }

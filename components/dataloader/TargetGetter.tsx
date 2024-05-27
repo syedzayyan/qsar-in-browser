@@ -67,7 +67,7 @@ export default function TargetGetter() {
         {loading ? (
           <Loader />
         ) : (
-          <table className="custom-table" style = {{marginLeft : "0"}}>
+          <table className="table target-table" style = {{marginLeft : "0"}}>
             <thead>
               <tr>
                 <th>Target Name</th>
