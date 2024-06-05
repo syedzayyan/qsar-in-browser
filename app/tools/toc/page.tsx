@@ -65,7 +65,7 @@ export default function TOC() {
                 <input ref={inputRef} className = "input" type="text" placeholder="Search By Substructure/SMILES" onChange={(e) => setSearchSmi(e.target.value)}/>
                 &nbsp;
                 <Dropdown buttonText="Draw the molecule">
-                    <JSME width="300px" height="300px" onChange={(smiles) => setSearchSmi(smiles)} />
+                    <JSME width="400px" height="300px" onChange={(smiles) => setSearchSmi(smiles)} />
                 </Dropdown> 
                 &nbsp;
                 <button className="button" onClick={() => searchSubst()}>Substructure Search molecule</button>               

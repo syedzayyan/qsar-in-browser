@@ -34,7 +34,11 @@ const Jsme = ({ height, width, smiles, options, onChange, src }) => {
       jsmeApplet.setCallBack("AfterStructureModified", handleChange);
       jsmeApplet.readGenericMolecularInput(smiles);
     } else {
-      const jsmeApplet = new globalThis.JSApplet.JSME(id, width, height);
+      const jsmeApplet = new globalThis.JSApplet.JSME(id, width, height, {
+        "options": "newlook",
+        "guicolor": "#FFFFFF",
+        "guiAtomColor": "#000000"
+      });
       jsmeApplet.setCallBack("AfterStructureModified", handleChange);
       jsmeApplet.readGenericMolecularInput(smiles);
     }
@@ -47,18 +51,20 @@ const Jsme = ({ height, width, smiles, options, onChange, src }) => {
   }, [onChange]);
 
   useEffect(() => {
-    if (jsmeIsLoaded) {
-      handleJsmeLoad();
-    } else {
-      if (!globalThis.jsmeOnLoad) {
-        setup(src);
+    if (myRef.current && myRef.current.children.length < 1) {
+      if (jsmeIsLoaded) {
+        handleJsmeLoad();
+      } else {
+        if (!globalThis.jsmeOnLoad) {
+          setup(src);
+        }
+        jsmeCallbacks[id] = handleJsmeLoad;
       }
-      jsmeCallbacks[id] = handleJsmeLoad;
+  
+      return () => {
+        jsmeCallbacks[id] = undefined;
+      };
     }
-
-    return () => {
-      jsmeCallbacks[id] = undefined;
-    };
   }, []);
 
   useEffect(() => {

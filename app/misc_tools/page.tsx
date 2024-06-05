@@ -9,7 +9,7 @@ export default function JSMEPOPO() {
     return (
         <div className="container">
             <div className="content-wrapper" style={{ marginTop: "60px" }}>
-                <JSME height="500px" width="500px" onChange={handleChange} id = 'test'/>
+                <JSME height="500px" width="500px" onChange={handleChange} />
             </div>
         </div>
     )
