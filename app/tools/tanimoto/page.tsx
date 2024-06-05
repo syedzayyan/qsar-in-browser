@@ -15,9 +15,16 @@ export default function Tanimoto() {
   const { rdkit } = useContext(RDKitContext);
   const { setErrors } = useContext(ErrorContext);
 
+  const inputRef = useRef(null);
   const containerRef = useRef(null);
   const [taniData, setTaniData] = useState([]);
   const [anchorMol, setAnchorMol] = useState("CCO");
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.value = anchorMol;
+    }
+  }, [anchorMol]);
 
   function tanimotoDist() {
     try {
@@ -64,10 +71,11 @@ export default function Tanimoto() {
         className="input"
         onChange={(e) => setAnchorMol(e.target.value)}
         style = {{width: "40%"}}
+        ref={inputRef} 
       />
       &nbsp;
       <Dropdown buttonText = "Draw the molecule">
-        <JSME width="300px" height="300px" onChange={(smiles) => setAnchorMol(smiles)} id = "jsme_comp" />
+        <JSME width="400px" height="300px" onChange={(smiles) => setAnchorMol(smiles)} />
       </Dropdown>
       &nbsp;
       <button className="button" onClick={tanimotoDist}>

@@ -72,7 +72,7 @@ export default function MLLayout({ children }) {
                         <input ref={inputRef} style={{ width: "40%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
                         <br />
                         <Dropdown buttonText="Draw the molecule">
-                            <JSME width="300px" height="300px" onChange={(smiles) => setOneOffSmiles(smiles)} id="jsme_comp_1" />
+                            <JSME width="300px" height="300px" onChange={(smiles) => setOneOffSmiles(smiles)} />
                         </Dropdown>
                         <br />
                         <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import ModalComponent from "../../ui-comps/ModalComponent";
 import Card from "./Card";
 import MoleculeStructure from "../toolComp/MoleculeStructure";
 import Screenshotter from "../../utils/d3toPNG";
+import TargetContext from "../../../context/TargetContext";
+import { round } from "mathjs";
 
 const MARGIN = { top: 30, right: 30, bottom: 50, left: 80 };
 const BUCKET_NUMBER = 70;
@@ -29,6 +31,7 @@ export default function Histogram({
   const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
   const [modalState, setModalState] = useState(false);
   const [modalDets, setModalDets] = useState([]);
+  const { target } = useContext(TargetContext);
 
   const svgRef = useRef(null);
   const parentRef = useRef(null);
@@ -189,7 +192,7 @@ export default function Histogram({
                     structure={x.canonical_smiles}
                     id={i.toString()}
                   />
-                  <span>Activity: {x.neg_log_activity_column} </span>
+                  <span>{target.activity_columns[0]}: {round(x[target.activity_columns[0]], 2)} </span>
 
                   <span>
                     ID:{" "}

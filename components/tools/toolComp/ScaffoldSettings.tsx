@@ -2,8 +2,8 @@ import { useForm } from "react-hook-form"
 import RDKitContext from "../../../context/RDKitContext"
 import { useContext } from "react"
 import LigandContext from "../../../context/LigandContext"
-import { scaffold_net_chunking_method } from "../../utils/rdkit_loader"
-import loadGraphFromScaffNet from "../../utils/loadGraphFromScaffNet"
+import { graph_molecule_image_generator, scaffold_net_chunking_method } from "../../utils/rdkit_loader"
+import TargetContext from "../../../context/TargetContext"
 
 type ScaffoldNetParams = {
     includeGenericScaffolds: boolean
@@ -21,6 +21,7 @@ type ScaffoldNetParams = {
 
 export default function ScaffoldSettings({setGraph, setLoaded, activeTabChange}){
     const { rdkit } = useContext(RDKitContext);
+    const { target, setTarget } = useContext(TargetContext);
     const { ligand } = useContext(LigandContext);
     const { register, handleSubmit, formState: { errors }, } = useForm<ScaffoldNetParams>();
 
@@ -42,11 +43,14 @@ export default function ScaffoldSettings({setGraph, setLoaded, activeTabChange})
             if (data.bondBreakersRxns) {
                 params["bondBreakersRxns"] = data.bondBreakersRxns;
             }     
-            setTimeout(() => {
+            setTimeout(async () => {
                 let smiles_list = ligand.map((x) => x.canonical_smiles);
-                const network = scaffold_net_chunking_method(smiles_list, 50, rdkit, params);
-                const graph = loadGraphFromScaffNet(network, smiles_list, rdkit);  
-                setGraph(graph);
+                let network_graph;
+                network_graph = scaffold_net_chunking_method(smiles_list, 600, rdkit, params);scaffold_net_chunking_method(smiles_list, 50, rdkit, params);
+                let serialised_graph = await network_graph.export();
+                await setTarget({...target, scaffold_network : serialised_graph });
+                let image_graph = graph_molecule_image_generator(rdkit, network_graph);
+                setGraph(image_graph);
                 setLoaded(true);  
                 activeTabChange(1);            
             }, 80);

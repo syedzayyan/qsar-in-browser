@@ -6,15 +6,24 @@ import PyodideContext from "../../../../context/PyodideContext";
 import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
 import Loader from "../../../../components/ui-comps/Loader";
 import TargetContext from "../../../../context/TargetContext";
+import { useForm } from "react-hook-form";
+
+type tsneType = {
+  perplexity: number;
+  n_iter: number;
+  pca_correct: boolean;
+  n_jobs: number;
+}
 
 export default function TSNE() {
   const { ligand, setLigand } = useContext(LigandContext);
   const { target } = useContext(TargetContext)
   const { pyodide } = useContext(PyodideContext);
   const [pca, setPCA] = useState<any[]>([]);
-  const [pcaCorrectTSNE, setPCACorrectTSNE] = useState(true);
   const containerRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
+
+  const { register, handleSubmit, watch, formState: { errors }, } = useForm<tsneType>()
 
   useEffect(() => {
     setLoaded(false);
@@ -22,15 +31,23 @@ export default function TSNE() {
       setPCA(ligand.map(obj => obj.tsne));
       setLoaded(true);
     } else {
-      runDimRed();
+      setTimeout(() => {
+        runDimRed({
+          perplexity: 30,
+          n_iter: 1000,
+          pca_correct: true,
+          n_jobs: 4,
+        });
+      }, 100)
     }
   }, []);
 
   globalThis.fp = ligand.map((obj) => obj.fingerprint);
-  globalThis.opts = pcaCorrectTSNE ? 2 : 3;
 
-  async function runDimRed() {
+  async function runDimRed(formStuff: tsneType) {
     setLoaded(false);
+    globalThis.opts = formStuff.pca_correct ? 2 : 3;
+
     await pyodide.runPython(`
       from sklearn.decomposition import PCA
       from sklearn.manifold import TSNE
@@ -39,10 +56,10 @@ export default function TSNE() {
       if js.opts == 2:
           pca = PCA(n_components=30)
           pca_drugs = pca.fit_transform(js.fp)
-          model = TSNE(n_components=2, random_state=0, perplexity=30, n_iter=5000)
+          model = TSNE(n_components=2, random_state=42, perplexity=${formStuff.perplexity}, n_iter=${formStuff.n_iter}, n_jobs = ${formStuff.n_jobs})
           result = model.fit_transform(pca_drugs)
       elif js.opts == 3:
-          model = TSNE(n_components=2, random_state=0, perplexity=30, n_iter=5000)
+          model = TSNE(n_components=2, random_state=42, perplexity=${formStuff.perplexity}, n_iter=${formStuff.n_iter}, n_jobs = ${formStuff.n_jobs})
           result = model.fit_transform(js.fp)
 
       js.pca = result
@@ -63,23 +80,21 @@ export default function TSNE() {
       <h1>t-distributed Stochastic Neighbor Embedding</h1>
       <details open={pca.length < 0}>
         <summary>tSNE settings</summary>
-        <form>
-          <label htmlFor="tsne_perplexity">PCA Correction</label>
-          <input
-            type="checkbox"
-            defaultChecked
-            onChange={(e) => setPCACorrectTSNE(e.target.checked)}
-          ></input>
-          <br />
+        <form onSubmit={handleSubmit(runDimRed)} className="ml-forms" style = {{width : "200px"}}>
+          <div>
+            <label htmlFor="tsne_perplexity">PCA Correction</label>
+            <input type="checkbox" defaultChecked  {...register("pca_correct")}></input>            
+          </div>
           <label htmlFor="tsne_perplexity">Perplexity</label>
-          <input className="input" id="tsne_perplexity"></input>
-          <br />
+          <input className="input" defaultValue = {30} id="tsne_perplexity"  {...register("perplexity")}></input>
+
           <label htmlFor="tsne_n_iter">Number of Iterations</label>
-          <input className="input" id="tsne_n_iter"></input>
-          <br />
-          <button className="button" onClick={() => runDimRed()}>
-            Run tSNE
-          </button>
+          <input className="input" defaultValue = {1000} id="tsne_n_iter"  {...register("n_iter")}></input>
+          
+          <label htmlFor="tsne_n_jobs">Number of CPU</label>
+          <input className="input" defaultValue = {-1} id="tsne_n_jobs" {...register("n_jobs")}></input>
+
+          <input type="submit" className="button" value={"Run tSNE"}/>
         </form>
       </details>
       {pca.length > 0 && (

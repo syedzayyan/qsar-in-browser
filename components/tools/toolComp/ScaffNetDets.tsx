@@ -33,14 +33,14 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
     
     // State declarations
     const [currentPage, setCurrentPage] = useState(1);
-    const [nodesArray, setNodesArray] = useState<{ node: any, smiles: string, size: number }[]>([]);
-    const [displayNodesArray, setDisplayNodesArray] = useState<{ node: any, smiles: string, size: number }[]>([]);
+    const [nodesArray, setNodesArray] = useState<{ node: any, smiles: string, size: number, img: string }[]>([]);
+    const [displayNodesArray, setDisplayNodesArray] = useState<{ node: any, smiles: string, size: number, img: string }[]>([]);
 
     // Effect to update nodesArray and displayNodesArray when graph changes
     useEffect(() => {
-        const tempNodesArray: { node: any, smiles: string, size: number }[] = [];
+        const tempNodesArray: { node: any, smiles: string, size: number, img: string }[] = [];
         graph.forEachNode((node, attributes) => {
-            tempNodesArray.push({ node, smiles: attributes.smiles, size: attributes.molCounts });
+            tempNodesArray.push({ node, smiles: attributes.smiles, size: attributes.molCounts, img: attributes.image});
         });
         tempNodesArray.sort((a, b) => b.size - a.size);
         setNodesArray(tempNodesArray);
@@ -94,10 +94,10 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
             <div className="container-for-cards">
                 {displayNodesArray
                     .slice((currentPage - 1) * nodesPerPage, currentPage * nodesPerPage)
-                    .map(({ node, smiles, size }) => (
+                    .map(({ node, smiles, size, img }) => (
                         <Card key={node}>
                             <p>Node ID: {node}</p>
-                            <MoleculeStructure structure={smiles} id={node} />
+                            <img src = {img} alt = {smiles} />
                             <p>Scaffold Matches: {size}</p>
                             <button className="button" onClick={() => filterNodes(node, "attr", 3)}>Neighbour Nodes</button>
                         </Card>
