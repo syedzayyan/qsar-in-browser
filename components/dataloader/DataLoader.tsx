@@ -9,9 +9,11 @@ import ErrorContext from "../../context/ErrorContext";
 import ModalComponent from "../ui-comps/ModalComponent";
 import TabWrapper, { Tabs } from "../ui-comps/TabbedComponents";
 import SDFFileLoader from "./SDFFileLoader";
+import TargetContext from "../../context/TargetContext";
 
 export default function DataLoader() {
   const { ligand, setLigand } = useContext(LigandContext);
+  const { target, setTarget } = useContext(TargetContext)
   const router = useRouter();
 
   const { errors, setErrors } = useContext(ErrorContext);
@@ -26,12 +28,14 @@ export default function DataLoader() {
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     let while_process_var = ligand.map((x) => {
       x["id"] = x[data.id_column];
-      x["activity_column"] = parseFloat(x[data.act_column || ""]);
+      x[data.act_column] = parseFloat(x[data.act_column || ""]);
       x["canonical_smiles"] = x[data.smi_column];
-      delete x[data.act_column || ""], x[data.id_column], x[data.smi_column];
+      x[data.id_column], x[data.smi_column];
       return x;
     });
+    console.log(while_process_var)
     setLigand(while_process_var);
+    setTarget({...target, activity_columns : [data.act_column], data_source: "csv"})
     localStorage.setItem("dataSource", "csv");
     router.push("/tools/preprocess/");
   };
