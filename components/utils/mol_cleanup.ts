@@ -19,14 +19,30 @@ export default function molDataCleanUp(rdkit, mol_data, activity_columns, formSt
     localStorage.setItem("nBits", formStuff.nBits.toString());
 
     if (formStuff.log10) {
-      var new_activity_columns = activity_columns.map((col) => "p" + col);
-        mol_data.map((lig, i) => {
-          new_activity_columns.map((col, j) => {
-              temp_ligand_process[i][col] = -1 * Math.log10(lig[activity_columns[j]] * 10e-9);
-            })
+      // Determine which columns contain "p"
+      const truthyOrFalsy = activity_columns.map((col) => col.includes("p"));
+    
+      // Prepare new activity column names based on the truthy/falsy values
+      var new_activity_columns = activity_columns.map((col, index) =>
+        !truthyOrFalsy[index] ? "p" + col : col
+      );
+    
+      // Process the data with log10 only for columns that contained "p"
+      mol_data.map((lig, i) => {
+        new_activity_columns.map((col, j) => {
+          if (!truthyOrFalsy[j]) {
+            temp_ligand_process[i][col] = -1 * Math.log10(lig[activity_columns[j]] * 10e-9);
+          } else {
+            // If the column does not contain "p", keep the original value
+            temp_ligand_process[i][col] = lig[activity_columns[j]];
+          }
         });
-        activity_columns = new_activity_columns;
+      });
+    
+      // Update activity_columns with new column names
+      activity_columns = new_activity_columns;
     }
+    
 
     if (formStuff.dedup) {
         temp_ligand_process = temp_ligand_process.filter((ligand, index, self) =>

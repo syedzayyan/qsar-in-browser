@@ -19,6 +19,7 @@ export default function ScreenLayout({ children }) {
     const { pyodide } = useContext(PyodideContext);
 
     async function callofScreenFunction(data) {
+        console.log(data)
         setLoaded(false);
         setTimeout(async () => {
             const fp_mols = await screenData.map((x) => {

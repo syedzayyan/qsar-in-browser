@@ -51,9 +51,6 @@ const CSVLoader: React.FC<Props> = ({
         let data = convertToJSON(results.data);
         csvSetter(data);
         setCsvData(data);
-        const mimi = headers.findIndex((head, i) => {
-          data[0][head].toLowerCase().includes("smiles" || "smi") ? i : null;
-        });
       }}
       onDragOver={(event: DragEvent) => {
         event.preventDefault();

@@ -19,7 +19,6 @@
     "graphology-operators": "^1.6.0",
     "graphology-traversal": "^0.3.1",
     "graphology-types": "^0.24.7",
-    "ketcher-react": "^2.20.0",
     "lodash": "^4.17.21",
     "mathjs": "^12.3.1",
     "next": "^14.2.3",
@@ -33,19 +32,6 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^1.3.1",
-    "@pyodide/webpack-plugin": "^1.3.2",
-    "@storybook/addon-essentials": "^8.0.6",
-    "@storybook/addon-interactions": "^8.0.6",
-    "@storybook/addon-links": "^8.0.6",
-    "@storybook/addon-onboarding": "^8.0.6",
-    "@storybook/blocks": "^8.0.6",
-    "@storybook/nextjs": "^8.0.6",
-    "@storybook/react": "^8.0.6",
-    "@storybook/test": "^8.0.6",
-    "@testing-library/react": "^14.2.1",
-    "@types/mocha": "^10.0.6",
-    "@types/react": "18.2.53",
-    "storybook": "^8.0.6",
     "typescript": "5.3.3"
   }
 }
