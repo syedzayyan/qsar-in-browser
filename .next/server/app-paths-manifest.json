@@ -1,7 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/tools/preprocess/page": "app/tools/preprocess/page.js",
-  "/tools/tanimoto/page": "app/tools/tanimoto/page.js",
-  "/tools/load_data/page": "app/tools/load_data/page.js",
-  "/tools/activity/page": "app/tools/activity/page.js"
-}
