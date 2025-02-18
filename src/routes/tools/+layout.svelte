@@ -1,4 +1,5 @@
 <script lang="ts">
+    export const prerender = true;
 	let { children } = $props();
 	import { menuItems } from '../../components/utils/dropdown_menu_stuff.ts';
 	

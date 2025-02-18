@@ -8,9 +8,10 @@ export const menuItems = [
     links: [
       { name: "Upload Data", href: "/tools/dataload"  },
       { name: "Pre-process Data", href: "/tools/preprocess" },
-      { name: "Explore Data", href: "/tools/toc" },
+ //     { name: "Explore Data", href: "/tools/toc" },
     ],
   },
+  /*
   {
     title: "Distributions",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -61,4 +62,5 @@ export const menuItems = [
       { name: "Coverage Score", href: "/tools/screen/cov_score" },
     ],
   },
+  */
 ];

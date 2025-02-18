@@ -1,4 +1,6 @@
+
 <script lang="ts">
+  /*
   import { onMount, onDestroy } from "svelte";
   import * as d3 from "d3";
 
@@ -97,6 +99,9 @@
       window.removeEventListener("resize", updateSize);
     });
   });
+
+  //<svg bind:this={svg}></svg>
+  */
 </script>
 
 <style>
@@ -107,5 +112,4 @@
 </style>
 
 <div id="histogram-container">
-  <svg bind:this={svg}></svg>
 </div>
