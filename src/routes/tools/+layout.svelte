@@ -1,13 +1,12 @@
 <script lang="ts">
 	let { children } = $props();
-	import { menuItems } from '../../components/utils/dropdown_menu_stuff.js';
+	import { menuItems } from '../../components/utils/dropdown_menu_stuff.ts';
 	
 	let isToolsOpen = false;
 </script>
-
 <div>
 	<header class="flex w-full items-center justify-center">
-		<ul class="menu rounded-box bg-base-200 lg:menu-horizontal">
+		<ul class="menu rounded-box bg-base-200 menu-horizontal">
 			<li class="relative">
 				<details bind:open={isToolsOpen}>
 					<summary class="flex cursor-pointer items-center">
