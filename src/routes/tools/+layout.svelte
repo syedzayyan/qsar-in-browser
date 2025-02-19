@@ -1,25 +1,41 @@
 <script lang="ts">
-    export const prerender = true;
+	import { onMount } from 'svelte';
+	import { persistedState } from '../../components/stores/qitb.js';
+	import Modal from '../../components/ui/Modal.svelte';
+	export const prerender = true;
 	let { children } = $props();
-	import { menuItems } from '../../components/utils/dropdown_menu_stuff.ts';
-	
-	let isToolsOpen = false;
+	import { menuItems } from '../../components/utils/dropdown_menu_stuff';
+
+	let isToolsOpen = $state(false);
+	onMount(() => {
+		let existenceOfQITBFILE = localStorage.getItem('qitb');
+		if (existenceOfQITBFILE != null) {
+			persistedState('qitb', JSON.parse(existenceOfQITBFILE));
+			document.getElementById('alert_of_existence_of_old').showModal();
+		} else {
+			persistedState('qitb', {}); // Provide a default initial value
+		}
+	});
 </script>
+
+<Modal modal_id="alert_of_existence_of_old">
+	<h3>Loading Old Cached Files</h3>
+</Modal>
 <div>
 	<header class="flex w-full items-center justify-center">
-		<ul class="menu rounded-box bg-base-200 menu-horizontal">
+		<ul class="menu menu-horizontal rounded-box bg-base-200">
 			<li class="relative">
 				<details bind:open={isToolsOpen}>
 					<summary class="flex cursor-pointer items-center">
-						<a> Tools </a>
+						<span> Tools </span>
 					</summary>
-					<ul class="menu bg-base-200 p-2 absolute min-w-[250px] w-max z-50">
+					<ul class="menu absolute z-50 w-max min-w-[250px] bg-base-200 p-2">
 						{#each menuItems as { title, icon, links }}
 							<li>
 								<details>
 									<summary class="flex items-center gap-2">
 										{#if icon}
-											<div class="w-4 h-4">
+											<div class="h-4 w-4">
 												{@html icon}
 											</div>
 										{/if}
@@ -51,8 +67,8 @@
 			</li>
 		</ul>
 	</header>
-	<main class="flex-grow overflow-hidden mx-auto container px-4 md:px-6 lg:px-8">
-		<div class="max-w-6xl mx-auto w-full">
+	<main class="container mx-auto flex-grow overflow-hidden px-4 md:px-6 lg:px-8">
+		<div class="mx-auto w-full max-w-6xl">
 			{@render children()}
 		</div>
 	</main>

@@ -11,7 +11,6 @@ export const menuItems = [
  //     { name: "Explore Data", href: "/tools/toc" },
     ],
   },
-  /*
   {
     title: "Distributions",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -22,6 +21,8 @@ export const menuItems = [
       { name: "Tanimoto", href: "/tools/tanimoto" },
     ],
   },
+
+  /*
   {
     title: "Dimension Reduction",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

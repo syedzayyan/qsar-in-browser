@@ -1,4 +1,5 @@
 // Stolen from https://github.com/oMaN-Rod/palworld-save-pal/blob/main/ui/src/lib/states/persistedState.svelte.ts
+import { writable, type Writable } from 'svelte/store';
 
 type Serializer<T> = {
 	parse: (text: string) => T;
@@ -17,7 +18,16 @@ interface Options<T> {
 	beforeWrite?: (value: T) => T;
 }
 
+// Central store map to hold persisted state instances
+const storeMap = new Map<string, Writable<any>>();
+
+/**
+ * Initializes and returns a writable Svelte store that persists to localStorage or sessionStorage.
+ */
 export function persistedState<T>(key: string, initialValue: T, options: Options<T> = {}) {
+	// Return existing store if it was already initialized
+	if (storeMap.has(key)) return storeMap.get(key) as Writable<T>;
+
 	const {
 		storage = 'local',
 		serializer = JSON,
@@ -31,7 +41,6 @@ export function persistedState<T>(key: string, initialValue: T, options: Options
 	const storageArea = storage === 'local' ? localStorage : sessionStorage;
 
 	let storedValue: T;
-
 	try {
 		const item = storageArea.getItem(key);
 		storedValue = item ? beforeRead(serializer.parse(item)) : initialValue;
@@ -40,47 +49,49 @@ export function persistedState<T>(key: string, initialValue: T, options: Options
 		storedValue = initialValue;
 	}
 
-	let state = $state(storedValue);
+	// Create a reactive writable store
+	const store = writable<T>(storedValue, (set) => {
+		// Sync between tabs if enabled
+		if (syncTabs && typeof window !== 'undefined' && storage === 'local') {
+			const handler = (event: StorageEvent) => {
+				if (event.key === key && event.storageArea === localStorage) {
+					try {
+						const newValue = event.newValue ? serializer.parse(event.newValue) : initialValue;
+						set(beforeRead(newValue));
+					} catch (error) {
+						onParseError(error);
+					}
+				}
+			};
 
-	function updateStorage(value: T) {
+			window.addEventListener('storage', handler);
+			return () => window.removeEventListener('storage', handler);
+		}
+	});
+
+	// Automatically save to localStorage/sessionStorage when store updates
+	store.subscribe((value) => {
 		try {
 			const valueToStore = beforeWrite(value);
 			storageArea.setItem(key, serializer.stringify(valueToStore));
 		} catch (error) {
 			onWriteError(error);
 		}
-	}
-
-	if (syncTabs && typeof window !== 'undefined' && storage === 'local') {
-		window.addEventListener('storage', (event) => {
-			if (event.key === key && event.storageArea === localStorage) {
-				try {
-					const newValue = event.newValue ? serializer.parse(event.newValue) : initialValue;
-					state = beforeRead(newValue);
-				} catch (error) {
-					onParseError(error);
-				}
-			}
-		});
-	}
-
-	$effect.root(() => {
-		$effect(() => {
-			updateStorage(state);
-		});
-
-		return () => {};
 	});
 
-	return {
-		get value() {
-			return state;
-		},
-		set value(newValue: T) {
-			state = newValue;
-		},
-		reset() {
-			state = initialValue;
-		}
-	};
+	// Store it in the global storeMap for reuse
+	storeMap.set(key, store);
+	return store;
 }
+
+/**
+ * Retrieves an existing persisted state store without reinitializing.
+ */
+export function usePersistedState<T>(key: string): Writable<T> {
+	const store = storeMap.get(key);
+	if (!store) {
+		throw new Error(`Persisted state with key "${key}" has not been initialized.`);
+	}
+	return store as Writable<T>;
+}
+
