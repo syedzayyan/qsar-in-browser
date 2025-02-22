@@ -1,19 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { persistedState } from '../../components/stores/qitb.js';
 	import Modal from '../../components/ui/Modal.svelte';
-	export const prerender = true;
-	let { children } = $props();
 	import { menuItems } from '../../components/utils/dropdown_menu_stuff';
+	import { QITB } from '../../components/stores/qitb';
 
+	let { children } = $props();
 	let isToolsOpen = $state(false);
-	onMount(() => {
+	
+    onMount(() => {
 		let existenceOfQITBFILE = localStorage.getItem('qitb');
 		if (existenceOfQITBFILE != null) {
-			persistedState('qitb', JSON.parse(existenceOfQITBFILE));
+			QITB.set(JSON.parse(existenceOfQITBFILE));
 			document.getElementById('alert_of_existence_of_old').showModal();
 		} else {
-			persistedState('qitb', {}); // Provide a default initial value
+            goto("/tools/dataload")
+            console.log("Nothing Is There")
 		}
 	});
 </script>

@@ -2,14 +2,14 @@
 	import Modal from '../ui/Modal.svelte';
 	import getFullActivityData from '../utils/chemblLigandDownloader';
 	import { writable } from 'svelte/store';
-	import { persistedState } from '../stores/qitb';
 	import { goto } from '$app/navigation';
-    import type { Ligand } from "../utils/types/ligand";
-    import type { Target } from "../utils/types/target";
-	
-    let targetQuery: string = $state('CHEMBL226');
+	import type { Ligand } from '../utils/types/ligand';
+    import { QITB } from "../stores/qitb";
+	import type { Target } from '../utils/types/target';
+
+	let targetQuery: string = $state('CHEMBL226');
 	let searchIsBack = $state(false);
-	let targetQueryResults = $state([]);
+	let targetQueryResults: Target[] = $state([]);
 	let target_chembl_id: string;
 
 	let unitAssayPairs = writable([{ unit_type: 'Ki', assay_type: 'B' }]);
@@ -17,11 +17,13 @@
 	let progress = writable(0);
 
 	function addUnitAssayPair() {
-		unitAssayPairs.update(pairs => [...pairs, { unit_type: '', assay_type: '' }]);
+		unitAssayPairs.update((pairs) => [...pairs, { unit_type: '', assay_type: '' }]);
 	}
 
 	function removeUnitAssayPair(index: number) {
-		unitAssayPairs.update(pairs => pairs.length > 1 ? pairs.filter((_, i) => i !== index) : pairs);
+		unitAssayPairs.update((pairs) =>
+			pairs.length > 1 ? pairs.filter((_, i) => i !== index) : pairs
+		);
 	}
 
 	function searchTargets() {
@@ -34,17 +36,22 @@
 	}
 
 	async function downloadTargetLigands() {
-		let combinedData: Ligand = [];
+		let combinedData: Ligand[] = [];
 		const pairs = $unitAssayPairs;
 
 		for (const pair of pairs) {
-			const data = await getFullActivityData(target_chembl_id, pair.unit_type, pair.assay_type, progress, species);
+			const data = await getFullActivityData(
+				target_chembl_id,
+				pair.unit_type,
+				pair.assay_type,
+				progress,
+				species
+			);
 			combinedData = [...combinedData, ...data];
 		}
-
-		persistedState('qitb', {
+		QITB.set({
 			data_source: 'chembl',
-			activity_columns: pairs.map(p => p.unit_type),
+			activity_columns: pairs.map((p) => p.unit_type),
 			species: species ? 'Homo Sapiens' : 'Other',
 			ligand_data: combinedData
 		});
@@ -79,10 +86,12 @@
 					<option value="P">Physiochemical</option>
 					<option value="U">Unclassified</option>
 				</select>
-                &nbsp;
-				<button type="button" onclick={() => removeUnitAssayPair(index)} class="btn btn-error">-</button>
+				&nbsp;
+				<button type="button" onclick={() => removeUnitAssayPair(index)} class="btn btn-error"
+					>-</button
+				>
 			</div>
-            <br /><br />
+			<br /><br />
 		{/each}
 		<br />
 		<button type="button" onclick={addUnitAssayPair} class="btn btn-secondary">+</button>
@@ -104,7 +113,12 @@
 </Modal>
 
 <form onsubmit={searchTargets}>
-	<input bind:value={targetQuery} type="text" placeholder="Search for targets" class="input input-bordered w-full max-w-xs" />
+	<input
+		bind:value={targetQuery}
+		type="text"
+		placeholder="Search for targets"
+		class="input input-bordered w-full max-w-xs"
+	/>
 	{#if searchIsBack}
 		<div class="overflow-x-auto">
 			<table class="table">
@@ -116,13 +130,18 @@
 					</tr>
 				</thead>
 				<tbody>
-				{#each targetQueryResults as result}
-					<tr onclick={() => { document.getElementById('ligand-download').showModal(); target_chembl_id = result.target_chembl_id; }}>
-						<td>{result.target_chembl_id}</td>
-						<td>{result.pref_name}</td>
-						<td>{result.organism}</td>
-					</tr>
-				{/each}
+					{#each targetQueryResults as result}
+						<tr
+							onclick={() => {
+								document.getElementById('ligand-download').showModal();
+								target_chembl_id = result.target_chembl_id;
+							}}
+						>
+							<td>{result.target_chembl_id}</td>
+							<td>{result.pref_name}</td>
+							<td>{result.organism}</td>
+						</tr>
+					{/each}
 				</tbody>
 			</table>
 		</div>

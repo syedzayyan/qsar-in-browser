@@ -1,4 +1,18 @@
 export interface Ligand {
+  Ki?: number
+  EC50?: number
+  IC50?: number
+  XC50?: number
+  AC50?: number
+  Kd?: number
+  assay_desc_Ki?: string; // Description for Ki
+  assay_desc_EC50?: string; // Description for EC50
+  assay_desc_IC50?: string; // Description for IC50
+  assay_desc_XC50?: string; // Description for XC50
+  assay_desc_AC50?: string; // Description for AC50
+  assay_desc_Kd?: string; // Description for Kd
+  
+  Potency: number
   action_type: any
   activity_comment: any
   activity_id: number
