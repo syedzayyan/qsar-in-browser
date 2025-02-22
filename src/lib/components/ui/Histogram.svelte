@@ -17,7 +17,6 @@
 	$: processedData = data
 		.filter((datum) => datum.hasOwnProperty(act_col)) // Check if act_col exists
 		.map((datum) => datum[act_col]);
-
 	const updateSize = () => {
 		if (!browser) return;
 		const container = document.getElementById('histogram-container');

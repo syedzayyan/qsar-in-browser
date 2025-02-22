@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Modal from '../../components/ui/Modal.svelte';
-	import { menuItems } from '../../components/utils/dropdown_menu_stuff';
-	import { QITB } from '../../components/stores/qitb';
+	import Modal from '$lib/components/ui/Modal.svelte';
+	import { menuItems } from '$lib/components/utils/dropdown_menu_stuff';
+	import { QITB } from '$lib/components/stores/qitb';
 
 	let { children } = $props();
 	let isToolsOpen = $state(false);
-	
-    onMount(() => {
+
+	onMount(() => {
 		let existenceOfQITBFILE = localStorage.getItem('qitb');
 		if (existenceOfQITBFILE != null) {
 			QITB.set(JSON.parse(existenceOfQITBFILE));
 			document.getElementById('alert_of_existence_of_old').showModal();
 		} else {
-            goto("/tools/dataload")
-            console.log("Nothing Is There")
+			goto('/tools/dataload');
+			console.log('Nothing Is There');
 		}
 	});
 </script>
@@ -58,13 +58,7 @@
 				</details>
 			</li>
 			<li>
-				<a>Something</a>
-			</li>
-			<li>
-				<a>
-					Stats
-					<span class="badge badge-info badge-xs"></span>
-				</a>
+				<a> Save Work 💾 </a>
 			</li>
 		</ul>
 	</header>

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { get } from 'svelte/store';
-	import { QITB } from '../../../components/stores/qitb';
-	import PopUp from '../../../components/ui/PopUp.svelte';
-	import mergeActivities from '../../../components/utils/cleanup';
-	import type { Ligand } from '../../../components/utils/types/ligand';
-	import Modal from '../../../components/ui/Modal.svelte';
+	import { QITB } from '$lib/components/stores/qitb';
+	import PopUp from '$lib/components/ui/PopUp.svelte';
+	import mergeActivities from '$lib/components/utils/cleanup';
+	import type { Ligand } from '$lib/components/utils/types/ligand';
+	import Modal from '$lib/components/ui/Modal.svelte';
 
 	let chemicalFingerprint = $state('MACCS');
 	let logStandardValue = $state(true);

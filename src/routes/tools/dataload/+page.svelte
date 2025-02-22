@@ -1,6 +1,6 @@
 <script>
-	import FileLoad from '../../../components/dataload/FileLoad.svelte';
-	import Download from '../../../components/dataload/Download.svelte';
+	import FileLoad from '$lib/components/dataload/FileLoad.svelte';
+	import Download from '$lib/components/dataload/Download.svelte';
 </script>
 
 <title>Load Data Into QITB</title>

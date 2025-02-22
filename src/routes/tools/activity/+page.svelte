@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Histogram from '../../../components/ui/Histogram.svelte';
-	import { QITB } from '../../../components/stores/qitb';
-	import type { Ligand } from '../../../components/utils/types/ligand';
+	import Histogram from '$lib/components/ui/Histogram.svelte';
+	import { QITB } from '$lib/components/stores/qitb';
+	import type { Ligand } from '$lib/components/utils/types/ligand';
 
 	let data: Ligand[] = $state([]);
 	let act_cols: string[] = $state([]);
