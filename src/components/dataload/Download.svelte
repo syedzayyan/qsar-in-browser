@@ -53,7 +53,8 @@
 			data_source: 'chembl',
 			activity_columns: pairs.map((p) => p.unit_type),
 			species: species ? 'Homo Sapiens' : 'Other',
-			ligand_data: combinedData
+			ligand_data: combinedData,
+            logged_once: false
 		});
 
 		goto('/tools/preprocess/');

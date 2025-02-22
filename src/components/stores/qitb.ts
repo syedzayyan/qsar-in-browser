@@ -7,10 +7,12 @@ export const QITB = persistent<{
 	activity_columns: string[];
 	species: string;
 	ligand_data: Ligand[];
+    logged_once: boolean;
 	target_data?: Target;
 }>('qitb', {
 	data_source: 'Nothing',
 	activity_columns: ['Nothing'],
 	species: 'Nothing',
+    logged_one: true,
 	ligand_data: []
 });

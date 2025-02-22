@@ -3,12 +3,15 @@
 	import { QITB } from '../../../components/stores/qitb';
 	import type { Ligand } from '../../../components/utils/types/ligand';
 
-	let data: Ligand[] = [];
-	let act_cols: string[] = [];
+	let data: Ligand[] = $state([]);
+	let act_cols: string[] = $state([]);
+	let act_col = $state(act_cols[0]);
 
+	let rendering = $state(false);
 	QITB.subscribe((qitb) => {
 		data = qitb.ligand_data;
 		act_cols = qitb.activity_columns;
+		rendering = true;
 	});
 </script>
 
@@ -17,10 +20,12 @@
 	<div class="label">
 		<span class="label-text">Pick the activity to display</span>
 	</div>
-	<select class="select select-bordered">
+	<select class="select select-bordered" bind:value={act_col}>
 		{#each act_cols as activity}
-			<option value = {activity}>{activity}</option>
+			<option value={activity}>{activity}</option>
 		{/each}
 	</select>
 </label>
-<Histogram {data} xLabel = "Activity"/>
+{#if rendering}
+	<Histogram {data} xLabel={`Activity (${act_col})`} yLabel="Count" {act_col} />
+{/if}

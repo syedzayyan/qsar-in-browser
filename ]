@@ -23,7 +23,7 @@ self.onmessage = async (event) => {
 					throw new Error('Error has happened');
 				}
 				mol.delete();
-                self.postMessage(`Progress: ${Math.round((idx / ligand_data_len) * 100)}%`)
+                self.postMessage(`Progress: ${Math.round((idx / ligand_data_len) * 100)}`);
 			} catch (e) {
 				console.error(e);
 			}

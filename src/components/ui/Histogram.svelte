@@ -1,26 +1,43 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import * as d3 from 'd3';
-    
-    let prop = $props();
-	let data = prop.data.map(datum => (Math.log10(datum.standard_value)));
+	import { browser } from '$app/environment';
 
-	const binNumber = 100;
-	let width: number, height: number;
+	export let data: number[] = [];
+	export let xLabel: string;
+	export let yLabel: string;
+	export let act_col: string;
 
-    let xLabel = prop.xLabel || 'X Axis Label';
-	let yLabel = prop.yLabel || 'Y Axis Label';
-	
-    const updateSize = () => {
+	let processedData: number[] = [];
+	let width: number = 0,
+		height: number = 0;
+	let svg: SVGSVGElement | null = null;
+	let binNumber = 100; // Default bin count
+
+	$: processedData = data
+		.filter((datum) => datum.hasOwnProperty(act_col)) // Check if act_col exists
+		.map((datum) => datum[act_col]);
+
+	const updateSize = () => {
+		if (!browser) return;
 		const container = document.getElementById('histogram-container');
+		if (!container) return;
+
 		width = container.offsetWidth;
 		height = container.offsetHeight;
+
+		// Adjust bin number dynamically based on screen size
+		binNumber = width < 600 ? 20 : 100; // Reduce bins for small screens
+
 		renderChart();
 	};
-	let svg;
+
 	const renderChart = () => {
+		if (!svg || !browser) return;
+
 		d3.select(svg).selectAll('*').remove();
 		const margin = { top: 20, right: 30, bottom: 80, left: 80 };
+
 		const svgElement = d3
 			.select(svg)
 			.attr('width', width)
@@ -30,12 +47,14 @@
 
 		const x = d3
 			.scaleLinear()
-			.domain([0, d3.max(data)])
+			.domain([0, d3.max(processedData) ?? 0])
 			.range([0, width - margin.left - margin.right]);
-		const bins = d3.bin().domain(x.domain()).thresholds(binNumber)(data);
+
+		const bins = d3.bin().domain(x.domain()).thresholds(binNumber)(processedData);
+
 		const y = d3
 			.scaleLinear()
-			.domain([0, d3.max(bins, (d) => d.length)])
+			.domain([0, d3.max(bins, (d) => d.length) ?? 0])
 			.range([height - margin.top - margin.bottom, 0]);
 
 		svgElement
@@ -44,9 +63,9 @@
 			.enter()
 			.append('rect')
 			.attr('class', 'bar')
-			.attr('x', (d) => x(d.x0))
+			.attr('x', (d) => x(d.x0 ?? 0))
 			.attr('y', (d) => y(d.length))
-			.attr('width', (d) => x(d.x1) - x(d.x0) - 1)
+			.attr('width', (d) => x(d.x1 ?? 0) - x(d.x0 ?? 0) - 1)
 			.attr('height', (d) => height - margin.top - margin.bottom - y(d.length))
 			.attr('fill', 'steelblue');
 
@@ -87,15 +106,25 @@
 			.text(yLabel);
 	};
 
+	$: {
+		if (processedData.length > 0 && browser) {
+			renderChart();
+		}
+	}
+
 	onMount(() => {
+		if (!browser) return;
 		window.addEventListener('resize', updateSize);
 		updateSize();
-		onDestroy(() => {
-			window.removeEventListener('resize', updateSize);
-		});
+	});
+
+	onDestroy(() => {
+		if (!browser) return;
+		window.removeEventListener('resize', updateSize);
 	});
 </script>
 
+<span>Total Number of Molecules Being Shown on The Histogram: {processedData.length}</span>
 <div id="histogram-container">
 	<svg bind:this={svg}></svg>
 </div>
