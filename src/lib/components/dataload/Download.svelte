@@ -10,7 +10,7 @@
 	let targetQuery: string = $state('CHEMBL226');
 	let searchIsBack = $state(false);
 	let targetQueryResults: Target[] = $state([]);
-	let target_chembl_id: string;
+	let target_chembl_id: Target;
 
 	let unitAssayPairs = writable([{ unit_type: 'Ki', assay_type: 'B' }]);
 	let species: boolean = $state(true);
@@ -22,8 +22,8 @@
 
 	function removeUnitAssayPair(index: number) {
 		unitAssayPairs.update((pairs) =>
-			pairs.length > 1 ? pairs.filter((_, i) => i !== index) : pairs
-		);
+			pairs.length > 1 ? pars.filter((_, i) => i !== index) : pairs
+		)
 	}
 
 	function searchTargets() {
@@ -41,7 +41,7 @@
 
 		for (const pair of pairs) {
 			const data = await getFullActivityData(
-				target_chembl_id,
+				target_chembl_id.target_chembl_id,
 				pair.unit_type,
 				pair.assay_type,
 				progress,
@@ -54,7 +54,8 @@
 			activity_columns: pairs.map((p) => p.unit_type),
 			species: species ? 'Homo Sapiens' : 'Other',
 			ligand_data: combinedData,
-			logged_once: false
+			logged_once: false,
+            target_data : target_chembl_id
 		});
 
 		goto('/tools/preprocess/');
@@ -136,7 +137,7 @@
 						<tr
 							onclick={() => {
 								document.getElementById('ligand-download').showModal();
-								target_chembl_id = result.target_chembl_id;
+								target_chembl_id = result;
 							}}
 						>
 							<td>{result.target_chembl_id}</td>

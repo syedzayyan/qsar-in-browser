@@ -9,6 +9,11 @@ export const QITB = persistent<{
 	ligand_data: Ligand[];
     logged_once: boolean;
 	target_data?: Target;
+    fingerprint?: {
+        type: string,
+        path?: number,
+        nbits?: number,
+    }
 }>('qitb', {
 	data_source: 'Nothing',
 	activity_columns: ['Nothing'],

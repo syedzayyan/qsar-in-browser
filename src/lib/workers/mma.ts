@@ -1,3 +1,5 @@
+console.log("MMA Worker Activated");
+
 function scaffoldArrayGetter(row_list_s) {
 	let curr_activity_column = ligand.map((obj) => obj[target.activity_columns[0]]);
 	let massive_array = [];

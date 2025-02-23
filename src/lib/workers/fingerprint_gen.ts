@@ -11,7 +11,7 @@ self.onmessage = async (event) => {
 		const nBits = event.data.nbits;
 		const ligand_data = event.data.lig;
 		const ligand_data_len = ligand_data.length;
-        let new_clean_ligand_data = [];
+        const new_clean_ligand_data = [];
 
 		ligand_data.map((x, idx) => {
 			let mol;

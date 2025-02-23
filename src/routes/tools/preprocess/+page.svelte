@@ -5,6 +5,7 @@
 	import mergeActivities from '$lib/components/utils/cleanup';
 	import type { Ligand } from '$lib/components/utils/types/ligand';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import Worker from '$lib/workers/fingerprint_gen?worker';
 
 	let chemicalFingerprint = $state('MACCS');
 	let logStandardValue = $state(true);
@@ -17,12 +18,7 @@
 	function handleSubmit() {
 		try {
 			popUpVisibility = true;
-			const worker = new Worker(
-				new URL('../../../lib/workers/fingerprint_gen.ts', import.meta.url),
-				{
-					type: 'module'
-				}
-			);
+			const worker = new Worker();
 			let currQITB = get(QITB);
 
 			if (currQITB.logged_once) {
@@ -48,7 +44,12 @@
 						logged_once: true,
 						activity_columns: logStandardValue
 							? currQITB.activity_columns.map((x) => `p${x}`)
-							: currQITB.activity_columns
+							: currQITB.activity_columns,
+						fingerprint: {
+							type: chemicalFingerprint,
+							nbits: nbits,
+							path: radius
+						}
 					}));
 					return;
 				} else {
@@ -57,7 +58,7 @@
 			};
 		} catch (e) {
 			popUPText = 'Error Happened' + e;
-            console.error(e);
+			console.error(e);
 		}
 	}
 </script>

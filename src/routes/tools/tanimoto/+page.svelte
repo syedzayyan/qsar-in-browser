@@ -6,14 +6,16 @@
 	import type { Ligand } from '$lib/components/utils/types/ligand';
 	import { onMount } from 'svelte';
 	import { get, writable } from 'svelte/store';
+	import FPWorker from '$lib/workers/fingerprint_gen?worker';
+	import Worker from '$lib/workers/tanimoto?worker';
 
 	let open = $state(false);
 	let smiles = writable('CCO');
 	let refSMILES: string[] = $state([]);
-	let taniHistoSelected: string = $state();
-    
-    let popUpText = $state("");
-    let popUpVisibility = $state(false);
+	let taniHistoSelected: string = $state('');
+
+	let popUpText = $state('');
+	let popUpVisibility = $state(false);
 
 	let currQITB: Ligand[] = $state([]);
 
@@ -30,39 +32,47 @@
 	});
 
 	function handleTanimotoSubmit() {
-        popUpVisibility = true;
-        popUpText = "Starting Work";
-		const fp_worker = new Worker(
-			new URL('../../../lib/workers/fingerprint_gen.ts', import.meta.url),
-			{
-				type: 'module'
-			}
-		);
-		const worker = new Worker(new URL('../../../lib/workers/tanimoto.ts', import.meta.url), {
-			type: 'module'
-		});
-		let refSmilesDict = refSMILES.map((item) => ({ canonical_smiles: item }));
-		fp_worker.postMessage({ lig: refSmilesDict, fptype: 'MACCS' });
+		let currQITBThings = get(QITB);
+		popUpVisibility = true;
+		popUpText = 'Starting Work';
+		try {
+			const fp_worker = new FPWorker();
+			const worker = new Worker();
 
-		fp_worker.onmessage = (event) => {
-			if (event.data.data != null) {
-				worker.postMessage({ data: get(QITB).ligand_data, ref_mols: event.data.data });
-			}
-            popUpText = event.data.message;
-		};
-		worker.onmessage = (event) => {
-			if (event.data.data != null) {
-				QITB.update((qitb) => ({ ...qitb, ligand_data: event.data.data }));
-				currQITB = event.data.data;
-			}
-            popUpText = event.data.message;
-            setTimeout(() => {popUpVisibility = false}, 1000);
-		};
+
+			let refSmilesDict = refSMILES.map((item) => ({ canonical_smiles: item }));
+			fp_worker.postMessage({
+				lig: refSmilesDict,
+				fptype: currQITBThings.fingerprint?.type,
+				path: currQITBThings.fingerprint?.path,
+				nbits: currQITBThings.fingerprint?.nbits
+			});
+
+			fp_worker.onmessage = (event) => {
+				if (event.data.data != null) {
+					worker.postMessage({ data: currQITBThings.ligand_data, ref_mols: event.data.data });
+				}
+				popUpText = event.data.message;
+			};
+			worker.onmessage = (event) => {
+				if (event.data.data != null) {
+					QITB.update((qitb) => ({ ...qitb, ligand_data: event.data.data }));
+					currQITB = event.data.data;
+				}
+				popUpText = event.data.message;
+				setTimeout(() => {
+					popUpVisibility = false;
+				}, 1000);
+			};
+		} catch (e) {
+			popUpText = 'Error Happened' + e;
+			console.error(e);
+		}
 	}
 </script>
 
 <title>Tanimoto Similarity Distribution</title>
-<PopUp visible = {popUpVisibility}>{popUpText}</PopUp>
+<PopUp visible={popUpVisibility}>{popUpText}</PopUp>
 <select class="select select-bordered" bind:value={taniHistoSelected}>
 	{#each refSMILES as smi}
 		<option>{smi}</option>

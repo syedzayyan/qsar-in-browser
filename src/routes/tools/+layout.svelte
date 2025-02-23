@@ -3,6 +3,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { menuItems } from '$lib/components/utils/dropdown_menu_stuff';
 	import { QITB } from '$lib/components/stores/qitb';
+	import { get } from 'svelte/store';
 
 	let { children } = $props();
 	let isToolsOpen = $state(false);
@@ -17,10 +18,35 @@
 			console.log('Nothing Is There');
 		}
 	});
+
+	let filename: string = $state('QITB-Session');
+
+	function saveWork() {
+		const combinedJSON = get(QITB);
+		const jsonString = JSON.stringify(combinedJSON, null, 2);
+		const blob = new Blob([jsonString], { type: 'application/json' });
+		const downloadLink = document.createElement('a');
+		downloadLink.href = window.URL.createObjectURL(blob);
+		downloadLink.download = filename;
+		document.body.appendChild(downloadLink);
+		downloadLink.click();
+		document.body.removeChild(downloadLink);
+	}
 </script>
 
 <Modal modal_id="alert_of_existence_of_old">
 	<h3>Loading Old Cached Files</h3>
+</Modal>
+
+<Modal modal_id="save_work">
+	<input
+		type="text"
+		placeholder="Type here"
+		bind:value={filename}
+		class="input input-bordered w-full max-w-xs"
+	/>
+    <br /><br />
+	<button class="btn" onclick={() => saveWork()}>Save</button>
 </Modal>
 <div>
 	<header class="flex w-full items-center justify-center">
@@ -58,7 +84,13 @@
 				</details>
 			</li>
 			<li>
-				<a> Save Work 💾 </a>
+				<button
+					onclick={() => {
+						document.getElementById('save_work').showModal();
+					}}
+				>
+					Save Work 💾
+				</button>
 			</li>
 		</ul>
 	</header>
