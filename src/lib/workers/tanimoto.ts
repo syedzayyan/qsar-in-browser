@@ -19,11 +19,13 @@ export default function TanimotoSimilarity(v1: number[], v2: number[]): number {
 self.onmessage = async (event) => {
 	const ligand = event.data.data;
 	const reference = event.data.ref_mols;
+    const lig_len = ligand.length;
 	reference.map((refs) => {
-		ligand.map((lig) => {
+		ligand.map((lig, idx) => {
 			try {
 				lig[`tanimoto_${refs.canonical_smiles}`] = TanimotoSimilarity(refs.fingerprint, lig.fingerprint);
-			} catch (e) {
+			    self.postMessage({message : `Progress for ${refs.canonical_smiles}: ${Math.round((idx / lig_len) * 100)} %`})
+            } catch (e) {
 				console.log(e);
 			}
 		});

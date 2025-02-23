@@ -2,6 +2,7 @@
 	import { QITB } from '$lib/components/stores/qitb';
 	import Histogram from '$lib/components/ui/Histogram.svelte';
 	import JSME from '$lib/components/ui/JSME.svelte';
+	import PopUp from '$lib/components/ui/PopUp.svelte';
 	import type { Ligand } from '$lib/components/utils/types/ligand';
 	import { onMount } from 'svelte';
 	import { get, writable } from 'svelte/store';
@@ -10,6 +11,9 @@
 	let smiles = writable('CCO');
 	let refSMILES: string[] = $state([]);
 	let taniHistoSelected: string = $state();
+    
+    let popUpText = $state("");
+    let popUpVisibility = $state(false);
 
 	let currQITB: Ligand[] = $state([]);
 
@@ -26,6 +30,8 @@
 	});
 
 	function handleTanimotoSubmit() {
+        popUpVisibility = true;
+        popUpText = "Starting Work";
 		const fp_worker = new Worker(
 			new URL('../../../lib/workers/fingerprint_gen.ts', import.meta.url),
 			{
@@ -42,18 +48,21 @@
 			if (event.data.data != null) {
 				worker.postMessage({ data: get(QITB).ligand_data, ref_mols: event.data.data });
 			}
+            popUpText = event.data.message;
 		};
 		worker.onmessage = (event) => {
 			if (event.data.data != null) {
 				QITB.update((qitb) => ({ ...qitb, ligand_data: event.data.data }));
 				currQITB = event.data.data;
 			}
+            popUpText = event.data.message;
+            setTimeout(() => {popUpVisibility = false}, 1000);
 		};
 	}
 </script>
 
 <title>Tanimoto Similarity Distribution</title>
-
+<PopUp visible = {popUpVisibility}>{popUpText}</PopUp>
 <select class="select select-bordered" bind:value={taniHistoSelected}>
 	{#each refSMILES as smi}
 		<option>{smi}</option>
@@ -82,8 +91,10 @@
 	<button
 		class="btn"
 		onclick={() => {
-			refSMILES.push($smiles);
-			smiles.set('');
+			if ($smiles != '') {
+				refSMILES.push($smiles);
+				smiles.set('');
+			}
 		}}>+</button
 	>
 	<button
@@ -94,7 +105,8 @@
 	>
 </div>
 
-{#if refSMILES.length > 0} <!-- Check if there are selectable options -->
+{#if refSMILES.length > 0}
+	<!-- Check if there are selectable options -->
 	{#if taniHistoSelected === 'All'}
 		{#each refSMILES as smi}
 			<Histogram

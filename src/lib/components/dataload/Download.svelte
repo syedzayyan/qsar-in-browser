@@ -4,7 +4,7 @@
 	import { writable } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import type { Ligand } from '../utils/types/ligand';
-    import { QITB } from "../stores/qitb";
+	import { QITB } from '../stores/qitb';
 	import type { Target } from '../utils/types/target';
 
 	let targetQuery: string = $state('CHEMBL226');
@@ -54,7 +54,7 @@
 			activity_columns: pairs.map((p) => p.unit_type),
 			species: species ? 'Homo Sapiens' : 'Other',
 			ligand_data: combinedData,
-            logged_once: false
+			logged_once: false
 		});
 
 		goto('/tools/preprocess/');
@@ -97,8 +97,9 @@
 		<br />
 		<button type="button" onclick={addUnitAssayPair} class="btn btn-secondary">+</button>
 		<br /><br />
-		<input bind:value={species} type="radio" name="radio-1" class="radio" checked={true} />
-		<input bind:value={species} type="radio" name="radio-1" class="radio" />
+		<label for="home-sapiens">Homo Sapiens Only? (if Applicaple)</label>
+		<br /><br />
+		<input id="homo-sapiens" bind:checked={species} type="checkbox" name="radio-1" class="radio" />
 		<br /><br />
 		<button onclick={downloadTargetLigands} class="btn">Fetch</button>
 	</form>

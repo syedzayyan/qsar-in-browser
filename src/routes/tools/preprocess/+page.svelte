@@ -15,42 +15,50 @@
 	let popUpVisibility = $state(false);
 
 	function handleSubmit() {
-		popUpVisibility = true;
-		const worker = new Worker(new URL('../../../lib/workers/fingerprint_gen.ts', import.meta.url), {
-			type: 'module'
-		});
-		let currQITB = get(QITB);
+		try {
+			popUpVisibility = true;
+			const worker = new Worker(
+				new URL('../../../lib/workers/fingerprint_gen.ts', import.meta.url),
+				{
+					type: 'module'
+				}
+			);
+			let currQITB = get(QITB);
 
-		if (currQITB.logged_once) {
-			logStandardValue = false;
-			document.getElementById('log10').showModal();
-		}
-
-		let ligand_data: Ligand[] = currQITB.ligand_data;
-		let ligand_data_cleaned: Ligand[] = mergeActivities(ligand_data, logStandardValue);
-
-		worker.postMessage({
-			lig: ligand_data_cleaned,
-			fptype: chemicalFingerprint,
-			nbits: nbits,
-			path: radius
-		});
-
-		worker.onmessage = (event) => {
-			if (event.data.data != null) {
-				QITB.update((existing) => ({
-					...existing,
-					ligand_data: event.data.data,
-                    logged_once: true,
-					activity_columns: logStandardValue
-						? currQITB.activity_columns.map((x) => `p${x}`)
-						: currQITB.activity_columns
-				}));
-				return;
-			} else {
-				popUPText = event.data;
+			if (currQITB.logged_once) {
+				logStandardValue = false;
+				document.getElementById('log10').showModal();
 			}
-		};
+
+			let ligand_data: Ligand[] = currQITB.ligand_data;
+			let ligand_data_cleaned: Ligand[] = mergeActivities(ligand_data, logStandardValue);
+
+			worker.postMessage({
+				lig: ligand_data_cleaned,
+				fptype: chemicalFingerprint,
+				nbits: nbits,
+				path: radius
+			});
+
+			worker.onmessage = (event) => {
+				if (event.data.data != null) {
+					QITB.update((existing) => ({
+						...existing,
+						ligand_data: event.data.data,
+						logged_once: true,
+						activity_columns: logStandardValue
+							? currQITB.activity_columns.map((x) => `p${x}`)
+							: currQITB.activity_columns
+					}));
+					return;
+				} else {
+					popUPText = event.data;
+				}
+			};
+		} catch (e) {
+			popUPText = 'Error Happened' + e;
+            console.error(e);
+		}
 	}
 </script>
 
