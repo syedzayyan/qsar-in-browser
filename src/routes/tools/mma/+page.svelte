@@ -8,7 +8,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 
 	let currQITB = get(QITB);
-	let act_col = $state();
+	let act_col = $state('pKi');
 	const act_cols = currQITB.activity_columns;
 
 	let popUpText = $state('');
@@ -16,8 +16,9 @@
 
 	let scaffoldStuffCollection = $state([]);
 	let svgStrings: string[] = $state([]);
+	let matchedMMAs = $state([]);
 
-	onMount(() => {
+	function loadScaffoldArrays() {
 		const worker = new Worker();
 		const renderWorker = new RenderWorker();
 
@@ -37,16 +38,14 @@
 			} else if (event.data.data != null) {
 				scaffoldStuffCollection = event.data.data;
 				const scaffoldCores = scaffoldStuffCollection[0];
-				const smilesArray = scaffoldCores.map((item) => item[0]);
-				renderWorker.postMessage({ mol: smilesArray });
-				renderWorker.onmessage = (event) => {
-					if (event.data.message == null) {
-						svgStrings = event.data;
-						popUpVisibility = false;
-					}
-				};
+				svgStrings = scaffoldCores.map((item) => item[2]);
+				popUpVisibility = false;
 			}
 		};
+	}
+
+	onMount(() => {
+		loadScaffoldArrays();
 	});
 
 	function matchMMA(core_idx: number) {
@@ -54,7 +53,8 @@
 		const selectedArrays = scaffoldStuffCollection[1].filter((array) => {
 			return array[1] === scaffoldStuffCollection[0][core_idx][0];
 		});
-		console.log(selectedArrays);
+		matchedMMAs = selectedArrays;
+		console.log(matchedMMAs);
 	}
 </script>
 
@@ -64,7 +64,7 @@
 	<span>{popUpText}</span>
 </PopUp>
 
-<select class="select select-bordered" bind:value={act_col}>
+<select class="select select-bordered" onchange={() => loadScaffoldArrays()} bind:value={act_col}>
 	{#each act_cols as activity}
 		<option value={activity}>{activity}</option>
 	{/each}
@@ -72,6 +72,14 @@
 
 <Modal modal_id="matched-molecules">
 	<h3>Matched Molecules</h3>
+	{#each matchedMMAs as mma}
+		{@html mma[2]}
+		<br />
+		ID: {mma[3]}
+		<br />
+		{act_col}: {Math.round(mma[4])}
+		<br />
+	{/each}
 </Modal>
 
 <div class="grid grid-cols-1 gap-12 p-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
