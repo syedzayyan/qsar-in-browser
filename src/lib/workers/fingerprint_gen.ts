@@ -3,8 +3,15 @@ import bitStringToBitVector from '$lib/components/utils/bit_vect';
 
 console.log('Fingerprint Worker Activated');
 
+const rdkitScriptUrl = new URL('/rdkit/RDKit_minimal.js', self.location.origin).href;
+const rdkitWasmUrl = new URL('/rdkit/RDKit_minimal.wasm', self.location.origin).href;
+
 self.onmessage = async (event) => {
-	initRDKitModule({ locateFile: () => '/rdkit/RDKit_minimal.wasm?url' }).then((RDKitInstance) => {
+	// Dynamic import for the RDKit script
+	const RDKitModule = await import(/* @vite-ignore */ rdkitScriptUrl);
+	initRDKitModule({
+		locateFile: (filename) => rdkitWasmUrl
+	}).then((RDKitInstance) => {
 		self.postMessage(RDKitInstance.version() + ' Loaded');
 		const fpType = event.data.fptype;
 		const path = event.data.path;
