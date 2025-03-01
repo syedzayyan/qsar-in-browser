@@ -11,7 +11,9 @@ export interface Ligand {
   assay_desc_XC50?: string; // Description for XC50
   assay_desc_AC50?: string; // Description for AC50
   assay_desc_Kd?: string; // Description for Kd
-  
+  fingerprint?: number[],
+
+
   Potency: number
   action_type: any
   activity_comment: any
