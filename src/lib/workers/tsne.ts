@@ -1,12 +1,11 @@
-import '/rdkit/RDKit_minimal.js?url';
-console.log('Structure Rendered Worker Activated');
-
 const tsneURL = new URL('/tsne/tsne_wasm.js', self.location.origin).href;
 
 self.onmessage = async (event) => {
 	// Dynamic import for the RDKit script
 	const Module = await import(/* @vite-ignore */ tsneURL);
-	const module = await Module.default();
+	const module = await Module.default({
+		print: (text) => self.postMessage({ message: text }),
+	});
     const fingerprints = event.data;
 	const tsneResult = await module.tSNEJS(
 		fingerprints,
