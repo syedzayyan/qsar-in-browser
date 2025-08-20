@@ -18,11 +18,6 @@ const Navbar = () => {
                         About
                     </a>
                 </li>
-                <li>
-                    <a href='https://github.com/syedzayyan/qsar-in-browser' target="_blank" rel="noopener noreferrer">
-                        Github
-                    </a>
-                </li>
             </ul>
         </nav>
     );
