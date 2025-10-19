@@ -1,26 +1,35 @@
-'use client'
+'use client';
 
-import ThemeSwitcher from './ThemeSwitcher'
-const Navbar = () => {
-    return (
-        <nav className="navbar">
-            <div className="logo">
-                <a href="/">
-                    QSAR IN THE BROWSER
-                </a>
-            </div>
-            <ul className="navLinks">
-                <li>
-                    <ThemeSwitcher />
-                </li>
-                <li>
-                    <a href="/about">
-                        About
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    );
-};
+import { ActionIcon, Group, Text, useMantineColorScheme, Container, Anchor, Flex } from '@mantine/core';
+import { IconMoon, IconSun } from '@tabler/icons-react';
+import Link from 'next/link';
 
-export default Navbar;
+export default function Navbar() {
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
+
+  return (
+    <Container size="lg" py="md">
+      <Flex align="center" justify="space-between">
+        {/* Left: Title and About link */}
+        <Group gap="md">
+          <Text size="lg" fw={600}>
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              QSAR IN THE BROWSER
+            </Link>
+          </Text>
+        </Group>
+
+        {/* Right: Theme toggle button */}
+        <ActionIcon
+          onClick={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')}
+          variant="default"
+          size="lg"
+          radius="md"
+          aria-label="Toggle color scheme"
+        >
+          {colorScheme === 'dark' ? <IconSun stroke={1.5} /> : <IconMoon stroke={1.5} />}
+        </ActionIcon>
+      </Flex>
+    </Container>
+  );
+}

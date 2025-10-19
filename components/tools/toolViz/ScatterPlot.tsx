@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import D3ColorLegend from './D3ColorLegend';
 import { Tooltip } from './ToolTip';
-import ModalComponent from '../../ui-comps/ModalComponent';
 import MoleculeStructure from '../toolComp/MoleculeStructure';
 import { randomInt } from 'mathjs';
 import Screenshotter from '../../utils/d3toPNG';
@@ -202,7 +201,7 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
       ></svg>
       <Screenshotter svgRef={svgRef} />
       <Tooltip interactionData={details} />
-      <ModalComponent width='50' isOpen={modalState} closeModal={() => setModalState(false)}>
+      {/* <ModalComponent width='50' isOpen={modalState} closeModal={() => setModalState(false)}>
         <div className='ml-forms'>
           {modalDets &&
             <div className='ml-forms'>
@@ -213,7 +212,7 @@ const Scatterplot = ({ data, colorProperty = [], hoverProp = [], xAxisTitle, yAx
             </div>
           }
         </div>
-      </ModalComponent>
+      </ModalComponent> */}
       <div>
         <br />
         <details>

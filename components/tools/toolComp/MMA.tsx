@@ -1,31 +1,23 @@
 import { useContext, useState, useEffect } from "react";
 import LigandContext from "../../../context/LigandContext";
 import { initRDKit } from "../../utils/rdkit_loader";
-import Card from "../toolViz/Card";
 import MoleculeStructure from "./MoleculeStructure";
 import Loader from "../../ui-comps/Loader";
-import ModalComponent from "../../ui-comps/ModalComponent";
 import { ksTest } from "../../utils/ks_test";
 import TargetContext from "../../../context/TargetContext";
 import { round } from "mathjs";
+import { Button, Card, Grid, Modal } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 
 export default function MMA() {
   const { ligand } = useContext(LigandContext);
   const { target } = useContext(TargetContext);
-
+  const [opened, { open, close }] = useDisclosure(false);
   const [RDKit, setRDKit] = useState(null);
   const [stateOfRDKit, setStateOfRDKit] = useState(false);
   const [scaffCores, setScaffCores] = useState([]);
   const [scaffCoreLoaded, setScaffCoresLoaded] = useState(false);
-  const [isModalOpen, setModalOpen] = useState(false);
   const [specificMolArray, setSpecificMolArray] = useState([]);
-
-  const openModal = () => {
-    setModalOpen(true);
-  };
-  const closeModal = () => {
-    setModalOpen(false);
-  };
 
   useEffect(() => {
     async function loadRDKit() {
@@ -127,45 +119,46 @@ export default function MMA() {
       return array[1] === cores;
     });
     setSpecificMolArray(selectedArrays);
-    openModal();
+    open();
   }
 
   if (scaffCoreLoaded) {
     return (
       <div className="main-container">
-        <div className="container-for-cards">
+        <Grid grow>
           {scaffCores[0].map((cores, key) => (
-            <Card key={key}>
-              <MoleculeStructure structure={cores[0]} id={cores[0]} svgMode />
-              <br />
-              <span>Count : {cores[1][0]}</span>
-              <br />
-              <br />
-              <button
-                onClick={() => {
-                  scaffoldFinder(cores[0]);
-                }}
-                className="button"
-              >
-                Matched Molecules
-              </button>
-            </Card>
+            <Grid.Col span={4}>
+              <Card key={key} shadow="sm" padding="lg" radius="md" withBorder>
+                <MoleculeStructure structure={cores[0]} id={cores[0]} svgMode />
+                <br />
+                <span>Count : {cores[1][0]}</span>
+                <br />
+                <br />
+                <Button
+                  onClick={() => {
+                    scaffoldFinder(cores[0]);
+                  }}
+                >
+                  Matched Molecules
+                </Button>
+              </Card>
+            </Grid.Col>
           ))}
-        </div>
-        <ModalComponent isOpen={isModalOpen} closeModal={closeModal}>
-          {specificMolArray.map((cores, key) => (
-            <Card key={key}>
-              <MoleculeStructure
-                structure={cores[0]}
-                subStructure={cores[1]}
-                id={cores[0]}
-                svgMode
-              />
-              <br></br>
-              <span>{target.activity_columns[0]} : {round(cores[4], 2)}</span>
-            </Card>
-          ))}
-        </ModalComponent>
+          <Modal opened={opened} onClose={close}>
+            {specificMolArray.map((cores, key) => (
+              <Card key={key}>
+                <MoleculeStructure
+                  structure={cores[0]}
+                  subStructure={cores[1]}
+                  id={cores[0]}
+                  svgMode
+                />
+                <br></br>
+                <span>{target.activity_columns[0]} : {round(cores[4], 2)}</span>
+              </Card>
+            ))}
+          </Modal>
+        </Grid>
       </div>
     );
   } else {

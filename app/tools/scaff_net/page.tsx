@@ -3,13 +3,13 @@
 import { useContext, useEffect, useState } from "react";
 import Loader from "../../../components/ui-comps/Loader";
 import ScaffoldNetworkWholeGraph from "../../../components/tools/toolComp/ScaffoldNetworkWholeGraph";
-import TabWrapper, { Tabs } from "../../../components/ui-comps/TabbedComponents";
 import ScaffNetDets from "../../../components/tools/toolComp/ScaffNetDets";
 import ScaffoldSettings from "../../../components/tools/toolComp/ScaffoldSettings";
 import TargetContext from "../../../context/TargetContext";
 import { graph_molecule_image_generator } from "../../../components/utils/rdkit_loader";
 import RDKitContext from "../../../context/RDKitContext";
 import { MultiDirectedGraph } from "graphology";
+import { Tabs } from "@mantine/core";
 
 export default function DisplayGraph() {
   const [loaded, setLoaded] = useState(true);
@@ -19,7 +19,7 @@ export default function DisplayGraph() {
   const { rdkit } = useContext(RDKitContext);
 
   useEffect(() => {
-    if (target.scaffold_network != ""){
+    if (target.scaffold_network != "") {
       setLoaded(false);
       setTimeout(() => {
         let network_graph = new MultiDirectedGraph();
@@ -43,21 +43,36 @@ export default function DisplayGraph() {
   return (
     <div className="tools-container">
       <h1>Scaffold Network</h1>
-      <TabWrapper defaultTab={defaultTab}>
-        <Tabs title="Network Settings">
-          <ScaffoldSettings
-            setGraph={setGraph}
-            setLoaded={setLoaded}
-            activeTabChange = {setDefaultTab}
-          />
-        </Tabs>
-        <Tabs title="Network Details">
+
+      <Tabs defaultValue="Network_Settings">
+      <Tabs.List>
+        <Tabs.Tab value="Network_Details">
+          Network Settings
+        </Tabs.Tab>
+        <Tabs.Tab value="Network_Details" >
+          Network Details
+        </Tabs.Tab>
+        <Tabs.Tab value="Whole_Network">
+          Whole Network
+        </Tabs.Tab>
+      </Tabs.List>
+
+      <Tabs.Panel value="Network_Details">
+        <ScaffoldSettings
+          setGraph={setGraph}
+          setLoaded={setLoaded}
+          activeTabChange={setDefaultTab}
+        />
+      </Tabs.Panel>
+
+      <Tabs.Panel value="Network_Details">
         {graph != undefined && <ScaffNetDets graph={graph} />}
-        </Tabs>
-        <Tabs title="Whole Network">
-          {graph != undefined && <ScaffoldNetworkWholeGraph graph={graph} imageSize={200}/>}
-        </Tabs>
-      </TabWrapper>
-    </div>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="Whole_Network">
+        {graph != undefined && <ScaffoldNetworkWholeGraph graph={graph} imageSize={200} />}
+      </Tabs.Panel>
+    </Tabs>
+    </div >
   );
 }

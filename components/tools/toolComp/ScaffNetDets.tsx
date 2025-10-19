@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import MoleculeStructure from "./MoleculeStructure";
-import Card from "../toolViz/Card";
 import TagComponent from "../../ui-comps/Tags";
-import ModalComponent from "../../ui-comps/ModalComponent";
 import { subgraph } from "graphology-operators";
 import ScaffoldNetworkWholeGraph from "./ScaffoldNetworkWholeGraph";
+import { useDisclosure } from "@mantine/hooks";
+import { Button, Card, Grid, Modal } from "@mantine/core";
 
 const GraphComponent: React.FC<any> = ({ graph }) => {
-    const [modalState, setModalState] = useState(false);
+    const [opened, { open, close }] = useDisclosure(false);
 
     // Function to get nodes connected to a specific label in the graph
     function getNodesConnectedToLabel(graph, label) {
@@ -30,7 +29,7 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
             setDisplayNodesArray(nodesArray);
         }
     }
-    
+
     // State declarations
     const [currentPage, setCurrentPage] = useState(1);
     const [nodesArray, setNodesArray] = useState<{ node: any, smiles: string, size: number, img: string }[]>([]);
@@ -40,7 +39,7 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
     useEffect(() => {
         const tempNodesArray: { node: any, smiles: string, size: number, img: string }[] = [];
         graph.forEachNode((node, attributes) => {
-            tempNodesArray.push({ node, smiles: attributes.smiles, size: attributes.molCounts, img: attributes.image});
+            tempNodesArray.push({ node, smiles: attributes.smiles, size: attributes.molCounts, img: attributes.image });
         });
         tempNodesArray.sort((a, b) => b.size - a.size);
         setNodesArray(tempNodesArray);
@@ -82,7 +81,7 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
     function filterNodes(nodeEnquired: string, attr, depthSet: number) {
         let filteredGraph = subgraph(graph, [nodeEnquired, ...graph.neighbors(nodeEnquired)]);;
         setGraph(filteredGraph);
-        setModalState(true);
+        open();
     }
 
     return (
@@ -91,28 +90,29 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
             <TagComponent tags={['All', 'Fragment', 'Generic', 'GenericBond', 'RemoveAttachment', 'Initialize']} onClick={(tags) => { updateFilterFragments(tags) }}></TagComponent>
 
             {/* Container for displaying cards */}
-            <div className="container-for-cards">
+            <Grid>
                 {displayNodesArray
                     .slice((currentPage - 1) * nodesPerPage, currentPage * nodesPerPage)
                     .map(({ node, smiles, size, img }) => (
-                        <Card key={node}>
-                            <p>Node ID: {node}</p>
-                            <img src = {img} alt = {smiles} />
-                            <p>Scaffold Matches: {size}</p>
-                            <button className="button" onClick={() => filterNodes(node, "attr", 3)}>Neighbour Nodes</button>
-                        </Card>
+                        <Grid.Col span={4}>
+                            <Card key={node} shadow="sm" padding="lg" radius="md" withBorder>
+                                <p>Node ID: {node}</p>
+                                <img src={img} alt={smiles} />
+                                <p>Scaffold Matches: {size}</p>
+                                <Button onClick={() => filterNodes(node, "attr", 3)}>Neighbour Nodes</Button>
+                            </Card>
+                        </Grid.Col>
                     ))}
-            </div>
+            </Grid>
 
-            <ModalComponent isOpen = {modalState} closeModal={() => setModalState(false)} card = {false}>
+            <Modal opened={opened} onClose={close} size="75rem">
                 <div>
                     <h2>Neighbouring Nodes</h2>
-                    {modalState && 
-                        <ScaffoldNetworkWholeGraph graph={subGraph} imageSize={300} height={500} /> 
-                    }  
+                    {opened &&
+                        <ScaffoldNetworkWholeGraph graph={subGraph} imageSize={300} height={500} />
+                    }
                 </div>
-                  
-            </ModalComponent>
+            </Modal>
 
             {/* Pagination buttons */}
             <div>

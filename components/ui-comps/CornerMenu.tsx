@@ -1,20 +1,17 @@
 import { useContext, useState } from 'react';
 import LigandContext from '../../context/LigandContext';
 import TargetContext from '../../context/TargetContext';
-
-import SideBar from "./SideBar/SideBar";
-import ModalComponent from './ModalComponent';
-import { SideBarDropDownItem, SideBarItem, SideBarLink } from './SideBar/SideBarItems';
-import ThemeContext from '../../context/ThemeContext';
+import { Button, Group, Modal, NavLink } from '@mantine/core';
+import Link from 'next/link';
+import { useDisclosure } from '@mantine/hooks';
 
 
 export default function CornerMenu() {
   const [fileName, setFileName] = useState("Untitled");
-  const [modalStae, setModalState] = useState(false);
+  const [opened, { open, close }] = useDisclosure(false);
 
   const { ligand } = useContext(LigandContext);
   const { target } = useContext(TargetContext);
-  const { theme } = useContext(ThemeContext);
 
 
   function saveWork(e) {
@@ -31,60 +28,57 @@ export default function CornerMenu() {
   }
 
   return (
-    <SideBar>
-      <SideBarItem>
-        <div>
-          <p style={{ fontSize: "small" }}>Current Target: {target.target_name}</p>
-          <p style = {{fontSize : "small"}}>Number of Molecules: {ligand.length}</p>
-        </div>
-      </SideBarItem>
-      <SideBarDropDownItem name_of="Data Operations">
-        <SideBarLink to="/tools/load_data">Upload Data</SideBarLink>
-        <SideBarLink to="/tools/preprocess">Pre-process Data</SideBarLink>
-        <SideBarLink to="/tools/toc">Explore Data</SideBarLink>
-      </SideBarDropDownItem>
+    <>
+      <Group>
+        <p style={{ fontSize: "small" }}>Current Target: {target.target_name}</p>
+        <p style={{ fontSize: "small" }}>Number of Molecules: {ligand.length}</p>
+      </Group>
+      <NavLink label="Data Operations">
+        <NavLink component={Link} href="/tools/load_data" label="Load Data" />
+        <NavLink component={Link} href="/tools/preprocess" label="Pre-process Data" />
+        <NavLink component={Link} href="/tools/hrefc" label="Explore Data" />
+      </NavLink>
 
       {target.pre_processed && (
         <>
-          <div onClick={() => setModalState(true)}>
-            <SideBarItem>Save Work <img height="30px" width="30px" src="/save_disk.svg" style = {{filter : theme === "dark" ? "invert(1)" : ""}}></img></SideBarItem>
-          </div>
-          <div style={{ height: "40px" }}></div>
+          <Button onClick={() => open()}>
+            Save Work <img height="30px" width="30px" src="/save_disk.svg"></img>
+          </Button>
 
-          <SideBarDropDownItem name_of="Distributions">
-            <SideBarLink to="/tools/activity">Activity</SideBarLink>
-            <SideBarLink to="/tools/tanimoto">Tanimoto</SideBarLink>
-          </SideBarDropDownItem>
+          <NavLink label="Distributions">
+            <NavLink component={Link} href="/tools/activity" label="Activity" />
+            <NavLink component={Link} href="/tools/tanimoto" label="Tanimoto" />
+          </NavLink>
 
-          <SideBarDropDownItem name_of="Dimension Reduction">
-            <SideBarLink to="/tools/dim-red/pca">PCA</SideBarLink>
-            <SideBarLink to="/tools/dim-red/tsne">tSNE</SideBarLink>
-          </SideBarDropDownItem>
+          <NavLink label="Dimension Reduction">
+            <NavLink component={Link} href="/tools/dim-red/pca" label="PCA" />
+            <NavLink component={Link} href="/tools/dim-red/tsne" label="tSNE" />
+          </NavLink>
 
-          <SideBarDropDownItem name_of="Scaffold Operations">
-            <SideBarLink to="/tools/mma">MMA</SideBarLink>
-            <SideBarLink to="/tools/scaff_net">Scaffold Networks</SideBarLink>
-          </SideBarDropDownItem>
+          <NavLink label="Scaffold Operations">
+            <NavLink component={Link} href="/tools/mma" label="MMA" />
+            <NavLink component={Link} href="/tools/scaff_net" label="Scaffold Networks" />
+          </NavLink>
 
-          <SideBarDropDownItem name_of="Machine Learning">
-            <SideBarLink to="/tools/ml/rf">Random Forest</SideBarLink>
-            <SideBarLink to="/tools/ml/xgboost">XGBoost</SideBarLink>
-          </SideBarDropDownItem>
+          <NavLink label="Machine Learning">
+            <NavLink component={Link} href="/tools/ml/rf" label="Random Forest" />
+            <NavLink component={Link} href="/tools/ml/xgboost" label="XGBoost" />
+          </NavLink>
 
-          <SideBarDropDownItem name_of="Virtual Screening">
-            <SideBarLink to="/tools/screen">Overview</SideBarLink>
-            <SideBarLink to="/tools/screen/cov_score">Coverage Score</SideBarLink>
-          </SideBarDropDownItem>
+          <NavLink label="Virtual Screening">
+            <NavLink component={Link} href="/tools/screen" label="Overview" />
+            <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" />
+          </NavLink>
 
-          <ModalComponent isOpen={modalStae} closeModal={() => setModalState(false)} height='20' width='20'>
+          <Modal opened={opened} onClose={close}>
             <form onSubmit={saveWork} className='ml-forms' style={{ width: "18vw" }}>
               <label htmlFor='save_label'>File Name</label>
               <input className='input' id="save_label" onChange={(e) => setFileName(e.target.value)} defaultValue="Untitled"></input>
               <input type="submit" onSubmit={saveWork} className='button' value="Download File" />
             </form>
-          </ModalComponent>
+          </Modal>
         </>
       )}
-    </SideBar>
+    </>
   )
 }

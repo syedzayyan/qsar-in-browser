@@ -1,6 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
-import ModalComponent from "../../ui-comps/ModalComponent";
 import Card from "./Card";
 import MoleculeStructure from "../toolComp/MoleculeStructure";
 import Screenshotter from "../../utils/d3toPNG";
@@ -180,7 +179,7 @@ export default function Histogram({
           <g ref={svgRef}></g>
         </svg>
         <Screenshotter svgRef={svgRef}/>
-        {modalState && (
+        {/* {modalState && (
           <ModalComponent
             isOpen={modalState}
             closeModal={() => setModalState(false)}
@@ -212,7 +211,7 @@ export default function Histogram({
               ))}
             </>
           </ModalComponent>
-        )}
+        )} */}
       </div>
     );
   }

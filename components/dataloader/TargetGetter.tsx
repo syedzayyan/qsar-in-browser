@@ -2,15 +2,19 @@ import { useContext, useState } from "react";
 import dummyData from "../utils/data.json";
 import CompoundGetter from "./CompoundGetter";
 import TargetContext from "../../context/TargetContext";
-import ModalComponent from "../ui-comps/ModalComponent";
 import Loader from "../ui-comps/Loader";
+import { useDisclosure } from '@mantine/hooks';
+import { Modal, Button } from '@mantine/core';
+import { Table } from '@mantine/core';
+import { Input, TextInput } from '@mantine/core';
 
 export default function TargetGetter() {
   const [targetQuery, setTargetQuery] = useState("");
   const [targetDetails, setTargetDetails] = useState(dummyData.targets);
   const [loading, setLoading] = useState(false);
   const { target, setTarget } = useContext(TargetContext);
-  const [modalState, setModalState] = useState(false);
+
+   const [opened, { open, close }] = useDisclosure(false);
 
   function fetchTarget(e) {
     setLoading(true);
@@ -41,15 +45,14 @@ export default function TargetGetter() {
         }}
       >
         <h2>ChEMBL Data Fetcher</h2>
-        <input
-          className="input"
+        <Input
           placeholder="Search for relevant words to your Target"
           onChange={(e) => setTargetQuery(e.target.value)}
           defaultValue={target.target_name}
           required={true}
           pattern=".{3,}"
         />
-        <input
+        <Input
           type="submit"
           onSubmit={fetchTarget}
           className="button"
@@ -67,17 +70,17 @@ export default function TargetGetter() {
         {loading ? (
           <Loader />
         ) : (
-          <table className="table target-table" style = {{marginLeft : "0"}}>
-            <thead>
-              <tr>
-                <th>Target Name</th>
-                <th>ChEMBL ID</th>
-                <th>Organism</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Target Name</Table.Th>
+                <Table.Th>ChEMBL ID</Table.Th>
+                <Table.Th>Organism</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
               {targetDetails.map((tars) => (
-                <tr
+                <Table.Tr
                   key={tars.target_chembl_id}
                   onClick={() => {
                     setTarget({
@@ -87,26 +90,21 @@ export default function TargetGetter() {
                       target_organism: tars.organism,
                       pre_processed: false,
                     });
-                    setModalState(true);
+                    open();
                   }}
                 >
-                  <td>{tars.pref_name}</td>
-                  <td>{tars.target_chembl_id}</td>
-                  <td>{tars.organism}</td>
-                </tr>
+                  <Table.Td>{tars.pref_name}</Table.Td>
+                  <Table.Td>{tars.target_chembl_id}</Table.Td>
+                  <Table.Td>{tars.organism}</Table.Td>
+                </Table.Tr>
               ))}
-            </tbody>
-          </table>
+            </Table.Tbody>
+          </Table>
         )}
       </div>
-      <ModalComponent
-        isOpen={modalState}
-        closeModal={() => setModalState(false)}
-        height="55"
-        width="35"
-      >
+      <Modal opened={opened} onClose={close}>
         <CompoundGetter />
-      </ModalComponent>
+      </Modal>
     </div>
   );
 }

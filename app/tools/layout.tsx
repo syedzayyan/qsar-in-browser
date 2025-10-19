@@ -9,10 +9,13 @@ import Loader from "../../components/ui-comps/Loader";
 import Script from "next/script";
 import LigandContext from "../../context/LigandContext";
 import { useRouter } from "next/navigation";
-import ModalComponent from "../../components/ui-comps/ModalComponent";
 import ErrorContext from "../../context/ErrorContext";
-
-
+import { TargetProvider } from "../../context/TargetContext";
+import { LigandProvider } from "../../context/LigandContext";
+import { ErrorContextProvider } from "../../context/ErrorContext";
+import Navbar from "../../components/ui-comps/Navbar"
+import { AppShell, Burger } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 export default function DashboardLayout({
   children,
 }: {
@@ -24,14 +27,14 @@ export default function DashboardLayout({
   const [loadingText, setLoadingText] = useState("Loading Pyodide...");
   const { ligand } = useContext(LigandContext);
   const { errors, setErrors } = useContext(ErrorContext);
-  const [modalState, setModalState] = useState(false);
   const router = useRouter();
+  const [opened, { toggle }] = useDisclosure();
 
-  useEffect(() => {
-    if (errors) {
-      setModalState(true);
-    }
-  }, [errors]);
+  // useEffect(() => {
+  //   if (errors) {
+  //     setModalState(true);
+  //   }
+  // }, [errors]);
 
   useEffect(() => {
     if (ligand.length < 1) {
@@ -49,13 +52,14 @@ export default function DashboardLayout({
       await globalThis.loadPyodide().then((pyodide) => {
         pyodide.loadPackage(["scikit-learn", "numpy"]).then(() => {
           setPyodide(pyodide);
+          pyodide.runPython(``);
+          loadRDKit().then((RDK) => {
+            setRDKit(RDK);
+            setLoading(false);
+          });
         });
       });
       setLoadingText("Loading RDKit");
-      await loadRDKit().then((RDK) => {
-        setRDKit(RDK);
-        setLoading(false);
-      });
     } catch (e) {
       console.error(e);
       setErrors("Pyodide and RDKit had problems loading");
@@ -68,25 +72,49 @@ export default function DashboardLayout({
         src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"
         onLoad={pyodideLoaded}
       ></Script>
-      {loading ? (
-        <div>
-          <div className="tools-container" style = {{width : "100%"}}>
-          <Loader loadingText={loadingText} />
-          </div>
-          </div>
-      ) : (
-        <div className="tools-main-container">
-          <CornerMenu />
-          {children}
-        </div>
-      )}
-      <ModalComponent
-        isOpen={modalState}
-        closeModal={() => setModalState(false)}
+      <AppShell
+        padding="md"
+        header={{ height: 60 }}
+        navbar={{
+          width: 300,
+          breakpoint: 'sm',
+          collapsed: { mobile: !opened },
+        }}
       >
-        {errors}
-      </ModalComponent>
+        <AppShell.Header>
+          <Burger
+            opened={opened}
+            onClick={toggle}
+            hiddenFrom="sm"
+            size="sm"
+          />
+          <Navbar />
+        </AppShell.Header>
+        <TargetProvider>
+          <LigandProvider>
 
+                <ErrorContextProvider>
+                  <AppShell.Navbar>
+                    <CornerMenu />
+                  </AppShell.Navbar>
+                  <AppShell.Main>
+                    {loading ? (
+                      <div>
+                        <div className="tools-container" style={{ width: "100%" }}>
+                          <Loader loadingText={loadingText} />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {children}
+                      </>
+                    )}
+                  </AppShell.Main>
+                </ErrorContextProvider>
+
+          </LigandProvider>
+        </TargetProvider>
+      </AppShell>
     </>
   );
 }

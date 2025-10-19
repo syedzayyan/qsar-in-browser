@@ -6,6 +6,7 @@ import PyodideContext from "../../../../context/PyodideContext";
 import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
 import Loader from "../../../../components/ui-comps/Loader";
 import TargetContext from "../../../../context/TargetContext";
+import { Button } from "@mantine/core";
 
 export default function PCA() {
     const { ligand, setLigand } = useContext(LigandContext);
@@ -15,15 +16,15 @@ export default function PCA() {
     const containerRef = useRef(null);
     const [loaded, setLoaded] = useState(false);
 
-    useEffect(() => {
-        setLoaded(false);
-        if (ligand.some(obj => obj.pca)) {
-            setPCA(ligand.map(obj => obj.pca));
-            setLoaded(true);
-        } else {
-            runDimRed();
-        }
-    }, []);
+    // useEffect(() => {
+    //     setLoaded(false);
+    //     if (ligand.some(obj => obj.pca)) {
+    //         setPCA(ligand.map(obj => obj.pca));
+    //         setLoaded(true);
+    //     } else {
+    //         runDimRed();
+    //     }
+    // }, []);
 
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
@@ -51,6 +52,10 @@ export default function PCA() {
     return (
         <div className="tools-container" ref={containerRef}>
             <h1>Principal Component Analysis</h1>
+            <Button onClick={() => runDimRed()}>Run PCA</Button>
+            <p>Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
+                and PCA computation is blocking.
+            </p>
             {pca.length > 0 && (
                 <Scatterplot
                     data={pca}
@@ -61,7 +66,6 @@ export default function PCA() {
                     id={ligand.map((obj) => obj.id)}
                 />
             )}
-            {!loaded && <Loader loadingText="Doing PCA Magic" />}
         </div>
     );
 }
