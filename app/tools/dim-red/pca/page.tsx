@@ -6,7 +6,7 @@ import PyodideContext from "../../../../context/PyodideContext";
 import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
 import Loader from "../../../../components/ui-comps/Loader";
 import TargetContext from "../../../../context/TargetContext";
-import { Button } from "@mantine/core";
+import { Button, Group } from "@mantine/core";
 
 export default function PCA() {
     const { ligand, setLigand } = useContext(LigandContext);
@@ -32,13 +32,17 @@ export default function PCA() {
         setLoaded(false);
         await pyodide.runPython(`
       from sklearn.decomposition import PCA
+      import numpy as np
       import js
 
       pca = PCA(n_components=2)
       result = pca.fit_transform(js.fp)
+      explain_variance = np.sum(pca.explained_variance_ratio_) 
       js.pca = result
+      js.explain_variance = explain_variance
     `);
         const pca_result = globalThis.pca.toJs();
+        console.log(globalThis.explain_variance);
         const pca_data_in = pca_result.map(([x, y]) => ({ x, y }));
         let new_ligand = ligand.map((obj, index) => ({
             ...obj,
@@ -57,14 +61,18 @@ export default function PCA() {
                 and PCA computation is blocking.
             </p>
             {pca.length > 0 && (
-                <Scatterplot
-                    data={pca}
-                    colorProperty={ligand.map((obj) => obj[target.activity_columns[0]])}
-                    hoverProp={ligand.map((obj) => obj.canonical_smiles)}
-                    xAxisTitle={"Principal Component 1"}
-                    yAxisTitle={"Principal Component 2"}
-                    id={ligand.map((obj) => obj.id)}
-                />
+                <>
+                    <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p>
+                    <br></br>
+                    <Scatterplot
+                        data={pca}
+                        colorProperty={ligand.map((obj) => obj[target.activity_columns[0]])}
+                        hoverProp={ligand.map((obj) => obj.canonical_smiles)}
+                        xAxisTitle={"Principal Component 1"}
+                        yAxisTitle={"Principal Component 2"}
+                        id={ligand.map((obj) => obj.id)}
+                    />
+                </>
             )}
         </div>
     );

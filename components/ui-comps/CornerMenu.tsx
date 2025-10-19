@@ -28,10 +28,13 @@ export default function CornerMenu() {
   }
 
   return (
-    <>
-      <Group>
-        <p style={{ fontSize: "small" }}>Current Target: {target.target_name}</p>
-        <p style={{ fontSize: "small" }}>Number of Molecules: {ligand.length}</p>
+    <Group>
+      <Group justify="center" align="center">
+        <span>{target.target_name}</span>
+        <span>Number of Molecules: {ligand.length}</span>
+        {target.pre_processed && (<Button onClick={() => open()}>
+          Save Work <img height="30px" width="30px" src="/save_disk.svg"></img>
+        </Button>)}
       </Group>
       <NavLink label="Data Operations">
         <NavLink component={Link} href="/tools/load_data" label="Load Data" />
@@ -41,10 +44,6 @@ export default function CornerMenu() {
 
       {target.pre_processed && (
         <>
-          <Button onClick={() => open()}>
-            Save Work <img height="30px" width="30px" src="/save_disk.svg"></img>
-          </Button>
-
           <NavLink label="Distributions">
             <NavLink component={Link} href="/tools/activity" label="Activity" />
             <NavLink component={Link} href="/tools/tanimoto" label="Tanimoto" />
@@ -79,6 +78,6 @@ export default function CornerMenu() {
           </Modal>
         </>
       )}
-    </>
+    </Group>
   )
 }

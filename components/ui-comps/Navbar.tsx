@@ -18,8 +18,7 @@ export default function Navbar() {
             </Link>
           </Text>
         </Group>
-
-        {/* Right: Theme toggle button */}
+        <Group gap="md">&nbsp;&nbsp;&nbsp;</Group>
         <ActionIcon
           onClick={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')}
           variant="default"

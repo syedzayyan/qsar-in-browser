@@ -17,7 +17,6 @@ import {
   useMantineColorScheme,
   Divider,
   Box,
-  TypographyStylesProvider,
   Code,
 } from '@mantine/core';
 import { IconMoon, IconSun } from '@tabler/icons-react';
@@ -68,15 +67,15 @@ export default function AboutPage() {
             <Divider />
 
             <Box
-              sx={(theme) => ({
+              style={{
                 // small niceties for max width and comfortable reading
                 maxWidth: 1000,
                 margin: '0 auto',
                 width: '100%',
-              })}
+              }}
             >
               {/* Keep typography styles so raw markdown HTML renders nicely */}
-              <TypographyStylesProvider>
+              <div>
                 <ReactMarkdown
                   // allow GitHub-flavored markdown (tables, task lists)
                   remarkPlugins={[remarkGfm]}
@@ -84,35 +83,35 @@ export default function AboutPage() {
                   rehypePlugins={[rehypeRaw]}
                   // map common markdown nodes to Mantine-friendly elements
                   components={{
-                    h1: ({ node, ...props }) => <Title order={1} {...props} />,
-                    h2: ({ node, ...props }) => <Title order={2} {...props} />,
-                    h3: ({ node, ...props }) => <Title order={3} {...props} />,
-                    p: ({ node, ...props }) => <Text size="md" mb="sm" {...props} />,
-                    a: ({ node, href, children, ...props }) => (
+                    h1: ({ node, ...props }: any) => <Title order={1} {...props} />,
+                    h2: ({ node, ...props }: any) => <Title order={2} {...props} />,
+                    h3: ({ node, ...props }: any) => <Title order={3} {...props} />,
+                    p: ({ node, ...props }: any) => <Text size="md" mb="sm" {...props} />,
+                    a: ({ node, href, children, ...props }: any) => (
                       <Anchor href={href} target={href?.startsWith('#') ? undefined : '_blank'} rel="noopener noreferrer" {...props}>
                         {children}
                       </Anchor>
                     ),
-                    ul: ({ node, ...props }) => <Box component="ul" style={{ paddingLeft: 20 }} {...props} />,
-                    ol: ({ node, ...props }) => <Box component="ol" style={{ paddingLeft: 20 }} {...props} />,
-                    li: ({ node, ...props }) => <Box component="li" style={{ marginBottom: 6 }} {...props} />,
-                    blockquote: ({ node, ...props }) => (
-                      <Paper radius="sm" p="sm" withBorder sx={{ backgroundColor: isDark ? undefined : '#f7fafc' }}>
-                        <Text c="dimmed" italic {...props} />
+                    ul: ({ node, ...props }: any) => <Box component="ul" style={{ paddingLeft: 20 }} {...props} />,
+                    ol: ({ node, ...props }: any) => <Box component="ol" style={{ paddingLeft: 20 }} {...props} />,
+                    li: ({ node, ...props }: any) => <Box component="li" style={{ marginBottom: 6 }} {...props} />,
+                    blockquote: ({ node, ...props }: any) => (
+                      <Paper radius="sm" p="sm" withBorder style={{ backgroundColor: isDark ? undefined : '#f7fafc' }}>
+                        <Text c="dimmed" style={{ fontStyle: 'italic' }} {...props} />
                       </Paper>
                     ),
-                    code({ inline, className, children, ...props }) {
+                    code({ inline, className, children, ...props }: any) {
                       // simple code styling: inline Code vs block Code
                       if (inline) {
                         return <Code {...props}>{children}</Code>;
                       }
                       return (
-                        <Paper withBorder radius="sm" p="sm" sx={{ overflowX: 'auto' }}>
+                        <Paper withBorder radius="sm" p="sm" style={{ overflowX: 'auto' }}>
                           <Code block>{String(children).replace(/\n$/, '')}</Code>
                         </Paper>
                       );
                     },
-                    img: ({ node, src, alt, ...props }) => (
+                    img: ({ node, src, alt, ...props }: any) => (
                       // responsive images inside markdown
                       // use native img to keep things simple
                       // Mantine Image component is also an option
@@ -130,7 +129,7 @@ export default function AboutPage() {
                 >
                   {String(AboutSection)}
                 </ReactMarkdown>
-              </TypographyStylesProvider>
+              </div>
             </Box>
           </Flex>
         </Paper>

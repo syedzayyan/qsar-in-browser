@@ -14,7 +14,7 @@ import { TargetProvider } from "../../context/TargetContext";
 import { LigandProvider } from "../../context/LigandContext";
 import { ErrorContextProvider } from "../../context/ErrorContext";
 import Navbar from "../../components/ui-comps/Navbar"
-import { AppShell, Burger } from '@mantine/core';
+import { AppShell, Burger, Flex, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 export default function DashboardLayout({
   children,
@@ -82,35 +82,38 @@ export default function DashboardLayout({
         }}
       >
         <AppShell.Header>
-          <Burger
-            opened={opened}
-            onClick={toggle}
-            hiddenFrom="sm"
-            size="sm"
-          />
-          <Navbar />
+          <Flex align="center" justify="space-between">
+            <Group>&nbsp;&nbsp;</Group>
+            <Burger
+              opened={opened}
+              onClick={toggle}
+              hiddenFrom="sm"
+              size="sm"
+            />
+            <Navbar />
+          </Flex>
         </AppShell.Header>
         <TargetProvider>
           <LigandProvider>
 
-                <ErrorContextProvider>
-                  <AppShell.Navbar>
-                    <CornerMenu />
-                  </AppShell.Navbar>
-                  <AppShell.Main>
-                    {loading ? (
-                      <div>
-                        <div className="tools-container" style={{ width: "100%" }}>
-                          <Loader loadingText={loadingText} />
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {children}
-                      </>
-                    )}
-                  </AppShell.Main>
-                </ErrorContextProvider>
+            <ErrorContextProvider>
+              <AppShell.Navbar>
+                <CornerMenu />
+              </AppShell.Navbar>
+              <AppShell.Main>
+                {loading ? (
+                  <div>
+                    <div className="tools-container" style={{ width: "100%" }}>
+                      <Loader loadingText={loadingText} />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {children}
+                  </>
+                )}
+              </AppShell.Main>
+            </ErrorContextProvider>
 
           </LigandProvider>
         </TargetProvider>

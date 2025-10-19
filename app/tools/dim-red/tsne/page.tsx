@@ -7,7 +7,7 @@ import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
 import Loader from "../../../../components/ui-comps/Loader";
 import TargetContext from "../../../../context/TargetContext";
 import { useForm } from "react-hook-form";
-import { Button } from "@mantine/core";
+import { Button, Group } from "@mantine/core";
 
 type tsneType = {
   perplexity: number;
@@ -64,6 +64,7 @@ export default function TSNE() {
           result = model.fit_transform(js.fp)
 
       js.pca = result
+      js.explain_variance = explain_variance
     `);
     const pca_result = globalThis.pca.toJs();
     const pca_data_in = pca_result.map(([x, y]) => ({ x, y }));
@@ -108,14 +109,19 @@ export default function TSNE() {
         </form>
       </details>
       {pca.length > 0 && (
-        <Scatterplot
-          data={pca}
-          colorProperty={ligand.map((obj) => obj[target.activity_columns[0]])}
-          hoverProp={ligand.map((obj) => obj.canonical_smiles)}
-          xAxisTitle={"t-SNE Dimension 1"}
-          yAxisTitle={"t-SNE Dimension 2"}
-          id={ligand.map((obj) => obj.id)}
-        />
+        <>
+          <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p>
+          <br></br>
+          <Scatterplot
+            data={pca}
+            colorProperty={ligand.map((obj) => obj[target.activity_columns[0]])}
+            hoverProp={ligand.map((obj) => obj.canonical_smiles)}
+            xAxisTitle={"t-SNE Dimension 1"}
+            yAxisTitle={"t-SNE Dimension 2"}
+            id={ligand.map((obj) => obj.id)}
+          />
+        </>
+
       )}
     </div>
   );
