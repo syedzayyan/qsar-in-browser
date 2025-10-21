@@ -28,13 +28,14 @@ export default function MMA() {
     loadRDKit();
   }, [ligand]);
 
-  useEffect(() => {
+
+  function mmaRunner() {
     if (stateOfRDKit) {
       const scaff_cores = scaffoldArrayGetter(ligand);
       setScaffCores(scaff_cores);
       setScaffCoresLoaded(true);
     }
-  }, [stateOfRDKit]);
+  }
 
   function scaffoldArrayGetter(row_list_s) {
     let curr_activity_column = ligand.map((obj) => obj[target.activity_columns[0]]);
@@ -164,7 +165,10 @@ export default function MMA() {
   } else {
     return (
       <div className="main-container">
-        <Loader loadingText="Chopping up molecules and analysing them....a bit" />
+        <Button onClick={mmaRunner}>Run Matched Molecular Analysis</Button>
+        <p>Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
+          and MMA computation is blocking.
+        </p>
       </div>
     );
   }

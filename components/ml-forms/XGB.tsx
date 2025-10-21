@@ -1,41 +1,117 @@
+"use client"
+
 import { useForm } from "react-hook-form"
+import { TextInput, Button, Paper, Title, Text, Stack } from "@mantine/core"
 
 type XGBoostModelInputs = {
-    max_depth: number,
-    min_child_weight: number,
-    subsample: number,
-    colsample_bytree: number,
-    learning_rate: number,
-    n_jobs: number
+  max_depth: number
+  min_child_weight: number
+  subsample: number
+  colsample_bytree: number
+  learning_rate: number
+  n_jobs: number
 }
 
-export default function XGB({onSubmit}){
-    const { register, handleSubmit, watch, formState: { errors }, } = useForm<XGBoostModelInputs>()
-    return (
-        <form className="ml-forms" onSubmit={handleSubmit(onSubmit)}>
-        <p>The python XGBoost library is used. You could consult those docs
-            for clarity
-        </p>
-        <label className="form-labels" htmlFor="learning_rate">Learning Rate: &nbsp;</label>
-        <input className="input" id="learning_rate" type="number" defaultValue={0.15} {...register("learning_rate")} />
-        <br />
-        <label className="form-labels" htmlFor="max_depth">Maximum Depth: &nbsp;</label>
-        <input className="input" id="max_depth" type="number" defaultValue={8} {...register("max_depth")} />
-        <br />
-        <label className="form-labels" htmlFor="min_child_weight">Minimum Child Weight: &nbsp;</label>
-        <input className="input" id="min_child_weight" type="number" defaultValue={7} {...register("min_child_weight")} />
-        <br />
-        <label className="form-labels" htmlFor="subsample">Subsample: &nbsp;</label>
-        <input className="input" id="subsample" type="number" defaultValue={1} {...register("subsample")} />
-        <br />
-        <label className="form-labels" htmlFor="colsample_bytree">colsample_bytree: &nbsp;</label>
-        <input className="input" id="colsample_bytree" type="number" defaultValue={1} {...register("colsample_bytree")} />
-        <br />
-        <label className="form-labels" htmlFor="n_jobs">Number of CPUs: &nbsp;</label>
-        <input className="input" id="n_jobs" type="number" defaultValue={2} {...register("n_jobs", { required: true })} />
-        <br />
-        <br />
-        <input value={"Train and Test XGBoost Model"} className="button" type="submit" />
-    </form>
-    )
+export default function XGB({ onSubmit }: { onSubmit: (data: XGBoostModelInputs) => void }) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<XGBoostModelInputs>()
+
+  return (
+    <Paper
+      shadow="md"
+      radius="lg"
+      p="xl"
+      withBorder
+      style={{ maxWidth: 520, margin: "2rem auto", backgroundColor: "var(--mantine-color-body)" }}
+    >
+      <Title order={4} ta="center" mb="xs">
+        ⚡ XGBoost Model Config
+      </Title>
+
+      <Text c="dimmed" size="sm" mb="lg" ta="center">
+        This uses the Python <b>XGBoost</b> library. Tweak parameters below before training.
+      </Text>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Stack>
+          <TextInput
+            label="Learning rate (eta)"
+            placeholder="e.g. 0.15"
+            type="number"
+            step="0.01"
+            defaultValue={0.15}
+            error={errors.learning_rate && "Required"}
+            {...register("learning_rate", { required: true, valueAsNumber: true })}
+          />
+
+          <TextInput
+            label="Maximum depth"
+            placeholder="e.g. 8"
+            type="number"
+            step="1"
+            defaultValue={8}
+            error={errors.max_depth && "Required"}
+            {...register("max_depth", { required: true, valueAsNumber: true })}
+          />
+
+          <TextInput
+            label="Minimum child weight"
+            placeholder="e.g. 7"
+            type="number"
+            step="1"
+            defaultValue={7}
+            error={errors.min_child_weight && "Required"}
+            {...register("min_child_weight", { required: true, valueAsNumber: true })}
+          />
+
+          <TextInput
+            label="Subsample"
+            description="Fraction of observations to sample (0-1)"
+            placeholder="e.g. 1.0"
+            type="number"
+            step="0.01"
+            defaultValue={1}
+            error={errors.subsample && "Required"}
+            {...register("subsample", { required: true, valueAsNumber: true })}
+          />
+
+          <TextInput
+            label="colsample_bytree"
+            description="Fraction of features to sample per tree (0-1)"
+            placeholder="e.g. 1.0"
+            type="number"
+            step="0.01"
+            defaultValue={1}
+            error={errors.colsample_bytree && "Required"}
+            {...register("colsample_bytree", { required: true, valueAsNumber: true })}
+          />
+
+          <TextInput
+            label="Number of CPUs"
+            placeholder="e.g. 2"
+            type="number"
+            step="1"
+            defaultValue={2}
+            error={errors.n_jobs && "Required"}
+            {...register("n_jobs", { required: true, valueAsNumber: true })}
+          />
+
+          <Button
+            type="submit"
+            radius="xl"
+            size="md"
+            mt="sm"
+            fullWidth
+            variant="gradient"
+            gradient={{ from: "violet", to: "indigo", deg: 105 }}
+          >
+            Train & Test XGBoost Model
+          </Button>
+        </Stack>
+      </form>
+    </Paper>
+  )
 }

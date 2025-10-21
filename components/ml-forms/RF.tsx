@@ -1,43 +1,102 @@
+"use client"
+
 import { useForm } from "react-hook-form"
+import { TextInput, Select, Button, Paper, Title, Text, Stack } from "@mantine/core"
 
 type RFModelInputs = {
-    n_estimators: number,
-    criterion: string,
-    max_features: string,
-    n_jobs: number,
+  n_estimators: number
+  criterion: string
+  max_features: string
+  n_jobs: number
 }
 
-export default function RF({onSubmit}) {
-    const { register, handleSubmit, watch, formState: { errors }, } = useForm<RFModelInputs>()
+export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => void }) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RFModelInputs>()
 
-    return(
-        <form className="ml-forms" onSubmit={handleSubmit(onSubmit)}>
-        <p>The Python Scikit Learn with the Random Forest Regressor is used. You could consult those docs
-            for clarity
-        </p>
-        <label className="form-labels" htmlFor="n_estimators">Number of Estimators: &nbsp;</label>
-        <input id="n_estimators" className="input" type="number" defaultValue={120} {...register("n_estimators")} />
-        <br />
-        <label className="form-labels" htmlFor="criterion">Criterion: &nbsp;</label>
-        <select id="criterion" className="input" defaultValue={1} {...register("criterion", { required: true })}>
-            <option value="squared_error">squared_error</option>
-            <option value="absolute_error">absolute_error</option>
-            <option value="friedman_mse">friedman_mse</option>
-            <option value="poisson">poisson</option>
-        </select>
-        <br />
-        <label className="form-labels" htmlFor="max_features">Maximum Features: &nbsp;</label>
-        <select id="max_features" className="input" defaultValue={1} {...register("max_features", { required: true })}>
-            <option value="sqrt">sqrt</option>
-            <option value="log2">log2</option>
-            <option value="None">None</option>
-        </select>
-        <br />
-        <label className="form-labels" htmlFor="n_jobs">Number of CPUs: &nbsp;</label>
-        <input id="n_jobs" className="input" type="number" defaultValue={2} {...register("n_jobs", { required: true })} />
-        <br />
-        <br />
-        <input value={"Train and Test RF Model"} className="button" type="submit" />
-    </form>
-    )
+  return (
+    <Paper
+      shadow="md"
+      radius="lg"
+      p="xl"
+      withBorder
+      style={{
+        maxWidth: 480,
+        margin: "2rem auto",
+        backgroundColor: "var(--mantine-color-body)",
+      }}
+    >
+      <Title order={3} ta="center" mb="sm">
+        🌲 Random Forest Config
+      </Title>
+
+      <Text c="dimmed" size="sm" mb="lg" ta="center">
+        Configure your <b>Scikit-Learn RandomForestRegressor</b> parameters below.
+      </Text>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Stack>
+          <TextInput
+            label="Number of Estimators"
+            placeholder="e.g. 120"
+            type="number"
+            defaultValue={120}
+            error={errors.n_estimators && "Required"}
+            {...register("n_estimators", { required: true })}
+          />
+
+          <Select
+            label="Criterion"
+            placeholder="Select criterion"
+            data={[
+              { value: "squared_error", label: "squared_error" },
+              { value: "absolute_error", label: "absolute_error" },
+              { value: "friedman_mse", label: "friedman_mse" },
+              { value: "poisson", label: "poisson" },
+            ]}
+            defaultValue="squared_error"
+            error={errors.criterion && "Required"}
+            {...register("criterion", { required: true })}
+          />
+
+          <Select
+            label="Maximum Features"
+            placeholder="Select feature limit"
+            data={[
+              { value: "sqrt", label: "sqrt" },
+              { value: "log2", label: "log2" },
+              { value: "None", label: "None" },
+            ]}
+            defaultValue="sqrt"
+            error={errors.max_features && "Required"}
+            {...register("max_features", { required: true })}
+          />
+
+          <TextInput
+            label="Number of CPUs"
+            placeholder="e.g. 2"
+            type="number"
+            defaultValue={2}
+            error={errors.n_jobs && "Required"}
+            {...register("n_jobs", { required: true })}
+          />
+
+          <Button
+            type="submit"
+            radius="xl"
+            size="md"
+            mt="md"
+            fullWidth
+            variant="gradient"
+            gradient={{ from: "teal", to: "lime", deg: 105 }}
+          >
+            Train & Test RF Model
+          </Button>
+        </Stack>
+      </form>
+    </Paper>
+  )
 }

@@ -46,7 +46,7 @@ export default function DisplayGraph() {
 
       <Tabs defaultValue="Network_Settings">
       <Tabs.List>
-        <Tabs.Tab value="Network_Details">
+        <Tabs.Tab value="Network_Settings">
           Network Settings
         </Tabs.Tab>
         <Tabs.Tab value="Network_Details" >
@@ -57,7 +57,7 @@ export default function DisplayGraph() {
         </Tabs.Tab>
       </Tabs.List>
 
-      <Tabs.Panel value="Network_Details">
+      <Tabs.Panel value="Network_Settings">
         <ScaffoldSettings
           setGraph={setGraph}
           setLoaded={setLoaded}
