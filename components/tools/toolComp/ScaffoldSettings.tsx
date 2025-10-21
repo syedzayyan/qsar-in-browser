@@ -45,6 +45,27 @@ type Props = {
   activeTabChange: (tabIndex: number) => void;
 };
 
+const initialValues: ScaffoldNetParams = {
+  includeGenericScaffolds: true,
+  includeGenericBondScaffolds: false,
+  includeScaffoldsWithoutAttachments: true,
+  includeScaffoldsWithAttachments: true,
+  keepOnlyFirstFragment: true,
+  pruneBeforeFragmenting: true,
+  flattenIsotopes: true,
+  flattenChirality: true,
+  flattenKeepLargest: true,
+  collectMolCounts: true,
+  bondBreakersRxns: "",
+}
+
+const form = useForm<ScaffoldNetParams>({
+  initialValues,
+  validate: {
+    bondBreakersRxns: (v) => (v.length > 1000 ? "Too long" : null),
+  },
+})
+
 export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange }: Props) {
   const { rdkit } = useContext(RDKitContext);
   const { target, setTarget } = useContext(TargetContext);
@@ -210,7 +231,7 @@ export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange 
             </Text>
 
             <Group >
-              <Button variant="default" onClick={() => form.setValues(form.initialValues)} disabled={submitting}>
+              <Button variant="default" onClick={() => form.setValues(initialValues)} disabled={submitting}>
                 Reset
               </Button>
 

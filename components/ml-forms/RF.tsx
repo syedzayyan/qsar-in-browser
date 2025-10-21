@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm } from "react-hook-form"
+import { useForm } from "@mantine/form"
 import { TextInput, Select, Button, Paper, Title, Text, Stack } from "@mantine/core"
 
 type RFModelInputs = {
@@ -11,11 +11,21 @@ type RFModelInputs = {
 }
 
 export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => void }) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RFModelInputs>()
+  const form = useForm<RFModelInputs>({
+    initialValues: {
+      n_estimators: 120,
+      criterion: "squared_error",
+      max_features: "sqrt",
+      n_jobs: 2,
+    },
+
+    validate: {
+      n_estimators: (value) => (value <= 0 ? "Must be > 0" : null),
+      criterion: (value) => (value ? null : "Required"),
+      max_features: (value) => (value ? null : "Required"),
+      n_jobs: (value) => (value <= 0 ? "Must be > 0" : null),
+    },
+  })
 
   return (
     <Paper
@@ -37,51 +47,34 @@ export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => vo
         Configure your <b>Scikit-Learn RandomForestRegressor</b> parameters below.
       </Text>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={form.onSubmit(onSubmit)}>
         <Stack>
           <TextInput
             label="Number of Estimators"
             placeholder="e.g. 120"
             type="number"
-            defaultValue={120}
-            error={errors.n_estimators && "Required"}
-            {...register("n_estimators", { required: true })}
+            {...form.getInputProps("n_estimators")}
           />
 
           <Select
             label="Criterion"
             placeholder="Select criterion"
-            data={[
-              { value: "squared_error", label: "squared_error" },
-              { value: "absolute_error", label: "absolute_error" },
-              { value: "friedman_mse", label: "friedman_mse" },
-              { value: "poisson", label: "poisson" },
-            ]}
-            defaultValue="squared_error"
-            error={errors.criterion && "Required"}
-            {...register("criterion", { required: true })}
+            data={["squared_error", "absolute_error", "friedman_mse", "poisson"]}
+            {...form.getInputProps("criterion")}
           />
 
           <Select
             label="Maximum Features"
             placeholder="Select feature limit"
-            data={[
-              { value: "sqrt", label: "sqrt" },
-              { value: "log2", label: "log2" },
-              { value: "None", label: "None" },
-            ]}
-            defaultValue="sqrt"
-            error={errors.max_features && "Required"}
-            {...register("max_features", { required: true })}
+            data={["sqrt", "log2", "None"]}
+            {...form.getInputProps("max_features")}
           />
 
           <TextInput
             label="Number of CPUs"
             placeholder="e.g. 2"
             type="number"
-            defaultValue={2}
-            error={errors.n_jobs && "Required"}
-            {...register("n_jobs", { required: true })}
+            {...form.getInputProps("n_jobs")}
           />
 
           <Button
