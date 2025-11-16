@@ -113,7 +113,7 @@ export const initRDKit = (() => {
     if (!rdkitLoadingPromise) {
       rdkitLoadingPromise = new Promise((resolve, reject) => {
         const script = document.createElement("script");
-        script.src = "/RDKit_minimal.js";
+        script.src = "/rdkit/RDKit_minimal.js";
         script.async = true;
         document.body.appendChild(script);
 

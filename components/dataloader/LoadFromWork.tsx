@@ -4,25 +4,29 @@ import LigandContext from "../../context/LigandContext";
 import TargetContext from "../../context/TargetContext";
 import { useRouter } from "next/navigation";
 import ErrorContext from "../../context/ErrorContext";
+import { Dropzone } from '@mantine/dropzone';
+import { Group, Text, rem } from '@mantine/core';
+import { IconFileCode, IconUpload, IconX } from '@tabler/icons-react';
 
 const LoadFromWork: React.FC = () => {
   const { setLigand } = useContext(LigandContext);
   const { setTarget } = useContext(TargetContext);
   const { setErrors } = useContext(ErrorContext);
-  const [isHovered, setIsHovered] = useState(false); // Add state for hover
+  const [isHovered, setIsHovered] = useState(false);
 
   const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const input = event.target;
     const file = input.files?.[0];
-    if (file.name.endsWith(".json")) {
+    if (file && file.name.endsWith(".json")) {
       handleFile(file);
     } else {
       setErrors("Hey, please upload a valid QITB JSON File");
     }
   };
 
+  // keep this for backwards compatibility if some code still uses drag events
   const handleFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const file = event.dataTransfer.files?.[0];
@@ -53,6 +57,7 @@ const LoadFromWork: React.FC = () => {
 
     reader.readAsText(file);
   };
+
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsHovered(true);
@@ -60,27 +65,64 @@ const LoadFromWork: React.FC = () => {
 
   return (
     <div className="container" style={{ minHeight: "15vh" }}>
-      <div
-        onDrop={handleFileDrop}
-        onDragOver={handleDragOver}
-        onDragExit={() => setIsHovered(false)}
+      <Dropzone
+        onDrop={(files) => {
+          // Mantine passes an array of accepted files
+          if (files && files.length > 0) {
+            handleFile(files[0]);
+          }
+        }}
+        onReject={() => {
+          setErrors("Hey, please upload a valid QITB JSON File");
+        }}
+        maxFiles={1}
+        radius="md"
+        p="xl"
+        onDragEnter={(e: React.DragEvent<HTMLDivElement>) => {
+          // reuse your handler
+          handleDragOver(e);
+        }}
+        onDragLeave={() => {
+          setIsHovered(false);
+        }}
         onClick={() => {
-          const fileInput = document.getElementById("fileInput");
+          const fileInput = document.getElementById("fileInput") as HTMLInputElement | null;
           if (fileInput) {
             fileInput.click();
           }
         }}
-        className={`zone ${isHovered ? "zoneHover" : ""}`}
+
       >
-        <p>Upload Previous Work (A JSON file from QITB)</p>
-        <p>You could also drag and drop the file here or Click to browse.</p>
-        <input
-          type="file"
-          id="fileInput"
-          style={{ display: "none" }}
-          onChange={handleFileChange}
-        />
-      </div>
+        <Group style={{ minHeight: rem(120), pointerEvents: 'none' }}>
+          <Dropzone.Accept>
+            <IconUpload size={48} stroke={1.5} />
+          </Dropzone.Accept>
+
+          <Dropzone.Reject>
+            <IconX size={48} stroke={1.5} />
+          </Dropzone.Reject>
+
+          <Dropzone.Idle>
+            <IconFileCode size={48} stroke={1.5} />
+          </Dropzone.Idle>
+
+          <div>
+            <Text size="lg">Upload Previous Work (A JSON file from QITB)</Text>
+            <Text size="sm"  mt={7}>
+              Drag & drop your JSON file here, or click to browse.
+            </Text>
+          </div>
+        </Group>
+      </Dropzone>
+
+      {/* keep your original hidden input and wire it to your handler */}
+      <input
+        type="file"
+        id="fileInput"
+        accept=".json,application/json"
+        style={{ display: "none" }}
+        onChange={handleFileChange}
+      />
     </div>
   );
 };

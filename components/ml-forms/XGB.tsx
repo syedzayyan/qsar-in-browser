@@ -10,6 +10,7 @@ type XGBoostModelInputs = {
   colsample_bytree: number
   learning_rate: number
   n_jobs: number
+  model: number
 }
 
 export default function XGB({ onSubmit }: { onSubmit: (data: XGBoostModelInputs) => void }) {
@@ -17,7 +18,17 @@ export default function XGB({ onSubmit }: { onSubmit: (data: XGBoostModelInputs)
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<XGBoostModelInputs>()
+  } = useForm<XGBoostModelInputs>({
+    defaultValues: {
+      model: 3,
+      max_depth: 8,
+      min_child_weight: 7,
+      subsample: 1,
+      colsample_bytree: 1,
+      learning_rate: 0.15,
+      n_jobs: 2,
+    },
+  })
 
   return (
     <Paper

@@ -1,124 +1,107 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useRef, useCallback } from "react";
 import LigandContext from "../../../context/LigandContext";
-import { initRDKit } from "../../utils/rdkit_loader";
 import MoleculeStructure from "./MoleculeStructure";
-import Loader from "../../ui-comps/Loader";
-import { ksTest } from "../../utils/ks_test";
-import TargetContext from "../../../context/TargetContext";
-import { round } from "mathjs";
 import { Button, Card, Grid, Modal } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import TargetContext from "../../../context/TargetContext";
+import RDKitContext from "../../../context/RDKitContext";
+import { round } from "mathjs";
 
 export default function MMA() {
   const { ligand } = useContext(LigandContext);
-  const { target } = useContext(TargetContext);
+  // If your TargetContext exposes setTarget, this will update the global target.
+  // If not, `setTarget` will be undefined and we fallback to local loaded flag.
+  const { target, setTarget } = useContext(TargetContext);
+  const { rdkit } = useContext(RDKitContext);
   const [opened, { open, close }] = useDisclosure(false);
-  const [RDKit, setRDKit] = useState(null);
-  const [stateOfRDKit, setStateOfRDKit] = useState(false);
-  const [scaffCores, setScaffCores] = useState([]);
   const [scaffCoreLoaded, setScaffCoresLoaded] = useState(false);
   const [specificMolArray, setSpecificMolArray] = useState([]);
+  const currentRequestId = useRef(null);
+  const mounted = useRef(true);
+  const prevOnMessage = useRef(null);
 
   useEffect(() => {
-    async function loadRDKit() {
-      const RDK = await initRDKit();
-      setRDKit(RDK);
-      setStateOfRDKit(true);
-    }
-    loadRDKit();
-  }, [ligand]);
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
-
-  function mmaRunner() {
-    if (stateOfRDKit) {
-      const scaff_cores = scaffoldArrayGetter(ligand);
-      setScaffCores(scaff_cores);
+  // derive loaded from target so navigating back doesn't show loader if target already has results
+  useEffect(() => {
+    if (target && Array.isArray(target.scaffCores) && target.scaffCores.length > 0) {
       setScaffCoresLoaded(true);
+    } else {
+      setScaffCoresLoaded(false);
     }
-  }
+  }, [target]);
 
-  function scaffoldArrayGetter(row_list_s) {
-    let curr_activity_column = ligand.map((obj) => obj[target.activity_columns[0]]);
-    console.log(curr_activity_column);
-    let massive_array = [];
+  // worker message handling using rdkit.onmessage (since rdkit is a real Worker)
+  useEffect(() => {
+    if (!rdkit) return;
 
-    row_list_s.map((x, i) => {
-      const mol = RDKit.get_mol(x.canonical_smiles);
-      let sidechains_smiles_list = [];
-      let cores_smiles_list = [];
-      try {
-        const mol_frags = mol.get_mmpa_frags(1, 1, 20);
-        while (!mol_frags.sidechains.at_end()) {
-          var m = mol_frags.sidechains.next();
-          var { molList, _ } = m.get_frags();
-          try {
-            let fragments = [];
-            while (!molList.at_end()) {
-              var m_frag = molList.next();
-              fragments.push(m_frag.get_smiles());
-              m_frag.delete();
-            }
-            cores_smiles_list.push(fragments.at(0));
-            sidechains_smiles_list.push(fragments.at(1));
-            massive_array.push([
-              x.canonical_smiles,
-              fragments.at(0),
-              fragments.at(1),
-              x.id,
-              x[target.activity_columns[0]],
-            ]);
-            molList.delete();
-            m.delete();
-            mol_frags.cores.delete();
-            mol_frags.sidechains.delete();
-          } catch {
-            console.error("For Some Reason There are Null Values");
+    // preserve any existing onmessage handler to restore on cleanup
+    prevOnMessage.current = rdkit.onmessage;
+
+    function handleMessage(event) {
+      const data = event.data || {};
+      // ignore unrelated messages
+      if (!data.id) return;
+
+      // only accept responses meant for the current request
+      if (currentRequestId.current && data.id === currentRequestId.current) {
+        // expected shape: { id, function, result } - adjust to your worker's shape
+        const result = data.result ?? data; // adapt as needed
+
+        // If context setter exists, update shared target
+        if (typeof setTarget === "function") {
+          // Merge scaffCores into target - adjust field name to your shape
+          setTarget(prev => ({ ...prev, scaffCores: result.scaffCores ?? result }));
+        } else {
+          // fallback: set local loaded flag. You might want to store result locally if needed.
+          if (mounted.current) {
+            setScaffCoresLoaded(true);
           }
         }
-      } catch (e) {
-        console.error("Problem: ", e);
-      }
-      row_list_s[i]["Cores"] = cores_smiles_list;
-      row_list_s[i]["R_Groups"] = sidechains_smiles_list;
-      mol.delete();
-    });
 
-    let countArray = {};
-
-    for (let i = 0; i < massive_array.length; i++) {
-      if (massive_array[i].length >= 5) {
-        // Ensure there are at least 5 elements in the subarray
-        let secondElement = massive_array[i][1];
-        let fifthElement = massive_array[i][4]; // Assuming the fifth element is at index 4
-
-        if (!countArray[secondElement]) {
-          countArray[secondElement] = [0, []];
-        }
-
-        countArray[secondElement][0]++;
-        countArray[secondElement][1].push(fifthElement);
+        // clear current request id
+        currentRequestId.current = null;
       }
     }
 
-    let scaffoldArray = Object.entries(countArray);
-    let filteredArrayOfScaffolds = scaffoldArray.filter(
-      ([key, count]) =>
-        typeof count[0] === "number" && count[0] >= 2 && key.length > 9,
-    );
+    // attach handler
+    rdkit.onmessage = handleMessage;
 
-    filteredArrayOfScaffolds = filteredArrayOfScaffolds.map((x) => {
-      return [x[0], [x[1][0], ksTest(x[1][1], curr_activity_column)]];
+    // cleanup - restore previous handler to avoid clobbering other users of the worker
+    return () => {
+      try {
+        rdkit.onmessage = prevOnMessage.current || null;
+      } catch (err) {
+        // ignore if worker already terminated
+      }
+    };
+  }, [rdkit, setTarget]);
+
+  const mmaRunner = useCallback(() => {
+    if (!rdkit) return;
+
+    const requestId = `mma_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    currentRequestId.current = requestId;
+
+    // optimistic UX: mark as not loaded while running (target-derived effect will override if context already had results)
+    setScaffCoresLoaded(false);
+
+    rdkit.postMessage({
+      function: "mma",
+      id: requestId,
+      mol_data: ligand,
+      activity_columns: target?.activity_columns ?? [],
+      formStuff: null,
     });
-
-    filteredArrayOfScaffolds.sort((a, b) => a[1][1] - b[1][1]);
-
-    return [filteredArrayOfScaffolds, massive_array];
-  }
+  }, [rdkit, ligand, target]);
 
   function scaffoldFinder(cores) {
-    const selectedArrays = scaffCores[1].filter((array) => {
-      return array[1] === cores;
-    });
+    if (!target || !target.scaffCores) return;
+    // your original selection logic
+    const selectedArrays = target.scaffCores[1].filter((array) => array[1] === cores);
     setSpecificMolArray(selectedArrays);
     open();
   }
@@ -127,21 +110,15 @@ export default function MMA() {
     return (
       <div className="main-container">
         <Grid grow>
-          {scaffCores[0].map((cores, key) => (
-            <Grid.Col span={4}>
-              <Card key={key} shadow="sm" padding="lg" radius="md" withBorder>
+          {target.scaffCores[0].map((cores, key) => (
+            <Grid.Col span={4} key={key}>
+              <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <MoleculeStructure structure={cores[0]} id={cores[0]} svgMode />
                 <br />
                 <span>Count : {cores[1][0]}</span>
                 <br />
                 <br />
-                <Button
-                  onClick={() => {
-                    scaffoldFinder(cores[0]);
-                  }}
-                >
-                  Matched Molecules
-                </Button>
+                <Button onClick={() => scaffoldFinder(cores[0])}>Matched Molecules</Button>
               </Card>
             </Grid.Col>
           ))}
@@ -154,7 +131,7 @@ export default function MMA() {
                   id={cores[0]}
                   svgMode
                 />
-                <br></br>
+                <br />
                 <span>{target.activity_columns[0]} : {round(cores[4], 2)}</span>
               </Card>
             ))}
@@ -165,8 +142,9 @@ export default function MMA() {
   } else {
     return (
       <div className="main-container">
-        <Button onClick={mmaRunner}>Run Matched Molecular Analysis</Button>
-        <p>Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
+        <Button onClick={mmaRunner} disabled={!rdkit}>Run Matched Molecular Analysis</Button>
+        <p>
+          Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
           and MMA computation is blocking.
         </p>
       </div>

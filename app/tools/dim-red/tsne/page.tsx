@@ -26,54 +26,28 @@ export default function TSNE() {
 
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<tsneType>()
 
-  // useEffect(() => {
-  //   setLoaded(false);
-  //   if (ligand.some(obj => obj.tsne)) {
-  //     setPCA(ligand.map(obj => obj.tsne));
-  //     setLoaded(true);
-  //   } else {
-  //     setTimeout(() => {
-  //       runDimRed({
-  //         perplexity: 30,
-  //         n_iter: 1000,
-  //         pca_correct: true,
-  //         n_jobs: 4,
-  //       });
-  //     }, 100)
-  //   }
-  // }, []);
-
   globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
   async function runDimRed(formStuff: tsneType) {
     setLoaded(false);
-    globalThis.opts = formStuff.pca_correct ? 2 : 3;
 
-    await pyodide.runPython(`
-      from sklearn.decomposition import PCA
-      from sklearn.manifold import TSNE
-      import js
+    const msg = {
+      id: "job-123",
+      opts: formStuff.pca_correct ? 2 : 3,
+      fp: globalThis.fp,
+      func: "dim_red",
+      params: {
+        n_components: 2,
+        pca_pre_components: 30,
+        perplexity: formStuff.perplexity,
+        n_iter: formStuff.n_iter,
+        n_jobs: formStuff.n_jobs,
+        random_state: 42
+      }
+    };
 
-      if js.opts == 2:
-          pca = PCA(n_components=30)
-          pca_drugs = pca.fit_transform(js.fp)
-          model = TSNE(n_components=2, random_state=42, perplexity=${formStuff.perplexity}, n_iter=${formStuff.n_iter}, n_jobs = ${formStuff.n_jobs})
-          result = model.fit_transform(pca_drugs)
-      elif js.opts == 3:
-          model = TSNE(n_components=2, random_state=42, perplexity=${formStuff.perplexity}, n_iter=${formStuff.n_iter}, n_jobs = ${formStuff.n_jobs})
-          result = model.fit_transform(js.fp)
+    pyodide.postMessage(msg);
 
-      js.pca = result
-      js.explain_variance = explain_variance
-    `);
-    const pca_result = globalThis.pca.toJs();
-    const pca_data_in = pca_result.map(([x, y]) => ({ x, y }));
-    let new_ligand = ligand.map((obj, index) => ({
-      ...obj,
-      tsne: pca_data_in[index],
-    }));
-    setLigand(new_ligand);
-    setPCA(pca_data_in);
     setLoaded(true);
   }
 
@@ -85,7 +59,7 @@ export default function TSNE() {
         n_iter: 1000,
         pca_correct: true,
         n_jobs: 4,
-      })}>Run PCA</Button>
+      })}>Run tSNE</Button>
       <p>Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
         and tSNE computation is blocking.
       </p>
@@ -108,12 +82,15 @@ export default function TSNE() {
           <input type="submit" className="button" value={"Run tSNE"} />
         </form>
       </details>
-      {pca.length > 0 && (
+      {ligand[0].tsne && (
         <>
-          <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p>
+          {/* <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p> */}
           <br></br>
           <Scatterplot
-            data={pca}
+            data={ligand.map((obj) => {
+              const [x, y] = obj.tsne;
+              return { x, y };
+            })}
             colorProperty={ligand.map((obj) => obj[target.activity_columns[0]])}
             hoverProp={ligand.map((obj) => obj.canonical_smiles)}
             xAxisTitle={"t-SNE Dimension 1"}

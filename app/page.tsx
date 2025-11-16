@@ -46,6 +46,16 @@ export default function IndexPage() {
               About
             </Anchor>
 
+            <Anchor
+              component={Link}
+              href="/about"
+              size="sm"
+              underline="hover"
+              c="dimmed"
+            >
+              GitHub
+            </Anchor>
+
             <ActionIcon
               onClick={() =>
                 setColorScheme(colorScheme === "light" ? "dark" : "light")

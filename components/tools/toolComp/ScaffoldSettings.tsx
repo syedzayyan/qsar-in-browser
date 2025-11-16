@@ -1,9 +1,10 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import RDKitContext from "../../../context/RDKitContext";
 import LigandContext from "../../../context/LigandContext";
 import TargetContext from "../../../context/TargetContext";
 import {
   graph_molecule_image_generator,
+  initRDKit,
   scaffold_net_chunking_method,
 } from "../../utils/rdkit_loader";
 
@@ -59,17 +60,19 @@ const initialValues: ScaffoldNetParams = {
   bondBreakersRxns: "",
 }
 
-const form = useForm<ScaffoldNetParams>({
-  initialValues,
-  validate: {
-    bondBreakersRxns: (v) => (v.length > 1000 ? "Too long" : null),
-  },
-})
 
 export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange }: Props) {
-  const { rdkit } = useContext(RDKitContext);
+  const [rdkit, setRDKit] = useState(null);
   const { target, setTarget } = useContext(TargetContext);
   const { ligand } = useContext(LigandContext);
+
+  useEffect(() => {
+    async function loadRDKit() {
+      const RDK = await initRDKit();
+      setRDKit(RDK);
+    }
+    loadRDKit();
+  }, [ligand]);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -156,7 +159,7 @@ export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange 
 
   return (
     <Card shadow="sm" radius="md" p="md" withBorder>
-      <Group  align="flex-start" mb="xs">
+      <Group align="flex-start" mb="xs">
         <div>
           <Title order={4} style={{ lineHeight: 1.1 }}>
             Scaffold Network — Settings

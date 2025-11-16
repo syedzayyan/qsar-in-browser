@@ -7,7 +7,9 @@ export type targetType = {
     pre_processed: boolean,
     data_source: string,
     activity_columns?: string[],
-    scaffold_network: any
+    scaffold_network: any,
+    scaffCores: any,
+    machine_learning?: any,
 }
 
 interface TargetContextProps {
@@ -16,7 +18,7 @@ interface TargetContextProps {
 }
 
 const TargetContext = createContext<TargetContextProps>({
-    target: { target_id: "", target_name: "", target_organism: "", data_source: "", pre_processed: false, scaffold_network: ""},
+    target: { target_id: "", target_name: "", target_organism: "", data_source: "", pre_processed: false, scaffold_network: "", scaffCores: [] },
     setTarget: () => {},
 });
 
@@ -32,6 +34,8 @@ export function TargetProvider({ children }: TargetProviderProps) {
         data_source: "",
         pre_processed: false,
         scaffold_network: "",
+        scaffCores: [],
+        machine_learning: [],
     });
 
     return (

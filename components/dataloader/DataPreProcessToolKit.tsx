@@ -1,7 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { useForm } from "react-hook-form";
 import FAQComp from '../ui-comps/FAQComp';
-import molDataCleanUp from '../utils/mol_cleanup';
 import LigandContext from '../../context/LigandContext';
 import RDKitContext from '../../context/RDKitContext';
 import Loader from '../ui-comps/Loader';
@@ -18,11 +17,11 @@ type FingerPrintSettings = {
 
 const DataPreProcessToolKit = () => {
   const [loaded, setLoaded] = useState(true);
-  const [stage, setStage] = useState('choose'); // Initial stage is 'choose'
+  const [stage, setStage] = useState('choose');
   const [selection, setSelection] = useState('express');
-  const { ligand, setLigand } = useContext(LigandContext);
+  const { ligand } = useContext(LigandContext);
   const { rdkit } = useContext(RDKitContext);
-  const { target, setTarget } = useContext(TargetContext);
+  const { target } = useContext(TargetContext);
 
   const [advancedSelection, setAdvancedSelection] = useState(null);
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<FingerPrintSettings>();
@@ -30,17 +29,35 @@ const DataPreProcessToolKit = () => {
 
   const router = useRouter();
 
+  // Combined data processing function
+  const processData = async (formSettings = null) => {
+    if (rdkit) {
+      const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      try {
+        rdkit.postMessage({
+          function: 'fingerprint',
+          id: requestId,
+          mol_data: ligand,
+          activity_columns: target.activity_columns,
+          formStuff: formSettings
+        });
+
+        rdkit.onerror = (error) => {
+          console.error('Worker error:', error);
+          rdkit.terminate();
+        };
+      } catch {
+        alert("An error occurred while processing the molecules. Please check the console for details.");
+      }
+    } else {
+      alert("RDKit is not loaded yet. Please wait a moment and try again.");
+    }
+  };
+
   const handleChooseSubmit = (e) => {
     e.preventDefault();
     if (selection === 'express') {
-      setLoaded(false);
-      setTimeout(async () => {
-        var lig_data = await molDataCleanUp(rdkit, ligand, target.activity_columns); 
-        setLigand(lig_data[0]);
-        setTarget({...target, activity_columns: lig_data[1], pre_processed : true});
-        setLoaded(true);
-        router.push('/tools/activity');
-      }, 100);
+      processData(); // No form settings for express mode
     } else if (selection === 'advanced') {
       setStage('advanced');
     }
@@ -48,29 +65,12 @@ const DataPreProcessToolKit = () => {
 
   const handleBack = () => {
     setStage('choose');
-    setAdvancedSelection(null); // Optionally reset advanced selection
+    setAdvancedSelection(null);
   };
 
-  const dataProcessor = (formStuff) => {
-    setLoaded(false);
-    setTimeout(async () => {
-      let lig_data = await molDataCleanUp(
-      rdkit, 
-      ligand, 
-      target.activity_columns,
-      formStuff
-    );
-    setLigand(lig_data[0]);
-    setTarget({...target, activity_columns: lig_data[1], pre_processed : true});
-    setLoaded(true);
-  }, 100)
-    setLoaded(false);
-    router.push('/tools/activity');
-  }
-
-  if (!loaded){
-    return(
-      <Loader loadingText='Processing Molecules'/>
+  if (!loaded) {
+    return (
+      <Loader loadingText='Processing Molecules' />
     )
   }
 
@@ -100,7 +100,7 @@ const DataPreProcessToolKit = () => {
               value="express"
               className='custom-radio'
               onChange={(e) => setSelection(e.target.value)}
-              defaultChecked = {true}
+              defaultChecked={true}
             />
             Express
           </label>
@@ -122,7 +122,7 @@ const DataPreProcessToolKit = () => {
       {stage === 'advanced' && (
         <div>
           <button className='button' type="button" onClick={handleBack}>←</button>
-          <form onSubmit={handleSubmit(dataProcessor)}>
+          <form onSubmit={handleSubmit(processData)}>
             <label className="form-labels" htmlFor="fingerprint">Fingerprint Type: &nbsp;</label><br />
             <select id="fingerprint" className="input" {...register("fingerprint")} style={{ width: "40%" }}>
               <option value="maccs">MACCS Fingerprint</option>
@@ -152,5 +152,6 @@ const DataPreProcessToolKit = () => {
     </div>
   );
 };
+
 
 export default DataPreProcessToolKit;

@@ -39,7 +39,7 @@ export default function CornerMenu() {
       <NavLink label="Data Operations">
         <NavLink component={Link} href="/tools/load_data" label="Load Data" />
         <NavLink component={Link} href="/tools/preprocess" label="Pre-process Data" />
-        <NavLink component={Link} href="/tools/hrefc" label="Explore Data" />
+        <NavLink component={Link} href="/tools/toc" label="Explore Data" />
       </NavLink>
 
       {target.pre_processed && (
@@ -60,8 +60,7 @@ export default function CornerMenu() {
           </NavLink>
 
           <NavLink label="Machine Learning">
-            <NavLink component={Link} href="/tools/ml/rf" label="Random Forest" />
-            <NavLink component={Link} href="/tools/ml/xgboost" label="XGBoost" />
+            <NavLink component={Link} href="/tools/ml/fp" label="Fingerprint-Based Models" />
           </NavLink>
 
           <NavLink label="Virtual Screening">

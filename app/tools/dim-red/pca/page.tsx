@@ -4,68 +4,44 @@ import { useContext, useEffect, useRef, useState } from "react";
 import LigandContext from "../../../../context/LigandContext";
 import PyodideContext from "../../../../context/PyodideContext";
 import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
-import Loader from "../../../../components/ui-comps/Loader";
 import TargetContext from "../../../../context/TargetContext";
-import { Button, Group } from "@mantine/core";
+import { Button } from "@mantine/core";
 
 export default function PCA() {
-    const { ligand, setLigand } = useContext(LigandContext);
+    const { ligand } = useContext(LigandContext);
     const { target } = useContext(TargetContext);
     const { pyodide } = useContext(PyodideContext);
-    const [pca, setPCA] = useState<any[]>([]);
     const containerRef = useRef(null);
-    const [loaded, setLoaded] = useState(false);
-
-    // useEffect(() => {
-    //     setLoaded(false);
-    //     if (ligand.some(obj => obj.pca)) {
-    //         setPCA(ligand.map(obj => obj.pca));
-    //         setLoaded(true);
-    //     } else {
-    //         runDimRed();
-    //     }
-    // }, []);
-
-    globalThis.fp = ligand.map((obj) => obj.fingerprint);
 
     async function runDimRed() {
-        setLoaded(false);
-        await pyodide.runPython(`
-      from sklearn.decomposition import PCA
-      import numpy as np
-      import js
+        const msg = {
+            id: "job-123",
+            opts: 1,
+            func: "dim_red",
+            fp: ligand.map((obj) => obj.fingerprint),
+            params: {
+                n_components: 2,
+                pca_pre_components: 30,
+                random_state: 42
+            }
+        };
 
-      pca = PCA(n_components=2)
-      result = pca.fit_transform(js.fp)
-      explain_variance = np.sum(pca.explained_variance_ratio_) 
-      js.pca = result
-      js.explain_variance = explain_variance
-    `);
-        const pca_result = globalThis.pca.toJs();
-        console.log(globalThis.explain_variance);
-        const pca_data_in = pca_result.map(([x, y]) => ({ x, y }));
-        let new_ligand = ligand.map((obj, index) => ({
-            ...obj,
-            pca: pca_data_in[index],
-        }));
-        setLigand(new_ligand);
-        setPCA(pca_data_in);
-        setLoaded(true);
+        pyodide.postMessage(msg);
     }
 
     return (
         <div className="tools-container" ref={containerRef}>
             <h1>Principal Component Analysis</h1>
             <Button onClick={() => runDimRed()}>Run PCA</Button>
-            <p>Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
-                and PCA computation is blocking.
-            </p>
-            {pca.length > 0 && (
+            {ligand[0].pca && (
                 <>
-                    <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p>
+                    {/* <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p> */}
                     <br></br>
                     <Scatterplot
-                        data={pca}
+                        data={ligand.map((obj) => {
+                            const [x, y] = obj.pca;
+                            return { x, y };
+                        })}
                         colorProperty={ligand.map((obj) => obj[target.activity_columns[0]])}
                         hoverProp={ligand.map((obj) => obj.canonical_smiles)}
                         xAxisTitle={"Principal Component 1"}

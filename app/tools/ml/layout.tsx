@@ -5,7 +5,6 @@ import GroupedBarChart from "../../../components/tools/toolViz/BarChart";
 import Scatterplot from "../../../components/tools/toolViz/ScatterPlot";
 import { round } from "mathjs";
 import { mean } from "lodash";
-import LigandContext from "../../../context/LigandContext";
 import { usePathname } from "next/navigation";
 import fpSorter from "../../../components/utils/fp_sorter";
 import RDKitContext from "../../../context/RDKitContext";
@@ -36,11 +35,6 @@ export default function MLLayout({ children }) {
         }
       }, [oneOffSMILES]);
 
-    const { ligand } = useContext(LigandContext);
-
-    globalThis.neg_log_activity_column = ligand.map((obj) => obj[target.activity_columns[0]]);
-    globalThis.fp = ligand.map((obj) => obj.fingerprint);
-
     useEffect(() => {
         setScreenData([]);
     }, [usePathname()])
@@ -64,7 +58,7 @@ export default function MLLayout({ children }) {
             <MLResultsContext.Provider value={setScreenData}>
                 {children}
             </MLResultsContext.Provider>
-            {screenData.length > 0 && (
+            {target.machine_learning.length > 0 && (
                 <>
                     &nbsp;
                     <div style={{ borderColor: "10px solid black", margin: "20px 0", gap: "10px" }}>
@@ -80,15 +74,15 @@ export default function MLLayout({ children }) {
                         <span>Predicted {target.activity_columns[0]}: {oneOffSMILESResult}</span>
                     </div>
 
-                    <GroupedBarChart mae={screenData[0]} r2={screenData[1]}>
-                        <span>Mean MAE: {round(mean(screenData[0]), 2)} || Mean R-Squared: {round(mean(screenData[1]), 2)}</span>
+                    <GroupedBarChart mae={target.machine_learning[0]} r2={target.machine_learning[1]}>
+                        <span>Mean MAE: {round(mean(target.machine_learning[0]), 2)} || Mean R-Squared: {round(mean(target.machine_learning[1]), 2)}</span>
                     </GroupedBarChart>
                     <select className="input" onChange={(e) => setFoldNumSel(parseInt(e.target.value))}>
-                        {screenData[2].map((_, i) => (
+                        {target.machine_learning[2].map((_, i) => (
                             <option key={i} value={i}>Fold {i + 1}</option>
                         ))}
                     </select>
-                    <Scatterplot data={screenData[2][foldNumSel]} xAxisTitle="Experimental Activity" yAxisTitle="Predicted Activity" />
+                    <Scatterplot data={target.machine_learning[2][foldNumSel]} xAxisTitle="Experimental Activity" yAxisTitle="Predicted Activity" />
                 </>
             )}
         </div>

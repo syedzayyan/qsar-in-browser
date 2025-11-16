@@ -4,7 +4,8 @@ import '@mantine/core/styles.css';
 import { RDKitProvider } from "../context/RDKitContext";
 import { PyodideProvider } from "../context/PyodideContext";
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
-
+import { TargetProvider } from "../context/TargetContext";
+import { LigandProvider } from "../context/LigandContext";
 
 export default function RootLayout({
   children,
@@ -23,7 +24,11 @@ export default function RootLayout({
         <MantineProvider defaultColorScheme="dark">
           <RDKitProvider>
             <PyodideProvider>
-              {children}
+              <TargetProvider>
+                <LigandProvider>
+                  {children}
+                </LigandProvider>
+              </TargetProvider>
             </PyodideProvider>
           </RDKitProvider>
         </MantineProvider>

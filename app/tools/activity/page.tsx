@@ -10,6 +10,7 @@ export default function Activity() {
     const { ligand } = useContext(LigandContext);
     const { target } = useContext(TargetContext);
     var data = ligand.map((obj) => obj[target.activity_columns[0]]);
+    
 
     return (
         <div className="tools-container">

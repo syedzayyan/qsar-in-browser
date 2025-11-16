@@ -8,6 +8,7 @@ type RFModelInputs = {
   criterion: string
   max_features: string
   n_jobs: number
+  model: number
 }
 
 export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => void }) {
@@ -17,6 +18,7 @@ export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => vo
       criterion: "squared_error",
       max_features: "sqrt",
       n_jobs: 2,
+      model: 1,
     },
 
     validate: {
