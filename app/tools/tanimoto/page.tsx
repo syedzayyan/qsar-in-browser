@@ -4,17 +4,15 @@ import { useState, useEffect, useRef, useContext } from "react";
 import LigandContext from "../../../context/LigandContext";
 import Histogram from "../../../components/tools/toolViz/Histogram";
 import RDKitContext from "../../../context/RDKitContext";
-import TanimotoSimilarity from "../../../components/utils/tanimoto";
-import fpSorter from "../../../components/utils/fp_sorter";
 import ErrorContext from "../../../context/ErrorContext";
 import JSME from "../../../components/tools/toolViz/JSMEComp";
-import Dropdown from "../../../components/tools/toolViz/DropDown";
+import { Select } from "@mantine/core";
 
 export default function Tanimoto() {
-  const { ligand } = useContext(LigandContext);
+  const { ligand } = useContext(LigandContext) || { ligand: [] };
   const { rdkit } = useContext(RDKitContext);
   const { setErrors } = useContext(ErrorContext);
-
+  const [selectedAnchorMol, setSelectedAnchorMol] = useState<string | null>(null);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const [taniData, setTaniData] = useState([]);
@@ -27,28 +25,20 @@ export default function Tanimoto() {
   }, [anchorMol]);
 
   function tanimotoDist() {
-    try {
-      const mol_fp = fpSorter(
-        localStorage.getItem("fingerprint"),
-        anchorMol,
-        rdkit,
-        parseInt(localStorage.getItem("path")),
-        parseInt(localStorage.getItem("nBits")),
-      );
-      const data = ligand.map((x) => {
-        const tanimoto = TanimotoSimilarity(x.fingerprint, mol_fp);
-        return tanimoto;
-      });
-      setTaniData(data);
-    } catch (e) {
-      console.error(e);
-      setErrors("Most probably there is problem with your SMILES string");
-    }
+    const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    rdkit.postMessage({
+      function: 'tanimoto',
+      id: requestId,
+      mol_data: ligand,
+      anchorMol: anchorMol,
+      fp_dets: {
+        type: localStorage.getItem("fingerprint") || "Morgan",
+        radius: parseInt(localStorage.getItem("path")) || 2,
+        nBits: parseInt(localStorage.getItem("nBits")) || 2048,
+      }
+    });
+    setTaniData([...taniData, anchorMol]);
   }
-
-  useEffect(() => {
-    tanimotoDist();
-  }, []);
 
   return (
     <div className="tools-container" ref={containerRef}>
@@ -70,18 +60,37 @@ export default function Tanimoto() {
         type="text"
         className="input"
         onChange={(e) => setAnchorMol(e.target.value)}
-        style = {{width: "40%"}}
-        ref={inputRef} 
+        style={{ width: "40%" }}
+        ref={inputRef}
       />
       &nbsp;
-      <Dropdown buttonText = "Draw the molecule">
-        <JSME width="400px" height="300px" onChange={(smiles) => setAnchorMol(smiles)} />
-      </Dropdown>
+      <JSME width="400px" height="300px" onChange={(smiles) => setAnchorMol(smiles)} />
       &nbsp;
       <button className="button" onClick={tanimotoDist}>
         Generate Graph
       </button>
-      {taniData.length != 0 && (
+      <Select
+        label="Your favorite library"
+        placeholder="Pick value"
+        value = {selectedAnchorMol}
+        data={taniData}
+        onChange={setSelectedAnchorMol}
+      />
+      {
+        selectedAnchorMol &&
+        Array.isArray(ligand) &&
+        ligand.length > 0 &&
+        ligand[0] &&
+        ligand[0][`${selectedAnchorMol}_tanimoto`] !== undefined && (
+          <Histogram
+            data={ligand.map(mol => mol[`${selectedAnchorMol}_tanimoto`])}
+            toolTipData={ligand}
+            xLabel="Tanimoto Scores"
+            yLabel="Count"
+          />
+        )
+      }
+      {/* {taniData.length != 0 && (
         <>
           <Histogram
             data={taniData}
@@ -90,7 +99,7 @@ export default function Tanimoto() {
             yLabel="Count"
           />
         </>
-      )}
+      )} */}
     </div>
   );
 }

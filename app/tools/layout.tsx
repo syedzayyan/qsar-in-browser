@@ -71,6 +71,10 @@ export default function DashboardLayout({
             setNotificationText("Massive Molecular Analysis Done! Going to Scaffold Analysis Tool...");
             setTarget({ ...target, scaffCores: message.data });
             break;
+          case 'tanimoto':
+            setNotificationText("Tanimoto Similarity Calculation Done!");
+            setLigand(message.data);
+            break;
           default:
             break;
         }
@@ -84,6 +88,10 @@ export default function DashboardLayout({
     pyodide.onmessage = (event) => {
       setShowNotification(true);
       const message = event.data;
+      if (typeof message === 'string') {
+        setNotificationText(message);
+        setShowNotification(true);
+      }
       if (message.func === "dim_red") {
         if (message.opts === 2 || message.opts === 3) {
           setNotificationText("tSNE Processing Done!");

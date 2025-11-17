@@ -18,8 +18,8 @@ self.onmessage = async (event) => {
     await processFingerprintData(params, id);
   } else if (funcName === 'mma') {
     scaffoldArrayGetter(params.mol_data, params.activity_columns, id);
-  } else if (funcName === 'fp_only') {
-    await single_fingerprint(params, id);
+  } else if (funcName === 'tanimoto') {
+    await tanimoto_gen(params, id);
   }
   else {
     self.postMessage({
@@ -309,15 +309,48 @@ function ksTest(obsOne, obsTwo) {
 }
 
 
-async function single_fingerprint(params, requestId) {
-  console.log('Generating Single Fingerprint');
+async function tanimoto_gen(params, requestId) {
   try {
     self.importScripts('/rdkit/RDKit_minimal.js');
-
+    self.importScripts('https://unpkg.com/mathjs@15.1.0/lib/browser/math.js')
     initRDKitModule({
       locateFile: (filename) => rdkitWasmUrl
     }).then((RDKitInstance) => {
       self.postMessage(RDKitInstance.version() + ' Loaded');
+      let mol;
+      try {
+        mol = RDKitInstance.get_mol(params.anchorMol);
+      } catch (e) {
+        console.error(e);
+      }
+      let molFP;
+      let fp_dets = params.fp_dets;
+      if (fp_dets.type === "maccs") {
+        molFP = mol.get_maccs_fp();
+      } else if (fp_dets.type === "morgan") {
+        molFP = mol.get_morgan_fp(JSON.stringify({ radius: fp_dets.path, nBits: fp_dets.nBits }));
+      } else if (fp_dets.type === "rdkit_fp") {
+        molFP = mol.get_rdkit_fp(JSON.stringify({ minPath: fp_dets.path, nBits: fp_dets.nBits }));
+      } else {
+        throw new Error("Error has happened")
+      }
+      mol.delete();
+      let mol_fp_bit = bitStringToBitVector(molFP);
+      let mol_data = params.mol_data;
+      let tan_sims = [];
+      for (let i = 0; i < mol_data.length; i++) {
+        let tanimoto_sim = TanimotoSimilarity(
+          mol_fp_bit,
+          mol_data[i].fingerprint
+        );
+        self.postMessage(`Progress: ${Math.round((i / mol_data.length) * 100)}%`);
+        mol_data[i][`${params.anchorMol}_tanimoto`] = tanimoto_sim;
+      }
+      self.postMessage({
+        function: 'tanimoto',
+        id: requestId,
+        data: mol_data
+      });
     });
   } catch (e) {
     console.error(e);
@@ -329,33 +362,6 @@ async function single_fingerprint(params, requestId) {
   }
 }
 
-
-
-
-
-
-function fpSorter(fpType, smilesString, rdkit, path, nBits) {
-  let mol;
-  try {
-    mol = rdkit.get_mol(smilesString);
-  } catch {
-    return null;
-  }
-
-  let molFP;
-  if (fpType === "maccs") {
-    molFP = mol.get_maccs_fp();
-  } else if (fpType === "morgan") {
-    molFP = mol.get_morgan_fp(JSON.stringify({ radius: path, nBits: nBits }));
-  } else if (fpType === "rdkit_fp") {
-    molFP = mol.get_rdkit_fp(JSON.stringify({ minPath: path, nBits: nBits }));
-  } else {
-    throw new Error("Error has happened")
-  }
-  mol.delete();
-  return bitStringToBitVector(molFP);
-
-}
 
 function TanimotoSimilarity(v1, v2) {
   const numer = math.dot(v1, v2)

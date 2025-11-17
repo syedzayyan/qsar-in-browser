@@ -36,6 +36,7 @@
     "next": "^15.5.5",
     "prop-types": "^15.8.1",
     "react": "^19.2.0",
+    "react-chemdoodle": "^0.0.7",
     "react-dom": "^19.2.0",
     "react-force-graph-3d": "^1.29.0",
     "react-hook-form": "^7.65.0",

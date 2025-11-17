@@ -17,16 +17,20 @@ type tsneType = {
 }
 
 export default function TSNE() {
-  const { ligand, setLigand } = useContext(LigandContext);
-  const { target } = useContext(TargetContext)
-  const { pyodide } = useContext(PyodideContext);
+  const { ligand, setLigand } = useContext(LigandContext) || { ligand: [], setLigand: () => {} };
+  const { target } = useContext(TargetContext) || { target: { activity_columns: [] } };
+  const { pyodide } = useContext(PyodideContext) || { pyodide: null };
   const [pca, setPCA] = useState<any[]>([]);
   const containerRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
 
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<tsneType>()
 
-  globalThis.fp = ligand.map((obj) => obj.fingerprint);
+  if (Array.isArray(ligand)) {
+    globalThis.fp = ligand.map((obj) => obj.fingerprint);
+  } else {
+    globalThis.fp = [];
+  }
 
   async function runDimRed(formStuff: tsneType) {
     setLoaded(false);
@@ -82,7 +86,7 @@ export default function TSNE() {
           <input type="submit" className="button" value={"Run tSNE"} />
         </form>
       </details>
-      {ligand[0].tsne && (
+  {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].tsne && (
         <>
           {/* <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p> */}
           <br></br>
