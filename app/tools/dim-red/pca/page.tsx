@@ -13,12 +13,12 @@ export default function PCA() {
     const { ligand } = useContext(LigandContext) || { ligand: [] };
     const { target } = useContext(TargetContext) || { target: { activity_columns: [] } };
     const { pyodide } = useContext(PyodideContext) || { pyodide: null };
-    const { setNotification } = useContext(NotificationContext);
+    const { pushNotification } = useContext(NotificationContext);
 
     const containerRef = useRef(null);
 
     async function runDimRed() {
-        setNotification("Running PCA...");
+        pushNotification({ message: "Running PCA..." });
         const msg = {
             id: "job-123",
             opts: 1,

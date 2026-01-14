@@ -6,6 +6,7 @@ import { useDisclosure } from "@mantine/hooks";
 import TargetContext from "../../../context/TargetContext";
 import RDKitContext from "../../../context/RDKitContext";
 import { round } from "mathjs";
+import NotificationContext from "../../../context/NotificationContext";
 
 export default function MMA() {
   const { ligand } = useContext(LigandContext);
@@ -19,7 +20,7 @@ export default function MMA() {
   const currentRequestId = useRef(null);
   const mounted = useRef(true);
   const prevOnMessage = useRef(null);
-
+  const { pushNotification } = useContext(NotificationContext);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -81,6 +82,7 @@ export default function MMA() {
   }, [rdkit, setTarget]);
 
   const mmaRunner = useCallback(() => {
+    pushNotification({ message: "Running Matched Molecular Analysis..." });
     if (!rdkit) return;
 
     const requestId = `mma_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -143,10 +145,6 @@ export default function MMA() {
     return (
       <div className="main-container">
         <Button onClick={mmaRunner} disabled={!rdkit}>Run Matched Molecular Analysis</Button>
-        <p>
-          Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
-          and MMA computation is blocking.
-        </p>
       </div>
     );
   }

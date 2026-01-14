@@ -5,7 +5,6 @@ import PyodideContext from "../../context/PyodideContext";
 import RDKitContext from "../../context/RDKitContext";
 import LigandContext from "../../context/LigandContext";
 import { useRouter } from "next/navigation";
-import ErrorContext from "../../context/ErrorContext";
 import TargetContext from "../../context/TargetContext";
 import { ErrorContextProvider } from "../../context/ErrorContext";
 import Navbar from "../../components/ui-comps/Navbar"
@@ -24,7 +23,9 @@ export default function DashboardLayout({
   const { target, setTarget } = useContext(TargetContext);
   const { pyodide, setPyodide } = useContext(PyodideContext);
   const { rdkit, setRDKit } = useContext(RDKitContext);
-  const { notification, setNotification } = useContext(NotificationContext);
+  const { notifications, pushNotification, removeNotification } =
+    useContext(NotificationContext);
+
   const router = useRouter();
   const [opened, { toggle }] = useDisclosure();
 
@@ -36,16 +37,29 @@ export default function DashboardLayout({
     setRDKit(rdkitWorker);
     setPyodide(pyodideWorker);
     if (ligand.length < 1) {
-      setNotification("Data Loading Done!")
+      pushNotification({"message": "Data Loading Done!"});
       router.push("/tools/load_data");
     }
   }, []);
+
+  useEffect(() => {
+    notifications.forEach((n) => {
+      if (n.autoClose === false) return;
+
+      const timeout = setTimeout(() => {
+        removeNotification(n.id);
+      }, n.duration ?? 5000);
+
+      return () => clearTimeout(timeout);
+    });
+  }, [notifications]);
+
 
   if (rdkit) {
     rdkit.onmessage = (event) => {
       const message = event.data;
       if (typeof message === 'string') {
-        setNotification(message);
+        pushNotification({  message: message, autoClose: true, duration: 2 });
       } else if (message.data) {
         switch (message.function) {
           case 'fingerprint':
@@ -54,7 +68,7 @@ export default function DashboardLayout({
               localStorage.setItem("path", message.settings.radius.toString());
               localStorage.setItem("nBits", message.settings.nBits.toString());
             }
-            setNotification("Molecule Pre-processing Done! Going to Activity Distribution Tool...");
+            pushNotification({ message: "Molecule Pre-processing Done! Going to Activity Distribution Tool..." });
             setTimeout(() => {
               setLigand(message.data);
               setTarget({ ...target, activity_columns: message.activity_columns, pre_processed: true });
@@ -62,11 +76,11 @@ export default function DashboardLayout({
             }, 200);
             break;
           case 'mma':
-            setNotification("Massive Molecular Analysis Done! Going to Scaffold Analysis Tool...");
+            pushNotification({ message: "Massive Molecular Analysis Done! Going to Scaffold Analysis Tool..." });
             setTarget({ ...target, scaffCores: message.data });
             break;
           case 'tanimoto':
-            setNotification("Tanimoto Similarity Calculation Done!");
+            pushNotification({ message: "Tanimoto Similarity Calculation Done!" });
             setLigand(message.data);
             break;
           default:
@@ -82,11 +96,11 @@ export default function DashboardLayout({
     pyodide.onmessage = (event) => {
       const message = event.data;
       if (typeof message === 'string') {
-        setNotification(message);
+        pushNotification({ message: message });
       }
       if (message.func === "dim_red") {
         if (message.opts === 2 || message.opts === 3) {
-          setNotification("tSNE Processing Done!");
+          pushNotification({ message: "tSNE Processing Done!" });
           setLigand((prevLigands) => {
             return prevLigands.map((ligand, index) => ({
               ...ligand,
@@ -94,16 +108,16 @@ export default function DashboardLayout({
             }));
           });
         } else {
-          setNotification("PCA Processing Done!");
+          pushNotification({ message: "PCA Processing Done!" });
           setLigand((prevLigands) => {
             return prevLigands.map((ligand, index) => ({
               ...ligand,
               pca: message.result[index],
             }));
           });
-        }        
+        }
       } else if (message.func === "ml") {
-        setNotification("Model Training Done! Going to Results Page...");
+        pushNotification({ message: "Model Training Done! Going to Results Page..." });
         setTarget({ ...target, machine_learning: message.results });
       } else {
         console.log(message);
@@ -146,24 +160,29 @@ export default function DashboardLayout({
 
       </AppShell>
 
-      {/* Bottom-right notification */}
-      {notification != "" && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
+      <div
+        style={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
           zIndex: 1000,
-        }}>
+        }}
+      >
+        {notifications.map((n) => (
           <Notification
+            key={n.id}
             radius="lg"
-            title="Notifications"
-            onClose={() => setNotification("")}
             withCloseButton
+            onClose={() => removeNotification(n.id)}
           >
-            {notification}
+            {n.message}
           </Notification>
-        </div>
-      )}
+        ))}
+      </div>
+
     </>
   );
 }

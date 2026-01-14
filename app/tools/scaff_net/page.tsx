@@ -42,37 +42,41 @@ export default function DisplayGraph() {
 
   return (
     <div className="tools-container">
+      <p>
+        Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
+        and MMA computation is blocking.
+      </p>
       <h1>Scaffold Network</h1>
 
       <Tabs defaultValue="Network_Settings">
-      <Tabs.List>
-        <Tabs.Tab value="Network_Settings">
-          Network Settings
-        </Tabs.Tab>
-        <Tabs.Tab value="Network_Details" >
-          Network Details
-        </Tabs.Tab>
-        <Tabs.Tab value="Whole_Network">
-          Whole Network
-        </Tabs.Tab>
-      </Tabs.List>
+        <Tabs.List>
+          <Tabs.Tab value="Network_Settings">
+            Network Settings
+          </Tabs.Tab>
+          <Tabs.Tab value="Network_Details" >
+            Network Details
+          </Tabs.Tab>
+          <Tabs.Tab value="Whole_Network">
+            Whole Network
+          </Tabs.Tab>
+        </Tabs.List>
 
-      <Tabs.Panel value="Network_Settings">
-        <ScaffoldSettings
-          setGraph={setGraph}
-          setLoaded={setLoaded}
-          activeTabChange={setDefaultTab}
-        />
-      </Tabs.Panel>
+        <Tabs.Panel value="Network_Settings">
+          <ScaffoldSettings
+            setGraph={setGraph}
+            setLoaded={setLoaded}
+            activeTabChange={setDefaultTab}
+          />
+        </Tabs.Panel>
 
-      <Tabs.Panel value="Network_Details">
-        {graph != undefined && <ScaffNetDets graph={graph} />}
-      </Tabs.Panel>
+        <Tabs.Panel value="Network_Details">
+          {graph != undefined && <ScaffNetDets graph={graph} />}
+        </Tabs.Panel>
 
-      <Tabs.Panel value="Whole_Network">
-        {graph != undefined && <ScaffoldNetworkWholeGraph graph={graph} imageSize={200} />}
-      </Tabs.Panel>
-    </Tabs>
+        <Tabs.Panel value="Whole_Network">
+          {graph != undefined && <ScaffoldNetworkWholeGraph graph={graph} imageSize={200} />}
+        </Tabs.Panel>
+      </Tabs>
     </div >
   );
 }

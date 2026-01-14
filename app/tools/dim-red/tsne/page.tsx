@@ -8,6 +8,7 @@ import Loader from "../../../../components/ui-comps/Loader";
 import TargetContext from "../../../../context/TargetContext";
 import { useForm } from "react-hook-form";
 import { Button, Group } from "@mantine/core";
+import NotificationContext from "../../../../context/NotificationContext";
 
 type tsneType = {
   perplexity: number;
@@ -23,6 +24,7 @@ export default function TSNE() {
   const [pca, setPCA] = useState<any[]>([]);
   const containerRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
+  const { pushNotification } = useContext(NotificationContext);
 
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<tsneType>()
 
@@ -34,6 +36,7 @@ export default function TSNE() {
 
   async function runDimRed(formStuff: tsneType) {
     setLoaded(false);
+    pushNotification({ message: "Running tSNE..." });
 
     const msg = {
       id: "job-123",

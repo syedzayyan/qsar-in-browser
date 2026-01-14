@@ -9,10 +9,11 @@ import XGB from "../../../../components/ml-forms/XGB";
 import { Tabs } from "@mantine/core";
 import LigandContext from "../../../../context/LigandContext";
 import TargetContext from "../../../../context/TargetContext";
+import NotificationContext from "../../../../context/NotificationContext";
 
 export default function RandomForest() {
     const { pyodide } = useContext(PyodideContext);
-
+    const { pushNotification } = useContext(NotificationContext);
     globalThis.opts = 1;
 
 
@@ -21,11 +22,12 @@ export default function RandomForest() {
     const { target } = useContext(TargetContext);
 
     async function onSubmit(data) {
+        pushNotification({ message: "Running Machine Learning..." });
         const msg = {
             id: "job-123",
             opts: 0,
             fp: ligand.map(mol => mol.fingerprint),
-            params: {...data, activity_columns: ligand.map((obj) => obj[target.activity_columns[0]])},
+            params: { ...data, activity_columns: ligand.map((obj) => obj[target.activity_columns[0]]) },
             func: "ml"
         };
 

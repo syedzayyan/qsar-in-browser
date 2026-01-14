@@ -5,6 +5,7 @@ import RDKitContext from "../../../context/RDKitContext";
 import PyodideContext from "../../../context/PyodideContext";
 import Loader from "../../../components/ui-comps/Loader";
 import CSVLoader from "../../../components/dataloader/CSVLoader";
+import NotificationContext from "../../../context/NotificationContext";
 
 // Create a new context for screenData
 export const ScreenDataContext = createContext([]);
@@ -12,13 +13,14 @@ export const ScreenDataContext = createContext([]);
 export default function ScreenLayout({ children }) {
     const [loaded, setLoaded] = useState(true);
     const [screenData, setScreenData] = useState([]);
-
+    const { pushNotification } = useContext(NotificationContext);
     const screenDataContextValue = screenData;
 
     const { rdkit } = useContext(RDKitContext);
     const { pyodide } = useContext(PyodideContext);
 
     async function callofScreenFunction(data) {
+        pushNotification({ message: "Running ML Model on Ligands" });
         let newScreenData = screenData
         newScreenData.forEach(obj => {
             console.log(obj[data.smi_column]);
@@ -28,17 +30,18 @@ export default function ScreenLayout({ children }) {
 
         const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         rdkit.postMessage({
-          function: 'fingerprint',
-          id: requestId,
-          mol_data: newScreenData,
-          formStuff: {
-            fingerprint: localStorage.getItem("fingerprint"),
-            radius: parseInt(localStorage.getItem("path")),
-            nBits: parseInt(localStorage.getItem("nBits")),
-        }
+            function: 'fingerprint',
+            id: requestId,
+            mol_data: newScreenData,
+            formStuff: {
+                fingerprint: localStorage.getItem("fingerprint"),
+                radius: parseInt(localStorage.getItem("path")),
+                nBits: parseInt(localStorage.getItem("nBits")),
+            }
         });
 
         rdkit.onmessage = async (event) => {
+
             if (event.data.id === requestId) {
                 let mol_fp = event.data.data.map(x => x["fingerprint"]);
                 pyodide.postMessage({
@@ -55,6 +58,7 @@ export default function ScreenLayout({ children }) {
                             return x
                         });
                         setScreenData(newScreenData);
+                        pushNotification({ message: "ML Model run complete" });
                     }
                 }
             }
@@ -84,12 +88,12 @@ export default function ScreenLayout({ children }) {
     return (
         <div className="tools-container">
             <ScreenDataContext.Provider value={screenDataContextValue}>
-                <div style = {{height : "20vh"}}>
+                <div style={{ height: "20vh" }}>
                     <CSVLoader
                         callofScreenFunction={callofScreenFunction}
                         csvSetter={setScreenData}
                         act_col={false}
-                    />                    
+                    />
                 </div>
                 {screenData.length > 0 && children}
             </ScreenDataContext.Provider>
