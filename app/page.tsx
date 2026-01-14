@@ -48,14 +48,22 @@ export default function IndexPage() {
 
             <Anchor
               component={Link}
-              href="/about"
+              href="https://github.com/syedzayyan/qsar-in-browser"
               size="sm"
               underline="hover"
               c="dimmed"
             >
               GitHub
             </Anchor>
-
+            <Anchor
+              component={Link}
+              href="/misc_tools"
+              size="sm"
+              underline="hover"
+              c="dimmed"
+            >
+              Misc Tools
+            </Anchor>
             <ActionIcon
               onClick={() =>
                 setColorScheme(colorScheme === "light" ? "dark" : "light")
