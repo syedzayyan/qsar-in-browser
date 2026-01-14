@@ -9,12 +9,14 @@ import JSME from "../../../components/tools/toolViz/JSMEComp";
 import Dropdown from "../../../components/tools/toolViz/DropDown";
 import RDKitContext from "../../../context/RDKitContext";
 import { isEmpty } from "lodash";
+import { Button, Group, Input } from "@mantine/core";
 
 export default function TOC() {
     const { ligand } = useContext(LigandContext);
     const { target } = useContext(TargetContext);
-    const { jsonToCSV } = usePapaParse();
     const { rdkit } = useContext(RDKitContext);
+    const { jsonToCSV } = usePapaParse();
+
     const inputRef = useRef(null);
 
     const [searchSmi, setSearchSmi] = useState('');
@@ -22,9 +24,9 @@ export default function TOC() {
 
     useEffect(() => {
         if (inputRef.current) {
-          inputRef.current.value = searchSmi;
+            inputRef.current.value = searchSmi;
         }
-      }, [searchSmi]);
+    }, [searchSmi]);
 
     const results = jsonToCSV(ligand, { delimiter: ';' });
 
@@ -41,35 +43,33 @@ export default function TOC() {
     }
 
     function searchSubst() {
-        let searchResults = [];
-        let query = rdkit.get_mol(searchSmi);
-        ligand.map((lig) => {
-            let mol = rdkit.get_mol(lig.canonical_smiles);
-            let substructRes = mol.get_substruct_match(query);
-            var substructResJson = JSON.parse(substructRes);
-            if (!isEmpty(substructResJson)){
-                searchResults.push(lig);
+        const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        rdkit.postMessage({
+            function: 'substructure_search',
+            id: requestId,
+            ligand: ligand,
+            searchSmi: searchSmi,
+        });
+        rdkit.onmessage = (event) => {
+            if (event.data.id === requestId) {
+                setSearchRes(event.data.results);
             }
-            mol.delete();
-        })
-        query.delete();
-        setSearchRes(searchResults);
+        };
     }
 
 
     return (
         <div className="tools-container">
-            <div >
-                <button className="button" onClick={() => downloadCSV(results)}>Download Ligand Data as CSV</button>
-                <br />
-                <input ref={inputRef} className = "input" type="text" placeholder="Search By Substructure/SMILES" onChange={(e) => setSearchSmi(e.target.value)}/>
-                &nbsp;
-                <Dropdown buttonText="Draw the molecule">
+            <Group >
+                <Input ref={inputRef} className="input" type="text" placeholder="Search By Substructure/SMILES" onChange={(e) => setSearchSmi(e.target.value)} />
+                <Dropdown buttonText="Draw the Molecule">
                     <JSME width="400px" height="300px" onChange={(smiles) => setSearchSmi(smiles)} />
-                </Dropdown> 
-                &nbsp;
-                <button className="button" onClick={() => searchSubst()}>Substructure Search molecule</button>               
-            </div>
+                </Dropdown>
+                <Button onClick={searchSubst}>Substructure Search molecule</Button>
+            </Group>
+            <br />
+            <Button onClick={() => downloadCSV(results)}>Download Ligand Data as CSV</Button>
+            <br /><br /><br />
             <Table data={searchRes} rowsPerPage={30} act_column={target.activity_columns} />
         </div>
     )

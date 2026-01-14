@@ -1,22 +1,19 @@
-import React, { useState } from 'react';
+import { Popover, Button } from '@mantine/core';
 
 const Dropdown = ({ buttonText, children }) => {
-    const [isVisible, setIsVisible] = useState(false);
+  return (
+    <Popover width={200} position="bottom" shadow="md">
+      <Popover.Target>
+        <Button>
+          {buttonText}
+        </Button>
+      </Popover.Target>
 
-    const toggleVisibility = () => {
-        setIsVisible(!isVisible);
-    };
-
-    return (
-        <div className="dropdown-container">
-            <button className="button" onClick={toggleVisibility}>
-                {buttonText}
-            </button>
-            <div className={`dropdown-content ${isVisible ? 'visible' : ''}`}>
-                {children}
-            </div>
-        </div>
-    );
+      <Popover.Dropdown>
+        {children}
+      </Popover.Dropdown>
+    </Popover>
+  );
 };
 
 export default Dropdown;

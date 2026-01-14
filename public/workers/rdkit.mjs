@@ -20,6 +20,8 @@ self.onmessage = async (event) => {
     scaffoldArrayGetter(params.mol_data, params.activity_columns, id);
   } else if (funcName === 'tanimoto') {
     await tanimoto_gen(params, id);
+  } else if (funcName === 'substructure_search') {
+    await substructure_search(params, id);
   }
   else {
     self.postMessage({
@@ -29,6 +31,45 @@ self.onmessage = async (event) => {
     });
   }
 };
+
+
+async function substructure_search(params, requestId) {
+  let { ligand, searchSmi } = params;
+  try {
+    self.importScripts('/rdkit/RDKit_minimal.js');   
+    initRDKitModule({
+      locateFile: (filename) => rdkitWasmUrl
+    }).then((RDKitInstance) => {
+      self.postMessage(RDKitInstance.version() + ' Loaded');
+
+      let searchResults = [];
+      let query = RDKitInstance.get_mol(searchSmi);
+
+      ligand.map((lig) => {
+          let mol = RDKitInstance.get_mol(lig.canonical_smiles);
+          let substructRes = mol.get_substruct_match(query);
+          var substructResJson = JSON.parse(substructRes);
+          if (!isEmpty(substructResJson)){
+              searchResults.push(lig);
+          }
+          mol.delete();
+      })
+      query.delete();
+
+      self.postMessage({
+        function: 'substructure_search',
+        id: requestId,
+        results: searchResults,
+      });
+
+    });} catch (e) {
+        self.postMessage({
+          function: 'substructure_search',
+          id: requestId,
+          error: e.message
+        });
+  }
+}
 
 async function processFingerprintData(params, requestId) {
   console.log('Processing Fingerprint Data');
@@ -375,3 +416,23 @@ function TanimotoSimilarity(v1, v2) {
   return numer / denom;
 }
 
+
+
+
+function isEmpty(value) {
+  if (value == null) return true; // null or undefined
+
+  if (typeof value === 'string' || Array.isArray(value)) {
+    return value.length === 0;
+  }
+
+  if (value instanceof Map || value instanceof Set) {
+    return value.size === 0;
+  }
+
+  if (typeof value === 'object') {
+    return Object.keys(value).length === 0;
+  }
+
+  return false;
+}

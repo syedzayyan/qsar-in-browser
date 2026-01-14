@@ -1,103 +1,130 @@
-import React, { useRef, useEffect, useCallback } from 'react';
-import PropTypes from 'prop-types';
-
-function getRandomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
-}
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  useId,
+} from "react";
 
 let jsmeIsLoaded = false;
-const jsmeCallbacks = {};
+const jsmeCallbacks: Record<string, () => void> = {};
 
-// Export the setup function so that a user can override the super-lazy loading behaviour and choose to load it more eagerly.
-export function setup(src = "/jsme/jsme.nocache.js") {
-  const script = document.createElement('script');
+export function setup(src: string = "/jsme/jsme.nocache.js") {
+  if (document.querySelector(`script[src="${src}"]`)) return;
+
+  const script = document.createElement("script");
   script.src = src;
   document.head.appendChild(script);
-  globalThis.jsmeOnLoad = () => {
-    if (jsmeCallbacks && typeof jsmeCallbacks === 'object') {
-      Object.values(jsmeCallbacks).forEach(f => typeof f === 'function' && f());
-    }
+
+  (globalThis as any).jsmeOnLoad = () => {
+    Object.values(jsmeCallbacks).forEach(cb => cb?.());
     jsmeIsLoaded = true;
-  }
+  };
 }
 
-const Jsme = ({ height, width, smiles, options, onChange, src }) => {
-  const myRef = useRef(null);
-  const id = `jsme${getRandomInt(1, 100000)}`;
-  const prevPropsRef = useRef({ height, width, smiles, options });
+export interface JsmeProps {
+  width?: string;
+  height?: string;
+  smiles?: string;
+  options?: string;
+  onChange?: (smiles: string) => void;
+  src?: string;
+  id?: string;
+}
 
-  const handleJsmeLoad = useCallback(() => {
-    if (options) {
-      const jsmeApplet = new globalThis.JSApplet.JSME(id, width, height, { options });
-      jsmeApplet.setCallBack("AfterStructureModified", handleChange);
-      jsmeApplet.readGenericMolecularInput(smiles);
-    } else {
-      const jsmeApplet = new globalThis.JSApplet.JSME(id, width, height, {
-        "options": "newlook",
-        "guicolor": "#FFFFFF",
-        "guiAtomColor": "#000000"
-      });
-      jsmeApplet.setCallBack("AfterStructureModified", handleChange);
-      jsmeApplet.readGenericMolecularInput(smiles);
-    }
-  }, [height, width, smiles, options, id]);
+const Jsme: React.FC<JsmeProps> = ({
+  width = "400px",
+  height = "300px",
+  smiles = "",
+  options,
+  onChange,
+  src,
+  id,
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const appletRef = useRef<any>(null); // ✅ SINGLE SOURCE OF TRUTH
+  const reactId = useId();
+  const jsmeId = id ?? `jsme-${reactId}`;
 
-  const handleChange = useCallback((jsmeEvent) => {
-    if (onChange) {
-      onChange(jsmeEvent.src.smiles());
-    }
-  }, [onChange]);
+  const prevPropsRef = useRef({ width, height, smiles, options });
 
+  const handleChange = useCallback(
+    (e: any) => {
+      onChange?.(e.src.smiles());
+    },
+    [onChange]
+  );
+
+  const initJsme = useCallback(() => {
+    // ✅ Guard against double creation
+    if (appletRef.current) return;
+
+    const config = options
+      ? { options }
+      : {
+          options: "newlook",
+          guicolor: "#FFFFFF",
+          guiAtomColor: "#000000",
+        };
+
+    const applet = new (globalThis as any).JSApplet.JSME(
+      jsmeId,
+      width,
+      height,
+      config
+    );
+
+    applet.setCallBack("AfterStructureModified", handleChange);
+    applet.readGenericMolecularInput(smiles);
+
+    appletRef.current = applet;
+  }, [width, height, smiles, options, handleChange, jsmeId]);
+
+  /**
+   * Initial mount (StrictMode-safe)
+   */
   useEffect(() => {
-    if (myRef.current && myRef.current.children.length < 1) {
-      if (jsmeIsLoaded) {
-        handleJsmeLoad();
-      } else {
-        if (!globalThis.jsmeOnLoad) {
-          setup(src);
-        }
-        jsmeCallbacks[id] = handleJsmeLoad;
+    if (!containerRef.current) return;
+
+    if (jsmeIsLoaded) {
+      initJsme();
+    } else {
+      if (!(globalThis as any).jsmeOnLoad) {
+        setup(src);
       }
-  
-      return () => {
-        jsmeCallbacks[id] = undefined;
-      };
+      jsmeCallbacks[jsmeId] = initJsme;
     }
+
+    return () => {
+      delete jsmeCallbacks[jsmeId];
+      // ❗ DO NOT clear appletRef here — StrictMode remount depends on it
+    };
   }, []);
 
+  /**
+   * Prop updates
+   */
   useEffect(() => {
-    if (myRef.current) {
-      const jsmeApplet = myRef.current.jsmeApplet;
-      const prevProps = prevPropsRef.current;
+    const applet = appletRef.current;
+    const prev = prevPropsRef.current;
 
-      if (jsmeApplet !== undefined && jsmeApplet !== null) {
-        if (height !== prevProps.height || width !== prevProps.width) {
-          jsmeApplet.setSize(width, height);
-        }
-        if (options !== prevProps.options) {
-          jsmeApplet.options({ options });
-        }
-        if (smiles !== prevProps.smiles) {
-          jsmeApplet.readGenericMolecularInput(smiles);
-        }
-      }
+    if (!applet) return;
 
-      prevPropsRef.current = { height, width, smiles, options };
+    if (width !== prev.width || height !== prev.height) {
+      applet.setSize(width, height);
     }
-  }, [height, width, smiles, options]);
 
-  return <div ref={myRef} id={id}></div>;
-};
+    if (options !== prev.options && options) {
+      applet.options({ options });
+    }
 
-Jsme.propTypes = {
-  height: PropTypes.string.isRequired,
-  width: PropTypes.string.isRequired,
-  smiles: PropTypes.string,
-  options: PropTypes.string,
-  onChange: PropTypes.func,
-  src: PropTypes.string,
+    if (smiles !== prev.smiles) {
+      applet.readGenericMolecularInput(smiles);
+    }
+
+    prevPropsRef.current = { width, height, smiles, options };
+  }, [width, height, smiles, options]);
+
+  return <div ref={containerRef} id={jsmeId} />;
 };
 
 export default Jsme;

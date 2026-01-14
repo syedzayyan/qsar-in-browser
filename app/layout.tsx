@@ -6,6 +6,7 @@ import { PyodideProvider } from "../context/PyodideContext";
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
 import { TargetProvider } from "../context/TargetContext";
 import { LigandProvider } from "../context/LigandContext";
+import { NotificationContextProvider } from '../context/NotificationContext';
 
 export default function RootLayout({
   children,
@@ -26,7 +27,9 @@ export default function RootLayout({
             <PyodideProvider>
               <TargetProvider>
                 <LigandProvider>
+                  <NotificationContextProvider>
                   {children}
+                  </NotificationContextProvider>
                 </LigandProvider>
               </TargetProvider>
             </PyodideProvider>

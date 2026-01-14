@@ -5,15 +5,20 @@ import LigandContext from "../../../../context/LigandContext";
 import PyodideContext from "../../../../context/PyodideContext";
 import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
 import TargetContext from "../../../../context/TargetContext";
+
 import { Button } from "@mantine/core";
+import NotificationContext from "../../../../context/NotificationContext";
 
 export default function PCA() {
     const { ligand } = useContext(LigandContext) || { ligand: [] };
     const { target } = useContext(TargetContext) || { target: { activity_columns: [] } };
     const { pyodide } = useContext(PyodideContext) || { pyodide: null };
+    const { setNotification } = useContext(NotificationContext);
+
     const containerRef = useRef(null);
 
     async function runDimRed() {
+        setNotification("Running PCA...");
         const msg = {
             id: "job-123",
             opts: 1,

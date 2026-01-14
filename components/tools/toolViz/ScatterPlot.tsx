@@ -9,8 +9,8 @@ import { useDisclosure } from '@mantine/hooks';
 // Updated Scatterplot: modernized, responsive and with a full-width color legend
 export default function Scatterplot({ data, colorProperty = [], hoverProp = [], xAxisTitle = '', yAxisTitle = '', id = [] }) {
   const margin = { top: 10, right: 20, bottom: 80, left: 80 };
-  const parentRef = useRef(null);
-  const svgRef = useRef();
+  const parentRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<HTMLDivElement | null>(null);
   const [details, setDetails] = useState(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [modalDets, setModalDets] = useState<any>(false);
@@ -156,7 +156,6 @@ export default function Scatterplot({ data, colorProperty = [], hoverProp = [], 
       .attr('stroke', 'white')
       .attr('stroke-width', 0.7)
       .attr('opacity', 0.95)
-      .style('filter', `url(#${uid}-glow)`)
       .on('mouseenter', function (event, d) {
         d3.select(this).raise().transition().duration(150).attr('r', bubbleSize * 1.8).attr('opacity', 1);
         const [mx, my] = d3.pointer(event, svg.node());

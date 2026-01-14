@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
 const D3ColorLegend = ({ colorScale, width}) => {
-    const chartRef = useRef();
+    const chartRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {     
         if (colorScale != undefined){
             d3.select(chartRef.current).selectAll('*').remove();
