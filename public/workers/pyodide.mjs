@@ -6,7 +6,7 @@ let pyodideReadyPromise = loadPyodide();
 // helper to ensure packages are available
 async function ensurePackages(pyodide) {
   // scikit-learn and numpy are required
-  await pyodide.loadPackage(["scikit-learn", "numpy"]);
+  await pyodide.loadPackage(["scikit-learn", "numpy", "xgboost"]);
 }
 
 self.onmessage = async (event) => {

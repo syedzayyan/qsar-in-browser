@@ -51,9 +51,8 @@ for train, test in kf.split(X, y):
   model = None
   if js.opts == 1:
      model = RandomForestRegressor(**params)
-  if js.opts == 2:
+  if js.opts == 3:
      model = xgboost.XGBRegressor(**params)
-
   model.fit(trainX, trainY)
   pred = model.predict(testX)
   metric = [mean_absolute_error(testY, pred), r2_score(testY, pred)]
@@ -68,7 +67,7 @@ js.perFoldPreds = per_fold_preds
 model = None
 if js.opts == 1:
     model = RandomForestRegressor(**params)
-if js.opts == 2:
+if js.opts == 3:
     model = xgboost.XGBRegressor(**params)
     
 model.fit(X, y)
