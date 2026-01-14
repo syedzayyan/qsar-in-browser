@@ -2,7 +2,7 @@
 
 import { useContext } from "react";
 import Histogram from "../../../components/tools/toolViz/Histogram";
-import Table from "../../../components/ui-comps/PaginatedTables";
+import DataTable from "../../../components/ui-comps/PaginatedTables";
 import { ScreenDataContext } from "./layout";
 
 export default function Screen() {
@@ -32,7 +32,7 @@ export default function Screen() {
                                 Download Predictions in CSV Format
                             </button>
                             &nbsp;
-                            <Table data={screenData} rowsPerPage={5} act_column={["predictions"]}/>
+                            <DataTable data={screenData} rowsPerPage={5} act_column={["predictions"]}/>
                         </>
                     }
                 </>

@@ -3,7 +3,7 @@ import TagComponent from "../../ui-comps/Tags";
 import { subgraph } from "graphology-operators";
 import ScaffoldNetworkWholeGraph from "./ScaffoldNetworkWholeGraph";
 import { useDisclosure } from "@mantine/hooks";
-import { Button, Card, Grid, Modal } from "@mantine/core";
+import { Button, Card, Grid, Group, Modal } from "@mantine/core";
 
 const GraphComponent: React.FC<any> = ({ graph }) => {
     const [opened, { open, close }] = useDisclosure(false);
@@ -114,29 +114,29 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
                 </div>
             </Modal>
 
-            {/* Pagination buttons */}
-            <div>
-                <button className={`tableButton ${currentPage === 1 ? "activeButton" : "inactiveButton"}`} disabled={currentPage === 1} onClick={() => handlePageChange(1)}>
+            <br />
+            <Group>
+                <Button className={`tableButton ${currentPage === 1 ? "activeButton" : "inactiveButton"}`} disabled={currentPage === 1} onClick={() => handlePageChange(1)}>
                     First Page
-                </button>
+                </Button>
                 {getDisplayedPages().map((pageNumber) => (
-                    <button
+                    <Button
                         className={`tableButton ${currentPage === pageNumber ? "activeButton" : "inactiveButton"}`}
                         key={pageNumber}
                         onClick={() => handlePageChange(pageNumber)}
                         disabled={pageNumber === currentPage}
                     >
                         {pageNumber}
-                    </button>
+                    </Button>
                 ))}
-                <button
+                <Button
                     className={`tableButton ${currentPage === totalPages ? "activeButton" : "inactiveButton"}`}
                     disabled={currentPage === totalPages}
                     onClick={() => handlePageChange(totalPages)}
                 >
                     Last Page
-                </button>
-            </div>
+                </Button>
+            </Group>
         </div>
     );
 };

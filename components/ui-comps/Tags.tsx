@@ -1,25 +1,28 @@
 import { useState } from "react";
+import { Group, Chip } from "@mantine/core";
 
 const TagComponent = ({ tags, onClick }) => {
-  const [selectedTag, setSelectedTag] = useState(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  const toggleTag = (tag) => {
-    setSelectedTag(tag === selectedTag ? null : tag);
-    onClick(tag === selectedTag ? null : tag);
+  const toggleTag = (tag: string) => {
+    const next = tag === selectedTag ? null : tag;
+    setSelectedTag(next);
+    onClick(next);
   };
 
   return (
-    <div className="tag-container">
+    <Group gap="xs">
       {tags.map((tag, index) => (
-        <span
+        <Chip
           key={index}
-          className={`tag ${tag === selectedTag ? 'selected' : ''}`}
-          onClick={() => toggleTag(tag)}
+          checked={tag === selectedTag}
+          onChange={() => toggleTag(tag)}
+          variant="filled"
         >
           {tag}
-        </span>
+        </Chip>
       ))}
-    </div>
+    </Group>
   );
 };
 

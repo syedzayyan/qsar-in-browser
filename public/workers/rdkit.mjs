@@ -16,12 +16,16 @@ self.onmessage = async (event) => {
   // Route to appropriate function
   if (funcName === 'fingerprint') {
     await processFingerprintData(params, id);
+  } else if (funcName === "only_fingerprint") {
+    await makeFingerprints(params, id);
   } else if (funcName === 'mma') {
     scaffoldArrayGetter(params.mol_data, params.activity_columns, id);
   } else if (funcName === 'tanimoto') {
     await tanimoto_gen(params, id);
   } else if (funcName === 'substructure_search') {
     await substructure_search(params, id);
+  } else if (funcName === "scaffold_network") {
+
   }
   else {
     self.postMessage({
@@ -36,7 +40,7 @@ self.onmessage = async (event) => {
 async function substructure_search(params, requestId) {
   let { ligand, searchSmi } = params;
   try {
-    self.importScripts('/rdkit/RDKit_minimal.js');   
+    self.importScripts('/rdkit/RDKit_minimal.js');
     initRDKitModule({
       locateFile: (filename) => rdkitWasmUrl
     }).then((RDKitInstance) => {
@@ -46,13 +50,13 @@ async function substructure_search(params, requestId) {
       let query = RDKitInstance.get_mol(searchSmi);
 
       ligand.map((lig) => {
-          let mol = RDKitInstance.get_mol(lig.canonical_smiles);
-          let substructRes = mol.get_substruct_match(query);
-          var substructResJson = JSON.parse(substructRes);
-          if (!isEmpty(substructResJson)){
-              searchResults.push(lig);
-          }
-          mol.delete();
+        let mol = RDKitInstance.get_mol(lig.canonical_smiles);
+        let substructRes = mol.get_substruct_match(query);
+        var substructResJson = JSON.parse(substructRes);
+        if (!isEmpty(substructResJson)) {
+          searchResults.push(lig);
+        }
+        mol.delete();
       })
       query.delete();
 
@@ -62,12 +66,43 @@ async function substructure_search(params, requestId) {
         results: searchResults,
       });
 
-    });} catch (e) {
-        self.postMessage({
-          function: 'substructure_search',
-          id: requestId,
-          error: e.message
-        });
+    });
+  } catch (e) {
+    self.postMessage({
+      function: 'substructure_search',
+      id: requestId,
+      error: e.message
+    });
+  }
+}
+
+async function makeFingerprints(params, requestId) {
+  try {
+    self.importScripts('/rdkit/RDKit_minimal.js');
+    initRDKitModule({
+      locateFile: (filename) => rdkitWasmUrl
+    }).then((RDKitInstance) => {
+      self.postMessage(RDKitInstance.version() + ' Loaded');
+      const settings = params.formStuff ?? {
+        fingerprint: "maccs",
+        radius: 2,
+        nBits: 1024,
+      };
+      processes_data = generateFingerprints(temp_ligand_process, settings, RDKitInstance);
+      self.postMessage({
+        function: 'only_fingerprint',
+        id: requestId,
+        results: processes_data
+      });
+      self.postMessage('Processing Done');
+    })
+  } catch (e) {
+    console.error(e);
+    self.postMessage({
+      function: 'fingerprint',
+      id: requestId,
+      error: e.message
+    });
   }
 }
 
@@ -125,45 +160,7 @@ async function processFingerprintData(params, requestId) {
         );
       }
 
-      // Fingerprint generation
-      const fpTypeMap = {
-        'maccs': 'MACCS',
-        'morgan': 'Morgan',
-        'rdkit_fp': 'RDK'
-      };
-
-      const fpType = fpTypeMap[settings.fingerprint];
-      const path = settings.radius;
-      const nBits = settings.nBits;
-      const ligand_data_len = temp_ligand_process.length;
-      const new_clean_ligand_data = [];
-
-      temp_ligand_process.forEach((x, idx) => {
-        let mol;
-        try {
-          mol = RDKitInstance.get_mol(x.canonical_smiles);
-
-          if (fpType === 'MACCS') {
-            x['fingerprint'] = bitStringToBitVector(mol.get_maccs_fp());
-          } else if (fpType === 'Morgan') {
-            x['fingerprint'] = bitStringToBitVector(
-              mol.get_morgan_fp(JSON.stringify({ radius: path, nBits: nBits }))
-            );
-          } else if (fpType === 'RDK') {
-            x['fingerprint'] = bitStringToBitVector(
-              mol.get_rdkit_fp(JSON.stringify({ minPath: path, nBits: nBits }))
-            );
-          } else {
-            throw new Error('Invalid fingerprint type');
-          }
-
-          mol.delete();
-          new_clean_ligand_data.push(x);
-          self.postMessage(`Progress: ${Math.round((idx / ligand_data_len) * 100)}%`);
-        } catch (e) {
-          console.error(e);
-        }
-      });
+      const new_clean_ligand_data = generateFingerprints(temp_ligand_process, settings, RDKitInstance);
 
       self.postMessage({
         function: 'fingerprint',
@@ -182,6 +179,49 @@ async function processFingerprintData(params, requestId) {
       error: e.message
     });
   }
+}
+
+function generateFingerprints(ligandData, settings, RDKitInstance) {
+  const fpTypeMap = {
+    'maccs': 'MACCS',
+    'morgan': 'Morgan',
+    'rdkit_fp': 'RDK'
+  };
+
+  const fpType = fpTypeMap[settings.fingerprint];
+  const path = settings.radius;
+  const nBits = settings.nBits;
+  const ligand_data_len = ligandData.length;
+  const new_clean_ligand_data = [];
+
+  ligandData.forEach((x, idx) => {
+    let mol;
+    try {
+      mol = RDKitInstance.get_mol(x.canonical_smiles);
+
+      if (fpType === 'MACCS') {
+        x['fingerprint'] = bitStringToBitVector(mol.get_maccs_fp());
+      } else if (fpType === 'Morgan') {
+        x['fingerprint'] = bitStringToBitVector(
+          mol.get_morgan_fp(JSON.stringify({ radius: path, nBits: nBits }))
+        );
+      } else if (fpType === 'RDK') {
+        x['fingerprint'] = bitStringToBitVector(
+          mol.get_rdkit_fp(JSON.stringify({ minPath: path, nBits: nBits }))
+        );
+      } else {
+        throw new Error('Invalid fingerprint type');
+      }
+
+      mol.delete();
+      new_clean_ligand_data.push(x);
+      self.postMessage(`Progress: ${Math.round((idx / ligand_data_len) * 100)}%`);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  return new_clean_ligand_data;
 }
 
 function scaffoldArrayGetter(row_list_s, activity_columns, requestId) {

@@ -13,6 +13,7 @@ import TargetContext from "../../../context/TargetContext";
 import { MLResultsContext } from "../../../context/MLResultsContext";
 import JSME from "../../../components/tools/toolViz/JSMEComp";
 import Dropdown from "../../../components/tools/toolViz/DropDown";
+import { Button, Group, Input } from "@mantine/core";
 
 type dataChart = {
     x: number,
@@ -41,16 +42,36 @@ export default function MLLayout({ children }) {
 
 
     async function oneOffPred() {
-        const mol_fp = fpSorter(
-            localStorage.getItem("fingerprint"),
-            oneOffSMILES,
-            rdkit,
-            parseInt(localStorage.getItem("path")),
-            parseInt(localStorage.getItem("nBits")),
-        )
-        globalThis.one_off_mol_fp = [mol_fp];
-        await pyodide.runPython(await (await fetch("/pyodide_ml_screen.py")).text());
-        setOneOffSmilesResult((globalThis.one_off_y).toJs())
+        const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        rdkit.postMessage({
+          function: 'fingerprint',
+          id: requestId,
+          mol_data: [{
+            "canonical_smiles" : oneOffSMILES
+          }],
+          activity_columns: target.activity_columns,
+          formStuff: {
+            fingerprint: localStorage.getItem("fingerprint"),
+            radius: parseInt(localStorage.getItem("path")),
+            nBits: parseInt(localStorage.getItem("nBits")),
+        }
+        });
+        rdkit.onmessage = async (event) => {
+            if (event.data.id === requestId) {
+                let mol_fp = event.data.data[0]["fingerprint"];
+                pyodide.postMessage({
+                    id: "job-123",
+                    opts: 0,
+                    fp: [mol_fp],
+                    func: "ml-screen"
+                })
+                pyodide.onmessage = (event) => {
+                    if (event.data.success == "ok") {
+                        setOneOffSmilesResult(event.data.results[0]);
+                    }
+                }
+            }
+        }
     }
 
     return (
@@ -61,18 +82,15 @@ export default function MLLayout({ children }) {
             {target.machine_learning.length > 0 && (
                 <>
                     &nbsp;
-                    <div style={{ borderColor: "10px solid black", margin: "20px 0", gap: "10px" }}>
+                    <Group>
                         <h2>Predict the activity of a single molecule</h2>
-                        <input ref={inputRef} style={{ width: "40%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></input>
-                        <br />
+                        <Input ref={inputRef} style={{ width: "20%" }} className="input" onChange={(e) => setOneOffSmiles(e.target.value)} placeholder="Input Your SMILES string here"></Input>
                         <Dropdown buttonText="Draw the molecule">
                             <JSME width="300px" height="300px" onChange={(smiles) => setOneOffSmiles(smiles)} />
                         </Dropdown>
-                        <br />
-                        <button className="button" onClick={oneOffPred}>Predict Activity of SMILES</button>
-                        <br />
+                        <Button className="button" onClick={oneOffPred}>Predict Activity of SMILES</Button>
                         <span>Predicted {target.activity_columns[0]}: {oneOffSMILESResult}</span>
-                    </div>
+                    </Group>
 
                     <GroupedBarChart mae={target.machine_learning[0]} r2={target.machine_learning[1]}>
                         <span>Mean MAE: {round(mean(target.machine_learning[0]), 2)} || Mean R-Squared: {round(mean(target.machine_learning[1]), 2)}</span>

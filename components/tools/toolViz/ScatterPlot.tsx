@@ -10,7 +10,7 @@ import { useDisclosure } from '@mantine/hooks';
 export default function Scatterplot({ data, colorProperty = [], hoverProp = [], xAxisTitle = '', yAxisTitle = '', id = [] }) {
   const margin = { top: 10, right: 20, bottom: 80, left: 80 };
   const parentRef = useRef<HTMLDivElement | null>(null);
-  const svgRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const [details, setDetails] = useState(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [modalDets, setModalDets] = useState<any>(false);

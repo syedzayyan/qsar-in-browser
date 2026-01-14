@@ -2,7 +2,7 @@
 
 import { useContext, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import Table from "../../../../components/ui-comps/PaginatedTables";
+import DataTable from "../../../../components/ui-comps/PaginatedTables";
 import { randomInt } from "mathjs";
 import { MOEA } from "../../../../components/utils/nsga2";
 import { coverageNameSpace, coverageSets } from "../../../../components/utils/coverage_score";
@@ -149,7 +149,7 @@ export default function CovScore(){
             </div>
             <button onClick={handleAddInput} className="button">Add Prior SMILES</button>
         </form>
-        {hof.length > 1 && <Table data={hof} rowsPerPage={5} />}
+        {hof.length > 1 && <DataTable data={hof} rowsPerPage={5} />}
     </div>
     )
 }

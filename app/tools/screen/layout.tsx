@@ -19,36 +19,46 @@ export default function ScreenLayout({ children }) {
     const { pyodide } = useContext(PyodideContext);
 
     async function callofScreenFunction(data) {
-        console.log(data)
-        setLoaded(false);
-        setTimeout(async () => {
-            const fp_mols = await screenData.map((x) => {
-                try {
-                    x["fingerprint"] = fpSorter(
-                        localStorage.getItem("fingerprint"),
-                        x[data.smi_column],
-                        rdkit,
-                        parseInt(localStorage.getItem("path")),
-                        parseInt(localStorage.getItem("nBits")),
-                    )
-                    x["id"] = x[data.id_column]
-                    return x
-                } catch (error) {
-                    console.error("Error processing element:", error);
-                    return null;
-                }
-            }).filter((x) => x !== null);
+        let newScreenData = screenData
+        newScreenData.forEach(obj => {
+            console.log(obj[data.smi_column]);
+            obj["canonical_smiles"] = obj[data.smi_column];
+            delete obj[data.smi_column];
+        });
 
-            globalThis.one_off_mol_fp = fp_mols.map(x => x.fingerprint);
-            await pyodide.runPython(await (await fetch("/pyodide_ml_screen.py")).text());
-            let tempVar = (globalThis.one_off_y).toJs();
-            tempVar = await fp_mols.map((x, i) => {
-                x["predictions"] = tempVar[i];
-                return x
-            });
-            await setScreenData(tempVar);
-            setLoaded(true);
-        }, 500)
+        const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        rdkit.postMessage({
+          function: 'fingerprint',
+          id: requestId,
+          mol_data: newScreenData,
+          formStuff: {
+            fingerprint: localStorage.getItem("fingerprint"),
+            radius: parseInt(localStorage.getItem("path")),
+            nBits: parseInt(localStorage.getItem("nBits")),
+        }
+        });
+
+        rdkit.onmessage = async (event) => {
+            if (event.data.id === requestId) {
+                let mol_fp = event.data.data.map(x => x["fingerprint"]);
+                pyodide.postMessage({
+                    id: "job-123",
+                    opts: 0,
+                    fp: mol_fp,
+                    func: "ml-screen"
+                })
+                pyodide.onmessage = async (event) => {
+                    if (event.data.success == "ok") {
+                        let fp_mols = event.data.results;
+                        newScreenData = await newScreenData.map((x, i) => {
+                            x["predictions"] = fp_mols[i];
+                            return x
+                        });
+                        setScreenData(newScreenData);
+                    }
+                }
+            }
+        }
     }
 
     if (!loaded) {

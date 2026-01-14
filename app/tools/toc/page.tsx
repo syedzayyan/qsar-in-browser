@@ -1,7 +1,7 @@
 "use client"
 
 import { useContext, useEffect, useRef, useState } from "react";
-import Table from "../../../components/ui-comps/PaginatedTables";
+import DataTable from "../../../components/ui-comps/PaginatedTables";
 import LigandContext from "../../../context/LigandContext";
 import { usePapaParse } from 'react-papaparse';
 import TargetContext from "../../../context/TargetContext";
@@ -70,7 +70,7 @@ export default function TOC() {
             <br />
             <Button onClick={() => downloadCSV(results)}>Download Ligand Data as CSV</Button>
             <br /><br /><br />
-            <Table data={searchRes} rowsPerPage={30} act_column={target.activity_columns} />
+            <DataTable data={searchRes} rowsPerPage={30} act_column={target.activity_columns} />
         </div>
     )
 }

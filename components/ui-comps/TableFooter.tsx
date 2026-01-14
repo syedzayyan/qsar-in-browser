@@ -1,3 +1,4 @@
+import { Button, Group, Text } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 
 const TableFooter = ({ range, setPage, page, slice }) => {
@@ -11,50 +12,58 @@ const TableFooter = ({ range, setPage, page, slice }) => {
 
   useEffect(() => {
     const visiblePageCount = 5;
-    const startIndex = Math.max(0, page - Math.floor(visiblePageCount / 2));
-    const endIndex = Math.min(range.length, startIndex + visiblePageCount);
+    const startIndex = Math.max(1, page - Math.floor(visiblePageCount / 2));
+    const endIndex = Math.min(range.length, startIndex + visiblePageCount - 1);
 
-    setVisiblePages(range.slice(startIndex, endIndex));
+    const pages = [];
+    for (let i = startIndex; i <= endIndex; i++) {
+      pages.push(i);
+    }
+
+    setVisiblePages(pages);
   }, [range, page]);
 
   return (
-    <div className="tableFooter">
-      <div className="tableButtonContainer">
-        {page > 1 && (
-          <>
-            <button className="tableButton" onClick={() => setPage(1)}>
-              1
-            </button>
-            {page > 2 && <span>...</span>}
-          </>
-        )}
-        {visiblePages.map((el, index) => (
-          <button
-            key={index}
-            className={`tableButton ${
-              page === el ? "activeButton" : "inactiveButton"
-            }`}
-            onClick={() => setPage(el)}
-          >
-            {el}
-          </button>
-        ))}
-        {page + visiblePages.length < range.length && <span>...</span>}
-        {page + visiblePages.length < range.length && (
-          <>
-            {page + visiblePages.length < range.length - 1 && (
-              <span>...</span>
-            )}
-            <button
-              className="tableButton"
-              onClick={() => setPage(range.length)}
-            >
-              {range.length}
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+    <Group justify="center" gap="xs">
+      {/* First page */}
+      {page > 1 && (
+        <Button
+          size="sm"
+          variant="subtle"
+          onClick={() => setPage(1)}
+        >
+          1
+        </Button>
+      )}
+
+      {page > 2 && <Text size="sm">…</Text>}
+
+      {/* Middle pages */}
+      {visiblePages.map((el) => (
+        <Button
+          key={el}
+          size="sm"
+          variant={page === el ? "filled" : "subtle"}
+          color={page === el ? "blue" : "gray"}
+          onClick={() => setPage(el)}
+        >
+          {el}
+        </Button>
+      ))}
+
+      {page < range.length - 1 && <Text size="sm">…</Text>}
+
+      {/* Last page */}
+      {page < range.length && (
+        <Button
+          size="sm"
+          variant="subtle"
+          onClick={() => setPage(range.length)}
+        >
+          {range.length}
+        </Button>
+      )}
+    </Group>
   );
 };
 

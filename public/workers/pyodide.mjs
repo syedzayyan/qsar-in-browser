@@ -90,6 +90,11 @@ self.onmessage = async (event) => {
         self.postMessage({ ok: false, error: String(error && error.message ? error.message : error) });
       }
       break;
+    case "ml-screen":
+      globalThis.one_off_mol_fp = fp;
+      await pyodide.runPythonAsync(await (await fetch("/python/pyodide_ml_screen.py")).text());
+      self.postMessage({success : "ok", results : globalThis.one_off_y.toJs()})
+      break;
     default:
       self.postMessage({ ok: false, error: `Unknown function: ${func}` });
       return;
