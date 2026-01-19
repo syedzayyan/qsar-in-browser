@@ -32,7 +32,7 @@ export default function Screen() {
                                 Download Predictions in CSV Format
                             </button>
                             &nbsp;
-                            <DataTable data={screenData} rowsPerPage={5} act_column={["predictions"]}/>
+                            <DataTable data={screenData} rowsPerPage={5} act_column={["predictions"]} onSelectionChange={() => {}}/>
                         </>
                     }
                 </>

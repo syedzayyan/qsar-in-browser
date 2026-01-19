@@ -70,8 +70,6 @@ const DataTable = ({
                   }}
                 />
               </Table.Th>
-
-              {selectable && <Table.Th><Text fw={600}>Select</Text></Table.Th>}
               <Table.Th><Text fw={600}>ID</Text></Table.Th>
               <Table.Th><Text fw={600}>SMILES</Text></Table.Th>
               <Table.Th><Text fw={600}>Structure</Text></Table.Th>

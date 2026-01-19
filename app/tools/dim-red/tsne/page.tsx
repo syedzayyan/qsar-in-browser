@@ -7,7 +7,7 @@ import Scatterplot from "../../../../components/tools/toolViz/ScatterPlot";
 import Loader from "../../../../components/ui-comps/Loader";
 import TargetContext from "../../../../context/TargetContext";
 import { useForm } from "react-hook-form";
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Modal } from "@mantine/core";
 import NotificationContext from "../../../../context/NotificationContext";
 
 type tsneType = {
@@ -18,7 +18,7 @@ type tsneType = {
 }
 
 export default function TSNE() {
-  const { ligand, setLigand } = useContext(LigandContext) || { ligand: [], setLigand: () => {} };
+  const { ligand, setLigand } = useContext(LigandContext) || { ligand: [], setLigand: () => { } };
   const { target } = useContext(TargetContext);
   const { pyodide } = useContext(PyodideContext) || { pyodide: null };
   const [pca, setPCA] = useState<any[]>([]);
@@ -27,7 +27,19 @@ export default function TSNE() {
   const { pushNotification } = useContext(NotificationContext);
 
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<tsneType>()
+  const [opened, setOpened] = useState(false);
+  const [indicesToDelete, setIndicesToDelete] = useState<number[]>([]);
+  const close = () => setOpened(false);
 
+  function handleDelete() {
+    setLigand(prevLigand => {
+      const updated = prevLigand.filter(
+        (_, idx) => !indicesToDelete.includes(idx)
+      );
+      return updated;
+    });
+    close();
+  }
   if (Array.isArray(ligand)) {
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
   } else {
@@ -89,10 +101,17 @@ export default function TSNE() {
           <input type="submit" className="button" value={"Run tSNE"} />
         </form>
       </details>
-  {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].tsne && (
+      {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].tsne && (
         <>
           <p>Explained Variance by first 2 Principal Components: {target.tsne_explained_variance}</p>
           <br></br>
+            <Modal opened={opened} onClose={close} title="Delete Molecules?">
+                <p>Are you sure you want to delete the selected molecules?</p>
+                <Group gap={"2rem"}>
+                    <Button onClick={close}>Cancel</Button>
+                    <Button onClick={handleDelete}>Delete</Button>
+                </Group>
+            </Modal>
           <Scatterplot
             data={ligand.map((obj) => {
               const [x, y] = obj.tsne;
@@ -103,6 +122,10 @@ export default function TSNE() {
             xAxisTitle={"t-SNE Dimension 1"}
             yAxisTitle={"t-SNE Dimension 2"}
             id={ligand.map((obj) => obj.id)}
+            onSelectIndices={(indices) => {
+              setIndicesToDelete(indices);
+              setOpened(true);
+            }}
           />
         </>
 

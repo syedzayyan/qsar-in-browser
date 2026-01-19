@@ -14,7 +14,7 @@ interface ScatterplotProps {
   yAxisTitle?: string;
   id?: string[];
   discreteColor?: boolean;
-  onSelectIndices?: (indices: number[]) => void
+  onSelectIndices?: (indices: number[]) => void;
 }
 
 interface Details {
@@ -36,7 +36,8 @@ export default function Scatterplot({
   xAxisTitle = '',
   yAxisTitle = '',
   id = [],
-  discreteColor = false
+  discreteColor = false,
+  onSelectIndices
 }: ScatterplotProps) {
   const margin = { top: 10, right: 20, bottom: 80, left: 80 };
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -45,11 +46,10 @@ export default function Scatterplot({
   const [details, setDetails] = useState<Details | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [modalDets, setModalDets] = useState<ModalDets | null>(null);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
   const [bubbleSize, setBubbleSize] = useState(6);
   const [selectedColorScale, setSelectedColorScale] = useState('Viridis');
-  
-  
   
   const colorScales: Record<string, (t: number) => string> = {
     Viridis: d3.interpolateViridis,
@@ -168,12 +168,18 @@ export default function Scatterplot({
       .attr('x', 0).attr('y', 0)
       .attr('width', width).attr('height', height);
 
-    // Zoom
+    // LEFT CLICK DRAG = Pan/Zoom (on zoomRect)
     const zoom = d3.zoom()
-      .filter(event => event.type === 'wheel' || event.type === 'mousedown')
+      .filter((event) => {
+        if (event.type === 'wheel') return true;
+        if (event.type === 'mousedown') {
+          return event.button === 0; // LEFT only
+        }
+        return false;
+      })
       .scaleExtent([0.5, 20])
       .extent([[0, 0], [width, height]])
-      .on('zoom', event => {
+      .on('zoom', (event) => {
         const newX = event.transform.rescaleX(x);
         const newY = event.transform.rescaleY(y);
 
@@ -225,6 +231,115 @@ export default function Scatterplot({
         open();
       });
 
+    // RIGHT CLICK DRAG = Selection window (separate overlay)
+    let selectionStart: [number, number] | null = null;
+    let selectionRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
+    let isSelecting = false;
+
+    // Create a separate overlay rect for selection (on top, not affected by zoom)
+    const selectionOverlay = g.append('rect')
+      .attr('class', 'selection-overlay')
+      .attr('width', width)
+      .attr('height', height)
+      .style('fill', 'none')
+      .style('pointer-events', 'all')
+      .style('cursor', 'crosshair');
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (event.button !== 2 || !onSelectIndices) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      isSelecting = true;
+
+      const [sx, sy] = d3.pointer(event, g.node());
+      selectionStart = [sx, sy];
+
+      // Remove any previous selection rect
+      g.selectAll('.selection-rect').remove();
+
+      // Create new selection rect
+      selectionRect = g.append('rect')
+        .attr('class', 'selection-rect')
+        .attr('x', sx)
+        .attr('y', sy)
+        .attr('width', 0)
+        .attr('height', 0)
+        .attr('fill', 'rgba(100, 150, 255, 0.12)')
+        .attr('stroke', 'rgb(100, 150, 255)')
+        .attr('stroke-width', 1.2)
+        .attr('stroke-dasharray', '4,4')
+        .style('pointer-events', 'none');
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isSelecting || !selectionStart || !selectionRect || !onSelectIndices) return;
+
+      const [cx, cy] = d3.pointer(event, g.node());
+      const [sx, sy] = selectionStart;
+
+      const x0 = Math.min(sx, cx);
+      const y0 = Math.min(sy, cy);
+      const wSel = Math.abs(cx - sx);
+      const hSel = Math.abs(cy - sy);
+
+      selectionRect
+        .attr('x', x0)
+        .attr('y', y0)
+        .attr('width', wSel)
+        .attr('height', hSel);
+    };
+
+    const handleMouseUp = (event: MouseEvent) => {
+      if (!isSelecting || !selectionStart || !selectionRect || !onSelectIndices) return;
+
+      const [ex, ey] = d3.pointer(event, g.node());
+      const [sx, sy] = selectionStart;
+
+      const x0 = Math.min(sx, ex);
+      const x1 = Math.max(sx, ex);
+      const y0 = Math.min(sy, ey);
+      const y1 = Math.max(sy, ey);
+
+      const selected: number[] = [];
+      scatter.selectAll<SVGCircleElement, { x: number; y: number }>('circle')
+        .each(function (_, i) {
+          const cx = +d3.select(this).attr('cx');
+          const cy = +d3.select(this).attr('cy');
+          if (cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1) {
+            selected.push(i);
+          }
+        });
+
+      console.log('Selected indices:', selected);
+      setSelectedIndices(selected);
+      onSelectIndices(selected);
+
+      isSelecting = false;
+      selectionStart = null;
+    };
+
+    const handleMouseLeave = () => {
+      isSelecting = false;
+      selectionStart = null;
+    };
+
+    // Attach listeners to selection overlay
+    const overlayNode = selectionOverlay.node() as SVGRectElement;
+    if (overlayNode) {
+      overlayNode.addEventListener('mousedown', handleMouseDown);
+      overlayNode.addEventListener('mousemove', handleMouseMove);
+      overlayNode.addEventListener('mouseup', handleMouseUp);
+      overlayNode.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // Prevent browser context menu
+    svg.on('contextmenu', (event) => {
+      if (onSelectIndices) {
+        event.preventDefault();
+      }
+    });
+
     // Discrete color legend
     if (discreteColor && colorProperty.length) {
       const categories = Array.from(new Set(colorProperty)).sort((a, b) => a - b);
@@ -244,16 +359,13 @@ export default function Scatterplot({
     }
 
     // Color gradient legend
-    // Legend
     if (colorProperty.length) {
       if (discreteColor) {
-        // --- Discrete legend ---
         const categories = Array.from(new Set(colorProperty)).sort((a, b) => a - b);
         const discreteScale = d3.scaleOrdinal<number, string>().domain(categories).range(d3.schemeTableau10);
 
-        // Place discrete legend below chart if width is small
         const legendX = 0;
-        const legendY = height + 40; // below chart with margin
+        const legendY = height + 40;
 
         const legend = g.append("g")
           .attr("transform", `translate(${legendX},${legendY})`);
@@ -261,7 +373,7 @@ export default function Scatterplot({
         legend.selectAll("g")
           .data(categories)
           .join("g")
-          .attr("transform", (_, i) => `translate(${i * 70}, 0)`) // horizontal layout
+          .attr("transform", (_, i) => `translate(${i * 70}, 0)`)
           .each(function (d) {
             const row = d3.select(this);
             row.append("rect")
@@ -277,9 +389,7 @@ export default function Scatterplot({
               .style("fill", "var(--mantine-color-text)")
               .text(`Fold ${d}`);
           });
-
       } else {
-        // --- Continuous gradient legend ---
         const legendHeight = 8;
         const legendMarginTop = height + 48;
 
@@ -304,11 +414,17 @@ export default function Scatterplot({
       }
     }
 
-
-  }, [data, outerSize, selectedColorScale, bubbleSize, colorProperty, hoverProp, xAxisTitle, yAxisTitle, discreteColor, id, open]);
+  }, [data, outerSize, selectedColorScale, bubbleSize, colorProperty, hoverProp, xAxisTitle, yAxisTitle, discreteColor, id, open, onSelectIndices]);
 
   function handleColorScaleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setSelectedColorScale(e.target.value);
+  }
+
+  function clearSelection() {
+    setSelectedIndices([]);
+    if (svgRef.current) {
+      d3.select(svgRef.current).selectAll('.selection-rect').remove();
+    }
   }
 
   return (
@@ -331,6 +447,12 @@ export default function Scatterplot({
 
       <div>
         <br />
+        {selectedIndices.length > 0 && (
+          <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'rgba(100, 150, 255, 0.1)', borderRadius: '0.5rem', border: '1px solid rgb(100, 150, 255)' }}>
+            <strong>Selected: {selectedIndices.length} bubble(s)</strong> 
+            <button onClick={clearSelection} style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>Clear</button>
+          </div>
+        )}
         <details>
           <summary>Plot Settings</summary>
           <div className='ml-forms'>

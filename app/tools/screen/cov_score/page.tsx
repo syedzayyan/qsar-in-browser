@@ -149,7 +149,7 @@ export default function CovScore(){
             </div>
             <button onClick={handleAddInput} className="button">Add Prior SMILES</button>
         </form>
-        {hof.length > 1 && <DataTable data={hof} rowsPerPage={5} />}
+        {hof.length > 1 && <DataTable data={hof} rowsPerPage={5} onSelectionChange={() => {}} />}
     </div>
     )
 }
