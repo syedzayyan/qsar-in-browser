@@ -19,7 +19,7 @@ type tsneType = {
 
 export default function TSNE() {
   const { ligand, setLigand } = useContext(LigandContext) || { ligand: [], setLigand: () => {} };
-  const { target } = useContext(TargetContext) || { target: { activity_columns: [] } };
+  const { target } = useContext(TargetContext);
   const { pyodide } = useContext(PyodideContext) || { pyodide: null };
   const [pca, setPCA] = useState<any[]>([]);
   const containerRef = useRef(null);
@@ -91,7 +91,7 @@ export default function TSNE() {
       </details>
   {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].tsne && (
         <>
-          {/* <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p> */}
+          <p>Explained Variance by first 2 Principal Components: {target.tsne_explained_variance}</p>
           <br></br>
           <Scatterplot
             data={ligand.map((obj) => {

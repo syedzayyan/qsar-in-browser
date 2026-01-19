@@ -2,6 +2,7 @@
 
 import { useForm } from "@mantine/form"
 import { TextInput, Select, Button, Paper, Title, Text, Stack } from "@mantine/core"
+import { useEffect } from "react"
 
 type RFModelInputs = {
   n_estimators: number
@@ -11,23 +12,49 @@ type RFModelInputs = {
   model: number
 }
 
-export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => void }) {
+export default function RF({
+  onSubmit,
+  taskType
+}: {
+  onSubmit: (data: RFModelInputs) => void
+  taskType: "regression" | "classification"
+}) {
+
+  const isClassification = taskType === "classification"
+
   const form = useForm<RFModelInputs>({
     initialValues: {
       n_estimators: 120,
-      criterion: "squared_error",
+      criterion: taskType === "classification" ? "gini" : "squared_error",
       max_features: "sqrt",
       n_jobs: 2,
-      model: 1,
+      model: taskType === "classification" ? 2 : 1,
     },
+  });
+  useEffect(() => {
+    form.setValues({
+      n_estimators: 120,
+      criterion: taskType === "classification" ? "gini" : "squared_error",
+      max_features: "sqrt",
+      n_jobs: 2,
+      model: taskType === "classification" ? 2 : 1,
+    });
+  }, [taskType]);
+  // -----------------------
+  // Criterion options
+  // -----------------------
+  const regressionCriteria = [
+    "squared_error",
+    "absolute_error",
+    "friedman_mse",
+    "poisson",
+  ]
 
-    validate: {
-      n_estimators: (value) => (value <= 0 ? "Must be > 0" : null),
-      criterion: (value) => (value ? null : "Required"),
-      max_features: (value) => (value ? null : "Required"),
-      n_jobs: (value) => (value <= 0 ? "Must be > 0" : null),
-    },
-  })
+  const classificationCriteria = [
+    "gini",
+    "entropy",
+    "log_loss",
+  ]
 
   return (
     <Paper
@@ -42,11 +69,16 @@ export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => vo
       }}
     >
       <Title order={3} ta="center" mb="sm">
-        🌲 Random Forest Config
+        🌲 Random Forest {isClassification ? "Classifier" : "Regressor"}
       </Title>
 
       <Text c="dimmed" size="sm" mb="lg" ta="center">
-        Configure your <b>Scikit-Learn RandomForestRegressor</b> parameters below.
+        Configure your{" "}
+        <b>
+          Scikit-Learn RandomForest
+          {isClassification ? "Classifier" : "Regressor"}
+        </b>{" "}
+        parameters below.
       </Text>
 
       <form onSubmit={form.onSubmit(onSubmit)}>
@@ -61,7 +93,7 @@ export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => vo
           <Select
             label="Criterion"
             placeholder="Select criterion"
-            data={["squared_error", "absolute_error", "friedman_mse", "poisson"]}
+            data={isClassification ? classificationCriteria : regressionCriteria}
             {...form.getInputProps("criterion")}
           />
 
@@ -88,7 +120,7 @@ export default function RF({ onSubmit }: { onSubmit: (data: RFModelInputs) => vo
             variant="gradient"
             gradient={{ from: "teal", to: "lime", deg: 105 }}
           >
-            Train & Test RF Model
+            Train & Test RF
           </Button>
         </Stack>
       </form>

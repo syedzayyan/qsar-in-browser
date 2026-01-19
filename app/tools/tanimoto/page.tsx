@@ -37,6 +37,7 @@ export default function Tanimoto() {
         nBits: parseInt(localStorage.getItem("nBits")) || 2048,
       }
     });
+    setSelectedAnchorMol(anchorMol);
     setTaniData([...taniData, anchorMol]);
   }
 
@@ -90,16 +91,6 @@ export default function Tanimoto() {
           />
         )
       }
-      {/* {taniData.length != 0 && (
-        <>
-          <Histogram
-            data={taniData}
-            toolTipData={ligand}
-            xLabel="Tanimoto Scores"
-            yLabel="Count"
-          />
-        </>
-      )} */}
     </div>
   );
 }

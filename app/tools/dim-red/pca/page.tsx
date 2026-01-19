@@ -10,9 +10,9 @@ import { Button } from "@mantine/core";
 import NotificationContext from "../../../../context/NotificationContext";
 
 export default function PCA() {
-    const { ligand } = useContext(LigandContext) || { ligand: [] };
-    const { target } = useContext(TargetContext) || { target: { activity_columns: [] } };
-    const { pyodide } = useContext(PyodideContext) || { pyodide: null };
+    const { ligand } = useContext(LigandContext);
+    const { target } = useContext(TargetContext);
+    const { pyodide } = useContext(PyodideContext);
     const { pushNotification } = useContext(NotificationContext);
 
     const containerRef = useRef(null);
@@ -40,7 +40,7 @@ export default function PCA() {
             <Button onClick={() => runDimRed()}>Run PCA</Button>
             {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].pca && (
                 <>
-                    {/* <p>Explained Variance by first 2 Principal Components: {globalThis.explain_variance.toFixed(2)}</p> */}
+                    <p>Explained Variance by first 2 Principal Components: {target.pca_explained_variance}</p>
                     <br></br>
                     <Scatterplot
                         data={ligand.map((obj) => {

@@ -99,7 +99,9 @@ export default function DashboardLayout({
         pushNotification({ message: message });
       }
       if (message.func === "dim_red") {
+        console.log(message);
         if (message.opts === 2 || message.opts === 3) {
+          setTarget({ ...target, tsne_explained_variance: message.explained_variance });
           pushNotification({ message: "tSNE Processing Done!" });
           setLigand((prevLigands) => {
             return prevLigands.map((ligand, index) => ({
@@ -109,6 +111,7 @@ export default function DashboardLayout({
           });
         } else {
           pushNotification({ message: "PCA Processing Done!" });
+          setTarget({ ...target, pca_explained_variance: message.explained_variance });
           setLigand((prevLigands) => {
             return prevLigands.map((ligand, index) => ({
               ...ligand,

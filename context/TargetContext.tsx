@@ -10,6 +10,9 @@ export type targetType = {
     scaffold_network: any,
     scaffCores: any,
     machine_learning?: any,
+    machine_learning_inference_type?: string,
+    pca_explained_variance?: number[],
+    tsne_explained_variance?: number[],
 }
 
 interface TargetContextProps {

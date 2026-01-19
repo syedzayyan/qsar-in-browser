@@ -106,7 +106,6 @@ export default function Histogram({
       tt.style.color = isDark ? "#f8fafc" : "#fff";
       tt.style.fontSize = "0.9rem";
       tt.style.opacity = "0";
-      tt.style.transition = "opacity 120ms ease, transform 120ms ease";
       tooltipRef.current = tt;
       parentRef.current.appendChild(tt);
     } else {
@@ -198,7 +197,7 @@ export default function Histogram({
             .attr("filter", "url(#softShadow)")
             .style("cursor", toolTipData.length ? "pointer" : "default")
             .on("mouseenter", function (event, d: d_bin) {
-              d3.select(this).transition().duration(120).attr("transform", "translate(0,-6)").attr("opacity", 0.95);
+              d3.select(this).attr("transform", "translate(0,-6)").attr("opacity", 0.95);
               const tt = tooltipRef.current;
               if (tt && parentRef.current) {
                 tt.innerHTML = `<strong>range:</strong> ${d.x0.toFixed(3)} — ${d.x1.toFixed(3)}<br/><strong>count:</strong> ${d.length}`;
@@ -218,7 +217,7 @@ export default function Histogram({
               }
             })
             .on("mouseleave", function () {
-              d3.select(this).transition().duration(120).attr("transform", "translate(0,0)").attr("opacity", 1);
+              d3.select(this).attr("transform", "translate(0,0)").attr("opacity", 1);
               const tt = tooltipRef.current;
               if (tt) {
                 tt.style.opacity = "0";
@@ -240,9 +239,6 @@ export default function Histogram({
         (update) => update,
         (exit) => exit.remove()
       )
-      .transition()
-      .duration(450)
-      .delay((_, i) => i * 4)
       .attr("y", (d: d_bin) => yScale(d.length))
       .attr("height", (d: d_bin) => Math.max(0, boundsHeight - yScale(d.length)));
 

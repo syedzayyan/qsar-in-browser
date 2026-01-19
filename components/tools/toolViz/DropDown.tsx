@@ -2,7 +2,7 @@ import { Popover, Button } from '@mantine/core';
 
 const Dropdown = ({ buttonText, children }) => {
   return (
-    <Popover width={200} position="bottom" shadow="md">
+    <Popover width={200} position="bottom" shadow="md" keepMounted>
       <Popover.Target>
         <Button>
           {buttonText}

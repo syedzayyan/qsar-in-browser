@@ -61,39 +61,78 @@ self.onmessage = async (event) => {
       break;
     case "ml":
       try {
+        // =========================
+        // Globals for Pyodide
+        // =========================
         globalThis.neg_log_activity_column = params.activity_columns;
         globalThis.fp = fp;
         globalThis.model_parameters = params;
-        globalThis.neg_log_activity_column = params.activity_columns;
         globalThis.opts = params.model;
 
-        await pyodide.runPythonAsync(await (await fetch("/python/pyodide_ml.py")).text());
+        // =========================
+        // Run Python
+        // =========================
+        await pyodide.runPythonAsync(
+          await (await fetch("/python/pyodide_ml.py")).text()
+        );
 
+        // =========================
+        // Metrics handling
+        // =========================
         const results = globalThis.metrics.toJs();
-        const results_mae = results.map((arr) => arr[0]);
-        const results_r2 = results.map((arr) => arr[1]);
 
+        let metric1 = [];
+        let metric2 = [];
+
+        // Regression: MAE, R2
+        if (globalThis.opts === 1 || globalThis.opts === 3) {
+          metric1 = results.map(arr => arr[0]); // MAE
+          metric2 = results.map(arr => arr[1]); // R2
+        }
+
+        // Classification: Accuracy, ROC-AUC
+        if (globalThis.opts === 2 || globalThis.opts === 4) {
+          metric1 = results.map(arr => arr[0]); // Accuracy
+          metric2 = results.map(arr => arr[1]); // ROC-AUC
+        }
+
+        // =========================
+        // Per-fold predictions
+        // =========================
         let flatData = [];
         globalThis.perFoldPreds.toJs().flatMap(subArray => {
-          let anArray = []
+          let anArray = [];
           subArray[0].map((_, index) => {
-            anArray.push({ x: subArray[0][index], y: subArray[1][index] });
+            anArray.push({
+              x: subArray[0][index],
+              y: subArray[1][index]
+            });
           });
           flatData.push(anArray);
         });
 
+        // =========================
+        // Post back
+        // =========================
         self.postMessage({
-          "results": [results_mae, results_r2, flatData], func, opts, ok: true
+          results: [metric1, metric2, flatData],
+          func,
+          opts,
+          ok: true
         });
+
       } catch (error) {
-        // send a structured error back
-        self.postMessage({ ok: false, error: String(error && error.message ? error.message : error) });
+        self.postMessage({
+          ok: false,
+          error: String(error && error.message ? error.message : error)
+        });
       }
       break;
+
     case "ml-screen":
       globalThis.one_off_mol_fp = fp;
       await pyodide.runPythonAsync(await (await fetch("/python/pyodide_ml_screen.py")).text());
-      self.postMessage({success : "ok", results : globalThis.one_off_y.toJs()})
+      self.postMessage({ success: "ok", results: globalThis.one_off_y.toJs() })
       break;
     default:
       self.postMessage({ ok: false, error: `Unknown function: ${func}` });

@@ -8,11 +8,10 @@ import TargetContext from "../../../context/TargetContext";
 import JSME from "../../../components/tools/toolViz/JSMEComp";
 import Dropdown from "../../../components/tools/toolViz/DropDown";
 import RDKitContext from "../../../context/RDKitContext";
-import { isEmpty } from "lodash";
 import { Button, Group, Input } from "@mantine/core";
 
 export default function TOC() {
-    const { ligand } = useContext(LigandContext);
+    const { setLigand, ligand } = useContext(LigandContext);
     const { target } = useContext(TargetContext);
     const { rdkit } = useContext(RDKitContext);
     const { jsonToCSV } = usePapaParse();
@@ -21,6 +20,7 @@ export default function TOC() {
 
     const [searchSmi, setSearchSmi] = useState('');
     const [searchRes, setSearchRes] = useState(ligand);
+    const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
     useEffect(() => {
         if (inputRef.current) {
@@ -28,6 +28,7 @@ export default function TOC() {
         }
     }, [searchSmi]);
 
+    // CSV for download
     const results = jsonToCSV(ligand, { delimiter: ';' });
 
     function downloadCSV(csv: any) {
@@ -57,20 +58,58 @@ export default function TOC() {
         };
     }
 
+    function deleteSelected() {
+        const filtered = searchRes.filter((_, index) => !selectedRows.includes(index));
+        setSelectedRows([]);
+        setLigand(prevLigand => {
+            const updated = prevLigand.filter(
+                (_, idx) => !selectedRows.includes(idx)
+            );
+
+            // keep table in sync
+            setSearchRes(updated);
+            return updated;
+        });
+    }
+
+    function resetTable() {
+        setSearchSmi('');
+        setSearchRes(ligand);
+        setSelectedRows([]);
+    }
 
     return (
         <div className="tools-container">
-            <Group >
-                <Input ref={inputRef} className="input" type="text" placeholder="Search By Substructure/SMILES" onChange={(e) => setSearchSmi(e.target.value)} />
+            <Group>
+                <Input
+                    ref={inputRef}
+                    className="input"
+                    type="text"
+                    placeholder="Search By Substructure/SMILES"
+                    value={searchSmi}
+                    onChange={(e) => setSearchSmi(e.target.value)}
+                />
                 <Dropdown buttonText="Draw the Molecule">
                     <JSME width="400px" height="300px" onChange={(smiles) => setSearchSmi(smiles)} />
                 </Dropdown>
                 <Button onClick={searchSubst}>Substructure Search molecule</Button>
+                <Button color="red" onClick={resetTable}>Reset</Button>
             </Group>
+
             <br />
-            <Button onClick={() => downloadCSV(results)}>Download Ligand Data as CSV</Button>
-            <br /><br /><br />
-            <DataTable data={searchRes} rowsPerPage={30} act_column={target.activity_columns} />
+            <Group>
+                <Button onClick={() => downloadCSV(results)}>Download Ligand Data as CSV</Button>
+                <Button color="red" onClick={deleteSelected}>Delete Selected Molecules</Button>
+            </Group>
+
+            <br /><br />
+            <DataTable
+                data={searchRes}
+                rowsPerPage={30}
+                act_column={target.activity_columns}
+                selectable
+                onSelectionChange={(selected) => setSelectedRows(selected)}
+            />
         </div>
     )
 }

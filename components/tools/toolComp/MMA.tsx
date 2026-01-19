@@ -124,19 +124,23 @@ export default function MMA() {
               </Card>
             </Grid.Col>
           ))}
-          <Modal opened={opened} onClose={close}>
-            {specificMolArray.map((cores, key) => (
-              <Card key={key}>
-                <MoleculeStructure
-                  structure={cores[0]}
-                  subStructure={cores[1]}
-                  id={cores[0]}
-                  svgMode
-                />
-                <br />
-                <span>{target.activity_columns[0]} : {round(cores[4], 2)}</span>
-              </Card>
-            ))}
+
+          <Modal opened={opened} onClose={close} size="75rem">
+            <Grid grow>
+              {specificMolArray.map((cores, key) => (
+                <Grid.Col key={key} span={4}><Card key={key}>
+                  <MoleculeStructure
+                    structure={cores[0]}
+                    subStructure={cores[1]}
+                    id={cores[0]}
+                    svgMode
+                  />
+                  <br />
+                  <span>{target.activity_columns[0]} : {round(cores[4], 2)}</span>
+                </Card>
+                </Grid.Col>
+              ))}
+            </Grid>
           </Modal>
         </Grid>
       </div>
