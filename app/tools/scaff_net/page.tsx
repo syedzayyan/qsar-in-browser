@@ -6,9 +6,8 @@ import ScaffoldNetworkWholeGraph from "../../../components/tools/toolComp/Scaffo
 import ScaffNetDets from "../../../components/tools/toolComp/ScaffNetDets";
 import ScaffoldSettings from "../../../components/tools/toolComp/ScaffoldSettings";
 import TargetContext from "../../../context/TargetContext";
-import { graph_molecule_image_generator } from "../../../components/utils/rdkit_loader";
+import { deserializeGraph, graph_molecule_image_generator } from "../../../components/utils/rdkit_loader";
 import RDKitContext from "../../../context/RDKitContext";
-import { MultiDirectedGraph } from "graphology";
 import { Tabs } from "@mantine/core";
 
 export default function DisplayGraph() {
@@ -22,15 +21,15 @@ export default function DisplayGraph() {
     if (target.scaffold_network != "") {
       setLoaded(false);
       setTimeout(() => {
-        let network_graph = new MultiDirectedGraph();
-        network_graph.import(target.scaffold_network);
-        let image_graph = graph_molecule_image_generator(rdkit, network_graph);
+        // Replace graphology with plain object
+        const network_graph = deserializeGraph(target.scaffold_network);
+        const image_graph = graph_molecule_image_generator(rdkit, network_graph);
         setGraph(image_graph);
-      }, 100)
+      }, 100);
       setLoaded(true);
-      setDefaultTab(1)
+      setDefaultTab(1);
     }
-  }, [])
+  }, []);
 
   if (!loaded) {
     return (

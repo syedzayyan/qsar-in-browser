@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from "react";
 import TagComponent from "../../ui-comps/Tags";
-import { subgraph } from "graphology-operators";
 import ScaffoldNetworkWholeGraph from "./ScaffoldNetworkWholeGraph";
 import { useDisclosure } from "@mantine/hooks";
 import { Button, Card, Grid, Group, Modal } from "@mantine/core";
+import { ScaffoldGraph } from "../../../types/GraphData";
 
 const GraphComponent: React.FC<any> = ({ graph }) => {
     const [opened, { open, close }] = useDisclosure(false);
 
     // Function to get nodes connected to a specific label in the graph
-    function getNodesConnectedToLabel(graph, label) {
-        const nodes = [];
-        graph.forEachEdge((_, attributes, source, target) => {
-            if (attributes.label === label) {
-                nodes.push(parseInt(source));
-            }
-        });
-        return nodes;
+    function getNodesConnectedToLabel(graph: ScaffoldGraph, label: string) {
+        return graph.edges
+            .filter(e => e.label === label)
+            .map(e => parseInt(e.source));
     }
 
     // Update the display nodes array based on selected tags
@@ -37,10 +33,12 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
 
     // Effect to update nodesArray and displayNodesArray when graph changes
     useEffect(() => {
-        const tempNodesArray: { node: any, smiles: string, size: number, img: string }[] = [];
-        graph.forEachNode((node, attributes) => {
-            tempNodesArray.push({ node, smiles: attributes.smiles, size: attributes.molCounts, img: attributes.image });
-        });
+        const tempNodesArray = graph.nodes.map(node => ({
+            node: node.id,
+            smiles: node.smiles,
+            size: node.molCounts,
+            img: node.image,
+        }));
         tempNodesArray.sort((a, b) => b.size - a.size);
         setNodesArray(tempNodesArray);
         setDisplayNodesArray(tempNodesArray);
@@ -78,8 +76,23 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
     };
 
     const [subGraph, setGraph] = useState<any>();
+    function getSubgraph(graph: ScaffoldGraph, nodeIds: string[]): ScaffoldGraph {
+        const nodeIdSet = new Set(nodeIds);
+        return {
+            nodes: graph.nodes.filter(n => nodeIdSet.has(n.id)),
+            edges: graph.edges.filter(e => nodeIdSet.has(e.source) && nodeIdSet.has(e.target)),
+        };
+    }
+    // In filterNodes function:
     function filterNodes(nodeEnquired: string, attr, depthSet: number) {
-        let filteredGraph = subgraph(graph, [nodeEnquired, ...graph.neighbors(nodeEnquired)]);;
+        // Get neighbors (nodes connected to this node)
+        const connectedNodeIds = new Set([nodeEnquired]);
+        graph.edges.forEach(edge => {
+            if (edge.source === nodeEnquired) connectedNodeIds.add(edge.target);
+            if (edge.target === nodeEnquired) connectedNodeIds.add(edge.source);
+        });
+
+        const filteredGraph = getSubgraph(graph, Array.from(connectedNodeIds));
         setGraph(filteredGraph);
         open();
     }

@@ -6,6 +6,7 @@ import {
   graph_molecule_image_generator,
   initRDKit,
   scaffold_net_chunking_method,
+  serializeGraph,
 } from "../../utils/rdkit_loader";
 
 import {
@@ -122,13 +123,10 @@ export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange 
 
       // Collect smiles and call your scaffold function
       const smiles_list = ligand.map((x: any) => x.canonical_smiles);
-
-      // NOTE: your original code had two calls; preserve behavior but await the chunked net
       const network_graph = scaffold_net_chunking_method(smiles_list, 600, rdkit, params);
-      // you previously had another call with 50; if needed uncomment:
-      // scaffold_net_chunking_method(smiles_list, 50, rdkit, params);
 
-      const serialised_graph = await network_graph.export();
+      // Serialize as plain JSON
+      const serialised_graph = serializeGraph(network_graph);
       await setTarget({ ...target, scaffold_network: serialised_graph });
 
       const image_graph = graph_molecule_image_generator(rdkit, network_graph);

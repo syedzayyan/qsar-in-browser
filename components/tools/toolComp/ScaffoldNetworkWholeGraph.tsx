@@ -11,13 +11,15 @@ const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120, width = 928, height
 
     // Create a fake root node
     const fakeRoot = { id: 'fakeRoot', children: [] };
-    const graph_ex = graph.export();
     const { nodes, links } = {
-      nodes: [fakeRoot, ...graph_ex.nodes.map(n => ({ id: n.key, ...n.attributes }))],
-      links: graph_ex.edges.map(e => ({
+      nodes: [
+        { id: 'fakeRoot', children: [] },
+        ...graph.nodes.map(n => ({ id: n.id, ...n }))
+      ],
+      links: graph.edges.map(e => ({
         source: e.source,
         target: e.target,
-        ...e.attributes
+        ...e
       }))
     };
 
@@ -112,8 +114,8 @@ const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120, width = 928, height
       <ScaffEdgeLegend />
       <svg ref={svgRef} height="600px" width="100%" />
     </>
-  
-);
+
+  );
 };
 
 export default ScaffoldNetworkWholeGraph;
