@@ -1,13 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import RDKitContext from "../../../context/RDKitContext";
 import LigandContext from "../../../context/LigandContext";
-import TargetContext from "../../../context/TargetContext";
-import {
-  graph_molecule_image_generator,
-  initRDKit,
-  scaffold_net_chunking_method,
-  serializeGraph,
-} from "../../utils/rdkit_loader";
+
 
 import {
   Card,
@@ -41,11 +35,6 @@ type ScaffoldNetParams = {
   bondBreakersRxns: string;
 };
 
-type Props = {
-  setGraph: (arg: any) => void;
-  setLoaded: (arg: boolean) => void;
-  activeTabChange: (tabIndex: number) => void;
-};
 
 const initialValues: ScaffoldNetParams = {
   includeGenericScaffolds: true,
@@ -62,18 +51,9 @@ const initialValues: ScaffoldNetParams = {
 }
 
 
-export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange }: Props) {
-  const [rdkit, setRDKit] = useState(null);
-  const { target, setTarget } = useContext(TargetContext);
+export default function ScaffoldSettings() {
   const { ligand } = useContext(LigandContext);
-
-  useEffect(() => {
-    async function loadRDKit() {
-      const RDK = await initRDKit();
-      setRDKit(RDK);
-    }
-    loadRDKit();
-  }, [ligand]);
+  const { rdkit } = useContext(RDKitContext);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -100,8 +80,6 @@ export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange 
 
   const onSubmit = async (values: ScaffoldNetParams) => {
     setSubmitting(true);
-    setLoaded(false);
-
     try {
       // Prepare params payload (only include bondBreakersRxns if non-empty)
       const params: Record<string, any> = {
@@ -123,24 +101,18 @@ export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange 
 
       // Collect smiles and call your scaffold function
       const smiles_list = ligand.map((x: any) => x.canonical_smiles);
-      const network_graph = scaffold_net_chunking_method(smiles_list, 600, rdkit, params);
 
       // Serialize as plain JSON
-      const serialised_graph = serializeGraph(network_graph);
-      await setTarget({ ...target, scaffold_network: serialised_graph });
+      // const serialised_graph = serializeGraph(network_graph);
+      // await setTarget({ ...target, scaffold_network: serialised_graph });
 
-      const image_graph = graph_molecule_image_generator(rdkit, network_graph);
-      setGraph(image_graph);
-      setLoaded(true);
+      rdkit.postMessage({
+        id: "scaffold_network_" + Date.now(),
+        function: "scaffold_network",
+        params: params,
+        smiles_list: smiles_list,
+      })
 
-      showNotification({
-        title: "Scaffold network ready",
-        message: `Generated scaffold network for ${smiles_list.length} ligand(s).`,
-        color: "teal",
-        icon: <IconCheck size={rem(16)} />,
-      });
-
-      activeTabChange(1);
     } catch (err: any) {
       console.error(err);
       showNotification({
@@ -149,7 +121,6 @@ export default function ScaffoldSettings({ setGraph, setLoaded, activeTabChange 
         color: "red",
         icon: <IconX size={rem(16)} />,
       });
-      setLoaded(true); // allow UI to recover
     } finally {
       setSubmitting(false);
     }

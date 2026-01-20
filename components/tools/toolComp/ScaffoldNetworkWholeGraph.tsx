@@ -1,9 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import ScaffEdgeLegend from './ScaffLegend';
+import TargetContext from '../../../context/TargetContext';
 
-const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120, width = 928, height = 680 }) => {
+const ScaffoldNetworkWholeGraph = ({ imageSize = 120, width = 928, height = 680, graph = null }) => {
   const svgRef = useRef(null);
+  
+  const { target } = useContext(TargetContext);
+
+  let graphData;
+
+  if (graph) {
+    graphData = graph;
+  } else {
+    graphData = target.scaffold_network;
+  }
 
   useEffect(() => {
     // Clear previous SVG elements
@@ -14,9 +25,9 @@ const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120, width = 928, height
     const { nodes, links } = {
       nodes: [
         { id: 'fakeRoot', children: [] },
-        ...graph.nodes.map(n => ({ id: n.id, ...n }))
+        ...graphData.nodes.map(n => ({ id: n.id, ...n }))
       ],
-      links: graph.edges.map(e => ({
+      links: graphData.edges.map(e => ({
         source: e.source,
         target: e.target,
         ...e
@@ -107,7 +118,7 @@ const ScaffoldNetworkWholeGraph = ({ graph, imageSize = 120, width = 928, height
         .on("end", dragended);
     }
 
-  }, [graph, imageSize]); // Ensure the effect runs only when `graph` or `imageSize` changes
+  }, [target.scaffold_network, imageSize]); // Ensure the effect runs only when `graph` or `imageSize` changes
 
   return (
     <>

@@ -37,7 +37,7 @@ export default function DashboardLayout({
     setRDKit(rdkitWorker);
     setPyodide(pyodideWorker);
     if (ligand.length < 1) {
-      pushNotification({"message": "Data Loading Done!"});
+      pushNotification({ "message": "Data Loading Done!" });
       router.push("/tools/load_data");
     }
   }, []);
@@ -55,66 +55,93 @@ export default function DashboardLayout({
   }, [notifications]);
 
 
-if (rdkit) {
-  rdkit.onmessage = (event) => {
-    const { message, id, error, ...data } = event.data;
+  if (rdkit) {
+    rdkit.onmessage = (event) => {
+      const { message, id, error, ...data } = event.data;
 
-    // Handle simple string messages (progress, etc.)
-    if (message && typeof message === 'string') {
-      pushNotification({ message, autoClose: true, duration: 2000, id: id || undefined });
-      return;
-    }
-
-    // Handle errors
-    if (error) {
-      pushNotification({ message: `Error: ${error}`, type: 'error' });
-      rdkit.terminate();
-      return;
-    }
-
-    // Handle function results
-    if (id && data.function) {
-      switch (data.function) {
-        case 'fingerprint':
-          if (data.settings) {
-            localStorage.setItem("fingerprint", data.settings.fingerprint);
-            localStorage.setItem("path", data.settings.radius.toString());
-            localStorage.setItem("nBits", data.settings.nBits.toString());
-          }
-          pushNotification({ message: "Molecule Pre-processing Done! Going to Activity Distribution Tool..." });
-          setTimeout(() => {
-            setLigand(data.data);
-            setTarget({ ...target, activity_columns: data.activity_columns, pre_processed: true });
-            router.push("/tools/activity");
-          }, 200);
-          break;
-
-        case 'mma':
-          pushNotification({ message: "Massive Molecular Analysis Done! Going to Scaffold Analysis Tool..." });
-          setTarget({ ...target, scaffCores: data.data });
-          break;
-
-        case 'tanimoto':
-          pushNotification({ message: "Tanimoto Similarity Calculation Done!" });
-          setLigand(data.data);
-          break;
-
-        case 'only_fingerprint':
-          setLigand(data.results);
-          pushNotification({ message: "Fingerprints generated successfully!" });
-          break;
-
-        case 'substructure_search':
-          setLigand(data.results);
-          pushNotification({ message: `Found ${data.results.length} matching substructures` });
-          break;
-
-        default:
-          console.warn('Unknown function:', data.function);
+      // Handle simple string messages (progress, etc.)
+      if (message && typeof message === 'string') {
+        pushNotification({ message, autoClose: true, duration: 2000, id: id || undefined });
+        return;
       }
-    }
-  };
-}
+
+      // Handle errors
+      if (error) {
+        pushNotification({ message: `Error: ${error}`, type: 'error' });
+        rdkit.terminate();
+        return;
+      }
+      // Handle function results
+      if (id && data.function) {
+
+        switch (data.function) {
+          case 'fingerprint':
+            if (data.settings) {
+              localStorage.setItem("fingerprint", data.settings.fingerprint);
+              localStorage.setItem("path", data.settings.radius.toString());
+              localStorage.setItem("nBits", data.settings.nBits.toString());
+            }
+            pushNotification({ message: "Molecule Pre-processing Done! Going to Activity Distribution Tool..." });
+            setTimeout(() => {
+              setLigand(data.data);
+              setTarget({ ...target, activity_columns: data.activity_columns, pre_processed: true });
+              router.push("/tools/activity");
+            }, 200);
+            break;
+
+          case 'mma':
+            pushNotification({ message: "Massive Molecular Analysis Done! Going to Scaffold Analysis Tool..." });
+            setTarget({ ...target, scaffCores: data.data });
+            break;
+
+          case 'tanimoto':
+            pushNotification({ message: "Tanimoto Similarity Calculation Done!" });
+            setLigand(data.data);
+            break;
+
+          case 'only_fingerprint':
+            // if (data.id.includes("ml_screen_")) {
+            //   // Handle ML screen fingerprints
+            //   if (data.function === "only_fingerprint") {
+            //     let mol_fp = data.results.map(x => x["fingerprint"]);
+            //     pyodide.postMessage({
+            //       id: "job-123",
+            //       opts: target.machine_learning_inference_type === "regression" ? 1 : 2,
+            //       fp: mol_fp,
+            //       func: "ml-screen"
+            //     })
+            //     pyodide.onmessage = async (event) => {
+            //       console.log("Received message from Pyodide:", event.data);
+            //       if (event.data.success == "ok") {
+            //         let fp_mols = event.data.results;
+            //         newScreenData = await newScreenData.map((x, i) => {
+            //           x["predictions"] = fp_mols[i];
+            //           return x
+            //         });
+            //         setScreenData(newScreenData);
+            //         pushNotification({ message: "ML Model run complete" });
+            //       }
+            //     }
+            //   }
+            // }
+            setLigand(data.results);
+            pushNotification({ message: "Fingerprints generated successfully!" });
+            break;
+
+          case 'substructure_search':
+            setLigand(data.results);
+            pushNotification({ message: `Found ${data.results.length} matching substructures` });
+            break;
+          case 'scaffold_network':
+            pushNotification({ message: "Scaffold Network Generation Done!" });
+            setTarget({ ...target, scaffold_network: data.data });
+            break;
+          default:
+            console.warn('Unknown function:', data.function);
+        }
+      }
+    };
+  }
 
 
   if (pyodide) {

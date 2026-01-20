@@ -40,6 +40,9 @@ self.onmessage = async (event) => {
       case 'substructure_search':
         await substructure_search(params, id);
         break;
+      case 'scaffold_network':
+        await scaffold_network(params, id);
+        break;
       default:
         throw new Error(`Unknown function: ${funcName}`);
     }
@@ -392,4 +395,115 @@ function TanimotoSimilarity(v1, v2) {
   const denom = math.number(math.square(math.norm(v1, 2))) + 
                 math.number(math.square(math.norm(v2, 2))) - numer;
   return denom === 0.0 ? 0.0 : numer / denom;
+}
+
+async function scaffold_network(params, requestId) {
+  try{
+    const RDKitInstance = await loadRDKit();
+    const network_graphs = scaffold_net_chunking_method(params.smiles_list, 600, RDKitInstance, params);
+    const image_graph = graph_molecule_image_generator(RDKitInstance, network_graphs);
+    notify({ message: `Scaffold Network Ready`, id: requestId });
+    notify({ id: requestId, function: 'scaffold_network', data: image_graph });
+  } catch (e) {
+    notify({ id: requestId, function: 'scaffold_network', error: e.message });
+  }
+}
+
+function colorOfEdge(edge) {
+  if (edge === "Fragment") return "#99ccff";
+  if (edge === "Generic") return "#ff9999";
+  if (edge === "GenericBond") return "#99ff99";
+  if (edge === "RemoveAttachment") return "#666666";
+  return "#cccc66";
+}
+
+function molListFromSmiArray(smiArray, rdkit) {
+  const molList = new rdkit.MolList();
+  smiArray.forEach((smiName) => {
+    const [smi, name] = smiName.split(" ");
+    let mol;
+    try {
+      mol = rdkit.get_mol(smi);
+      molList.append(mol);
+    } finally {
+      mol?.delete();
+    }
+  });
+  return molList;
+}
+
+function scaffold_net_chunking_method(
+  array,
+  chunkSize,
+  rdkit,
+  params,
+) {
+  var scaffold_net_ins = new rdkit.ScaffoldNetwork();
+  scaffold_net_ins.set_scaffold_params(JSON.stringify(params));
+  let network;
+
+  for (let i = 0; i < array.length; i += chunkSize) {
+    let smiles_mol_list;
+    try {
+      smiles_mol_list = molListFromSmiArray(
+        array.slice(i, i + chunkSize),
+        rdkit,
+      );
+      network = scaffold_net_ins.update_scaffold_network(smiles_mol_list);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      smiles_mol_list?.delete();
+    }
+  }
+  scaffold_net_ins?.delete();
+
+  // Return plain object instead of graphology Graph
+  const nodes = [];
+  for (let i = 0; i < network.nodes.size(); i++) {
+    try {
+      var smiles_string = network.nodes.get(i);
+      nodes.push({
+        id: i.toString(),
+        smiles: smiles_string,
+        molCounts: network.molCounts.get(i),
+        nodeType: array.includes(smiles_string) ? "whole" : "fragment",
+      });
+    } catch (e) {
+      console.error("Error in adding node: ", e);
+    }
+  }
+
+  const edges = [];
+  for (let i = 0; i < network.edges.size(); i++) {
+    try {
+      let network_edge = network.edges.get(i);
+      edges.push({
+        id: i.toString(),
+        source: network_edge.beginIdx.toString(),
+        target: network_edge.endIdx.toString(),
+        label: network_edge.type,
+        color: colorOfEdge(network_edge.type),
+      });
+    } catch (e) {
+      console.error("Error in adding edge: ", e);
+    }
+  }
+
+  return { nodes, edges };
+}
+
+function graph_molecule_image_generator(rdkit, graphData, svgSize = 120) {
+  try {
+    graphData.nodes.forEach((node) => {
+      var mol = rdkit.get_mol(node.smiles);
+      var svg_string = mol.get_svg(svgSize, svgSize);
+      var blob_link = new Blob([svg_string], { type: "image/svg+xml" });
+      node.image = URL.createObjectURL(blob_link);
+      mol?.delete();
+    });
+  } catch (e) {
+    console.error(e);
+  }
+  return graphData;
 }

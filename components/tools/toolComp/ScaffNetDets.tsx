@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import TagComponent from "../../ui-comps/Tags";
 import ScaffoldNetworkWholeGraph from "./ScaffoldNetworkWholeGraph";
 import { useDisclosure } from "@mantine/hooks";
 import { Button, Card, Grid, Group, Modal } from "@mantine/core";
 import { ScaffoldGraph } from "../../../types/GraphData";
+import TargetContext from "../../../context/TargetContext";
 
-const GraphComponent: React.FC<any> = ({ graph }) => {
+const GraphComponent: React.FC<any> = () => {
     const [opened, { open, close }] = useDisclosure(false);
+    const { target } = useContext(TargetContext);
 
     // Function to get nodes connected to a specific label in the graph
     function getNodesConnectedToLabel(graph: ScaffoldGraph, label: string) {
@@ -18,7 +20,7 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
     // Update the display nodes array based on selected tags
     function updateFilterFragments(tags: string) {
         if (tags !== 'All') {
-            const nodesConnectedToConnectionLabel = getNodesConnectedToLabel(graph, tags);
+            const nodesConnectedToConnectionLabel = getNodesConnectedToLabel(target.scaffold_network, tags);
             const newDisplayArray = nodesConnectedToConnectionLabel.map(index => nodesArray[index]);
             setDisplayNodesArray(newDisplayArray);
         } else {
@@ -33,7 +35,7 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
 
     // Effect to update nodesArray and displayNodesArray when graph changes
     useEffect(() => {
-        const tempNodesArray = graph.nodes.map(node => ({
+        const tempNodesArray = target.scaffold_network.nodes.map(node => ({
             node: node.id,
             smiles: node.smiles,
             size: node.molCounts,
@@ -42,7 +44,7 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
         tempNodesArray.sort((a, b) => b.size - a.size);
         setNodesArray(tempNodesArray);
         setDisplayNodesArray(tempNodesArray);
-    }, [graph]);
+    }, [target.scaffold_network]);
 
     // Constants for pagination
     const nodesPerPage = 12; // Adjust as needed
@@ -87,12 +89,12 @@ const GraphComponent: React.FC<any> = ({ graph }) => {
     function filterNodes(nodeEnquired: string, attr, depthSet: number) {
         // Get neighbors (nodes connected to this node)
         const connectedNodeIds = new Set([nodeEnquired]);
-        graph.edges.forEach(edge => {
+        target.scaffold_network.edges.forEach(edge => {
             if (edge.source === nodeEnquired) connectedNodeIds.add(edge.target);
             if (edge.target === nodeEnquired) connectedNodeIds.add(edge.source);
         });
 
-        const filteredGraph = getSubgraph(graph, Array.from(connectedNodeIds));
+        const filteredGraph = getSubgraph(target.scaffold_network, Array.from(connectedNodeIds));
         setGraph(filteredGraph);
         open();
     }

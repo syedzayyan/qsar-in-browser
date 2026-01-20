@@ -36,7 +36,7 @@ export function TargetProvider({ children }: TargetProviderProps) {
         target_organism: "",
         data_source: "",
         pre_processed: false,
-        scaffold_network: "",
+        scaffold_network: undefined,
         scaffCores: [],
         machine_learning: [],
     });

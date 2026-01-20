@@ -23,7 +23,6 @@
     "d3-scale-chromatic": "^3.1.0",
     "d3fc": "^15.2.13",
     "file-loader": "^6.2.0",
-    "graphology": "^0.26.0",
     "graphology-operators": "^1.6.1",
     "graphology-traversal": "^0.3.1",
     "graphology-types": "^0.24.8",

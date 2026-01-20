@@ -21,7 +21,6 @@ export default function ScreenLayout({ children }) {
     const { pyodide } = useContext(PyodideContext);
     const { target } = useContext(TargetContext);
     let newScreenData = screenData;
-    const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     async function callofScreenFunction(data) {
         pushNotification({ message: "Running ML Model on Ligands" });
@@ -34,7 +33,7 @@ export default function ScreenLayout({ children }) {
 
         rdkit.postMessage({
             function: 'only_fingerprint',
-            id: requestId,
+            id: `ml_screen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             mol_data: newScreenData,
             formStuff: {
                 fingerprint: localStorage.getItem("fingerprint"),
