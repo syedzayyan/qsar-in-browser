@@ -11,6 +11,7 @@ const DataTable = ({
   act_column = [],
   selectable = false,
   onSelectionChange,
+  checkboxExistence = true,
 }) => {
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
@@ -49,27 +50,29 @@ const DataTable = ({
         >
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>
-                <Checkbox
-                  checked={pageIndices.every(i => selectedRows.includes(i))}
-                  indeterminate={
-                    pageIndices.some(i => selectedRows.includes(i)) &&
-                    !pageIndices.every(i => selectedRows.includes(i))
-                  }
-                  onChange={() => {
-                    setSelectedRows(prev => {
-                      const allSelected = pageIndices.every(i => prev.includes(i));
+              {checkboxExistence && (
+                <Table.Th>
+                  <Checkbox
+                    checked={pageIndices.every(i => selectedRows.includes(i))}
+                    indeterminate={
+                      pageIndices.some(i => selectedRows.includes(i)) &&
+                      !pageIndices.every(i => selectedRows.includes(i))
+                    }
+                    onChange={() => {
+                      setSelectedRows(prev => {
+                        const allSelected = pageIndices.every(i => prev.includes(i));
 
-                      const next = allSelected
-                        ? prev.filter(i => !pageIndices.includes(i))
-                        : [...new Set([...prev, ...pageIndices])];
+                        const next = allSelected
+                          ? prev.filter(i => !pageIndices.includes(i))
+                          : [...new Set([...prev, ...pageIndices])];
 
-                      onSelectionChange?.(next);
-                      return next;
-                    });
-                  }}
-                />
-              </Table.Th>
+                        onSelectionChange?.(next);
+                        return next;
+                      });
+                    }}
+                  />
+                </Table.Th>
+              )}
               <Table.Th><Text fw={600}>ID</Text></Table.Th>
               <Table.Th><Text fw={600}>SMILES</Text></Table.Th>
               <Table.Th><Text fw={600}>Structure</Text></Table.Th>

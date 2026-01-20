@@ -3,7 +3,7 @@ import TargetContext from "../../context/TargetContext";
 import LigandContext from "../../context/LigandContext";
 import Link from "next/link";
 import FAQComp from "../ui-comps/FAQComp";
-import { Button, Progress } from "@mantine/core";
+import { Button, Progress, Select } from "@mantine/core";
 
 export default function CompoundGetter() {
   const [unit, setUnit] = useState("Ki");
@@ -76,35 +76,39 @@ export default function CompoundGetter() {
         unit, they are the default.
       </FAQComp>
       <label htmlFor="input-assay-type">Assay Type</label>
-      <select
+      <Select
         className="input"
-        onChange={(e) => {
-          setBinding(e.target.value);
+        value={binding}
+        onChange={(value: string | null) => {
+          if (value !== null) setBinding(value);
         }}
-      >
-        <option value="B">B (Binding)</option>
-        <option value="F">F (Functional)</option>
-        <option value="ADMET">ADMET (ADME Data)</option>
-        <option value="T">T (Toxicity)</option>
-        <option value="P">P (Physiochemical)</option>
-        <option value="U">U (Unclassified)</option>
-      </select>
+        data={[
+          { value: "B", label: "B (Binding)" },
+          { value: "F", label: "F (Functional)" },
+          { value: "ADMET", label: "ADMET (ADME Data)" },
+          { value: "T", label: "T (Toxicity)" },
+          { value: "P", label: "P (Physiochemical)" },
+          { value: "U", label: "U (Unclassified)" },
+        ]}
+      />
       <label htmlFor="input-unit">Unit Type</label>
-      <select
+      <Select
         className="input"
-        onChange={(e) => {
-          setUnit(e.target.value);
+        value={unit}
+        onChange={(value: string | null) => {
+          if (value !== null) setUnit(value);
         }}
-      >
-        <option value="Ki">Ki</option>
-        <option value="IC50">IC50</option>
-        <option value="XC50">XC50</option>
-        <option value="EC50">EC50</option>
-        <option value="AC50">AC50</option>
-        <option value="Kd">Kd</option>
-        <option value="Potency">Potency</option>
-        <option value="ED50">ED50</option>
-      </select>
+        data={[
+          { value: "Ki", label: "Ki" },
+          { value: "IC50", label: "IC50" },
+          { value: "XC50", label: "XC50" },
+          { value: "EC50", label: "EC50" },
+          { value: "AC50", label: "AC50" },
+          { value: "Kd", label: "Kd" },
+          { value: "Potency", label: "Potency" },
+          { value: "ED50", label: "ED50" },
+        ]}
+      />
       <Button className="button" onClick={hehe}>
         Fetch Data
       </Button>

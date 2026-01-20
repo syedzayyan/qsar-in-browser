@@ -13,7 +13,6 @@ interface ScatterplotProps {
   xAxisTitle?: string;
   yAxisTitle?: string;
   id?: string[];
-  discreteColor?: boolean;
   onSelectIndices?: (indices: number[]) => void;
 }
 
@@ -36,7 +35,6 @@ export default function Scatterplot({
   xAxisTitle = '',
   yAxisTitle = '',
   id = [],
-  discreteColor = false,
   onSelectIndices
 }: ScatterplotProps) {
   const margin = { top: 10, right: 20, bottom: 80, left: 80 };
@@ -373,80 +371,33 @@ export default function Scatterplot({
     // Legends code (discrete and continuous) - unchanged from previous version
     // [Insert the discrete color legend and color gradient legend code here - same as before]
 
-    // Discrete color legend
-    if (discreteColor && colorProperty.length) {
-      const categories = Array.from(new Set(colorProperty)).sort((a, b) => a - b);
-      const discreteScale = d3.scaleOrdinal<number, string>().domain(categories).range(d3.schemeTableau10);
-
-      const legend = g.append("g").attr("transform", `translate(${width + 20},0)`);
-
-      legend.selectAll("g")
-        .data(categories)
-        .join("g")
-        .attr("transform", (_, i) => `translate(0,${i * 20})`)
-        .each(function (d) {
-          const row = d3.select(this);
-          row.append("rect").attr("width", 14).attr("height", 14).attr("rx", 3).attr("fill", discreteScale(d));
-          row.append("text").attr("x", 20).attr("y", 11).style("font-size", "0.85rem").style("fill", "var(--mantine-color-text)").text(`Fold ${d}`);
-        });
-    }
-
     // Color gradient legend
     if (colorProperty.length) {
-      if (discreteColor) {
-        const categories = Array.from(new Set(colorProperty)).sort((a, b) => a - b);
-        const discreteScale = d3.scaleOrdinal<number, string>().domain(categories).range(d3.schemeTableau10);
 
-        const legendX = 0;
-        const legendY = height + 40;
+      const legendHeight = 8;
+      const legendMarginTop = height + 48;
 
-        const legend = g.append("g")
-          .attr("transform", `translate(${legendX},${legendY})`);
+      g.append('rect')
+        .attr('x', 0)
+        .attr('y', legendMarginTop)
+        .attr('width', width)
+        .attr('height', legendHeight)
+        .attr('rx', 3)
+        .style('fill', `url(#${uid}-grad)`)
+        .style('stroke', 'rgba(0,0,0,0.1)')
+        .style('stroke-width', 0.6);
 
-        legend.selectAll("g")
-          .data(categories)
-          .join("g")
-          .attr("transform", (_, i) => `translate(${i * 70}, 0)`)
-          .each(function (d) {
-            const row = d3.select(this);
-            row.append("rect")
-              .attr("width", 14)
-              .attr("height", 14)
-              .attr("rx", 3)
-              .attr("fill", discreteScale(d));
+      const legendScale = d3.scaleLinear().domain(colorDomain).range([0, width]);
 
-            row.append("text")
-              .attr("x", 18)
-              .attr("y", 11)
-              .style("font-size", "0.85rem")
-              .style("fill", "var(--mantine-color-text)")
-              .text(`Fold ${d}`);
-          });
-      } else {
-        const legendHeight = 8;
-        const legendMarginTop = height + 48;
+      g.append('g')
+        .attr('transform', `translate(0,${legendMarginTop + legendHeight + 2})`)
+        .call(d3.axisBottom(legendScale).ticks(6).tickSize(6).tickFormat(d3.format('.2~f')))
+        .call(g => g.select('.domain').remove())
+        .selectAll('text')
+        .style('font-size', '0.85rem');
 
-        g.append('rect')
-          .attr('x', 0)
-          .attr('y', legendMarginTop)
-          .attr('width', width)
-          .attr('height', legendHeight)
-          .attr('rx', 3)
-          .style('fill', `url(#${uid}-grad)`)
-          .style('stroke', 'rgba(0,0,0,0.1)')
-          .style('stroke-width', 0.6);
-
-        const legendScale = d3.scaleLinear().domain(colorDomain).range([0, width]);
-
-        g.append('g')
-          .attr('transform', `translate(0,${legendMarginTop + legendHeight + 2})`)
-          .call(d3.axisBottom(legendScale).ticks(6).tickSize(6).tickFormat(d3.format('.2~f')))
-          .call(g => g.select('.domain').remove())
-          .selectAll('text')
-          .style('font-size', '0.85rem');
-      }
     }
-  }, [data, outerSize, selectedColorScale, bubbleSize, colorProperty, hoverProp, xAxisTitle, yAxisTitle, discreteColor, id, open, onSelectIndices, mode, createSelectionHandlers]);
+  }, [data, outerSize, selectedColorScale, bubbleSize, colorProperty, hoverProp, xAxisTitle, yAxisTitle, id, open, onSelectIndices, mode, createSelectionHandlers]);
 
   function handleColorScaleChange(value: string) {
     setSelectedColorScale(value);

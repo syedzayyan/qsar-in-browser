@@ -11,6 +11,8 @@ import JSME from "../../../components/tools/toolViz/JSMEComp";
 import Dropdown from "../../../components/tools/toolViz/DropDown";
 import { Button, Group, Input, Select } from "@mantine/core";
 import FoldMetricBarplot from "../../../components/tools/toolViz/BarChart";
+import DiscreteScatterplot from "../../../components/tools/toolViz/DiscreteScatterPlot";
+import { round } from "mathjs";
 
 export default function MLLayout({ children }) {
   const [screenData, setScreenData] = useState([]);
@@ -22,7 +24,6 @@ export default function MLLayout({ children }) {
   const { rdkit } = useContext(RDKitContext);
   const { pyodide } = useContext(PyodideContext);
   const { setTarget, target } = useContext(TargetContext);
-
   const pathname = usePathname();
 
   // -----------------------------
@@ -64,7 +65,7 @@ export default function MLLayout({ children }) {
 
         pyodide.postMessage({
           id: "job-123",
-          opts: 0,
+          opts: target.machine_learning_inference_type === "regression" ? 1 : 2,
           fp: [mol_fp],
           func: "ml-screen",
         });
@@ -72,6 +73,8 @@ export default function MLLayout({ children }) {
         pyodide.onmessage = (event) => {
           if (event.data.success === "ok") {
             setOneOffSmilesResult(event.data.results[0]);
+            console.log(oneOffSMILESResult)
+            console.log(typeof (oneOffSMILESResult))
           }
         };
       }
@@ -90,12 +93,12 @@ export default function MLLayout({ children }) {
   // Merge fold scatter data
   // -----------------------------
   const mergedData: { x: number; y: number }[] = [];
-  const foldColorProperty: number[] = [];
+  const foldColorProperty: string[] = [];
 
   perFoldPreds.forEach((fold, foldIndex) => {
     fold.forEach((point) => {
       mergedData.push({ x: point.x, y: point.y });
-      foldColorProperty.push(foldIndex + 1);
+      foldColorProperty.push(`Fold ${foldIndex + 1}`);
     });
   });
 
@@ -106,63 +109,100 @@ export default function MLLayout({ children }) {
     <div className="tools-container">
       <MLResultsContext.Provider value={setScreenData}>
         {/* ---------------- Task Type Selector ---------------- */}
-        <Select
-          label="ML Task Type"
-          value={target.machine_learning_inference_type || "regression"}
-          onChange={(v) => setTarget({ ...target, machine_learning_inference_type: v }) }
-          data={[
-            { value: "regression", label: "Regression" },
-            { value: "classification", label: "Classification" },
-          ]}
-          mb="md"
-        />
+        {/* Task Type Selector + Clear Button */}
+        <Group>
+          <h3>ML Task Type</h3>
+          <Select
+            value={target.machine_learning_inference_type}
+            onChange={(v) => setTarget({ ...target, machine_learning_inference_type: v })}
+            data={[
+              { value: "regression", label: "Regression" },
+              { value: "classification", label: "Classification" },
+            ]}
+            style={{ flex: 1 }}
+            disabled={hasResults}  // Still lock after results
+          />
+
+          {hasResults && (
+            <Button
+              variant="light"
+              color="gray"
+              onClick={() => {
+                setTarget({
+                  ...target,
+                  machine_learning: [],
+                  machine_learning_inference_type: "regression"  // Reset to allow re-selection
+                });
+                setOneOffSmilesResult(undefined);
+              }}
+            >
+              Clear Results
+            </Button>
+          )}
+        </Group>
+
 
         {/* ---------------- Children get taskType prop ---------------- */}
         {children}
 
-        {/* ---------------- Single molecule prediction ---------------- */}
-        <Group>
-          <h2>Predict the activity of a single molecule</h2>
-
-          <Input
-            ref={inputRef}
-            style={{ width: "20%" }}
-            onChange={(e) => setOneOffSmiles(e.target.value)}
-            placeholder="Input your SMILES string"
-          />
-
-          <Dropdown buttonText="Draw the molecule">
-            <JSME
-              width="300px"
-              height="300px"
-              onChange={(smiles) => setOneOffSmiles(smiles)}
-            />
-          </Dropdown>
-
-          <Button onClick={oneOffPred}>Predict Activity</Button>
-
-          {oneOffSMILESResult !== undefined && (
-            <span>
-              Predicted {target.activity_columns[0]}: <b>{oneOffSMILESResult}</b>
-            </span>
-          )}
-        </Group>
-
         {/* ---------------- Scatterplot or barplot ---------------- */}
         {hasResults && (
           <>
-            {target.machine_learning_inference_type === "regression" ? (
-              <Scatterplot
-                data={mergedData}
-                discreteColor={true}
-                colorProperty={foldColorProperty}
-                xAxisTitle="Experimental Activity"
-                yAxisTitle="Predicted Activity"
+            {/* ---------------- Single molecule prediction ---------------- */}
+            <Group>
+              <h2>Predict the activity of a single molecule</h2>
+
+              <Input
+                ref={inputRef}
+                style={{ width: "20%" }}
+                onChange={(e) => setOneOffSmiles(e.target.value)}
+                placeholder="Input your SMILES string"
               />
-            ) : (
-              <FoldMetricBarplot metricName="R2" data={metric2} color="#f59e0b" />
+
+              <Dropdown buttonText="Draw the molecule">
+                <JSME
+                  width="300px"
+                  height="300px"
+                  onChange={(smiles) => setOneOffSmiles(smiles)}
+                />
+              </Dropdown>
+
+              <Button onClick={oneOffPred}>Predict Activity</Button>
+
+              {oneOffSMILESResult !== undefined && (
+                <span>
+                  <b>{target.machine_learning_inference_type === "regression" && <>
+                    Predicted {target.activity_columns[0]}: {round(oneOffSMILESResult, 2)}
+                  </>}
+                  </b>
+                  <b>{target.machine_learning_inference_type === "classification" &&
+                    <Group style={{ marginLeft: "10px" }}>
+                      <span>Active Probability: {oneOffSMILESResult[0]}</span>
+                      <span>Inactive Probability: {oneOffSMILESResult[1]}</span>
+                    </Group>
+                  }
+                  </b>
+                </span>
+              )}
+            </Group>
+            {target.machine_learning_inference_type === "regression" && (
+              <>
+                <DiscreteScatterplot
+                  data={mergedData}
+                  discreteColor={true}
+                  colorLabels={foldColorProperty}
+                  xAxisTitle="Experimental Activity"
+                  yAxisTitle="Predicted Activity"
+                />
+                <FoldMetricBarplot metricName="Mean Absolute Error" data={metric1} color="#3b82f6" />
+              </>
             )}
-            <FoldMetricBarplot metricName="Accuracy" data={metric1} color="#3b82f6" />
+            {target.machine_learning_inference_type === "classification" && (
+              <Group align="flex-start">
+                <FoldMetricBarplot metricName="Accuracy" data={metric1} color="#3b82f6" />
+                <FoldMetricBarplot metricName="ROC-AUC Score" data={metric2} color="#f59e0b" />
+              </Group>
+            )}
           </>
         )}
       </MLResultsContext.Provider>
