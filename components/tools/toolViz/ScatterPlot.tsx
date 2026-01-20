@@ -98,9 +98,9 @@ export default function Scatterplot({
   const colorScaler = d3.scaleSequential(colorInterpolator).domain(colorDomain);
 
   // Selection handlers
-  const createSelectionHandlers = useCallback((g: d3.Selection<SVGGElement, unknown, null, undefined>, 
-                                              scatter: d3.Selection<SVGGElement, unknown, null, undefined>,
-                                              width: number, height: number) => {
+  const createSelectionHandlers = useCallback((g: d3.Selection<SVGGElement, unknown, null, undefined>,
+    scatter: d3.Selection<SVGGElement, unknown, null, undefined>,
+    width: number, height: number) => {
     let selectionStart: [number, number] | null = null;
     let selectionRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
     let isSelecting = false;
@@ -340,7 +340,7 @@ export default function Scatterplot({
       });
 
     // RIGHT CLICK DRAG = Selection window ONLY in select mode
-    const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } = 
+    const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
       createSelectionHandlers(g, scatter, width, height);
 
     // Remove any existing selection overlay first
@@ -459,15 +459,15 @@ export default function Scatterplot({
     }
   }
 
-  const modeInstruction = mode === 'zoom' 
-    ? '🖱️ Click bubbles to open modal, wheel/drag to zoom' 
+  const modeInstruction = mode === 'zoom'
+    ? '🖱️ Click bubbles to open modal, wheel/drag to zoom'
     : '📦 Right-drag to select bubbles, click to open modal';
 
   return (
     <div ref={parentRef} className="w-full">
       <svg ref={svgRef} />
       <Screenshotter svgRef={svgRef} />
-      
+
       <Group justify="apart" mt="xs" mb="xs">
         <Group>
           <Button
