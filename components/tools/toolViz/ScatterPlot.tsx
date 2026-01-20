@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import MoleculeStructure from '../toolComp/MoleculeStructure';
 import { randomInt } from 'mathjs';
 import Screenshotter from '../../utils/d3toPNG';
-import { Modal } from '@mantine/core';
+import { Modal, Button, Group, Text, Slider, Select } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 
 interface ScatterplotProps {
@@ -48,9 +48,11 @@ export default function Scatterplot({
   const [modalDets, setModalDets] = useState<ModalDets | null>(null);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
+  const [mode, setMode] = useState<'zoom' | 'select'>('zoom');
+
   const [bubbleSize, setBubbleSize] = useState(6);
   const [selectedColorScale, setSelectedColorScale] = useState('Viridis');
-  
+
   const colorScales: Record<string, (t: number) => string> = {
     Viridis: d3.interpolateViridis,
     Blues: d3.interpolateBlues,
@@ -84,9 +86,110 @@ export default function Scatterplot({
     return () => ro.disconnect();
   }, []);
 
+  // Clean up selection rects when mode changes
+  useEffect(() => {
+    if (svgRef.current) {
+      d3.select(svgRef.current).selectAll('.selection-rect').remove();
+    }
+  }, [mode]);
+
   const colorDomain = colorProperty.length ? [d3.min(colorProperty)!, d3.max(colorProperty)!] : [0, 1];
   const colorInterpolator = colorScales[selectedColorScale] || d3.interpolateViridis;
   const colorScaler = d3.scaleSequential(colorInterpolator).domain(colorDomain);
+
+  // Selection handlers
+  const createSelectionHandlers = useCallback((g: d3.Selection<SVGGElement, unknown, null, undefined>, 
+                                              scatter: d3.Selection<SVGGElement, unknown, null, undefined>,
+                                              width: number, height: number) => {
+    let selectionStart: [number, number] | null = null;
+    let selectionRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
+    let isSelecting = false;
+
+    const cleanup = () => {
+      g.selectAll('.selection-rect').remove();
+      isSelecting = false;
+      selectionStart = null;
+      selectionRect = null;
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (mode !== 'select' || event.button !== 2 || !onSelectIndices) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      cleanup();
+
+      isSelecting = true;
+      const [sx, sy] = d3.pointer(event, g.node());
+      selectionStart = [sx, sy];
+
+      selectionRect = g.append('rect')
+        .attr('class', 'selection-rect')
+        .attr('x', sx)
+        .attr('y', sy)
+        .attr('width', 0)
+        .attr('height', 0)
+        .attr('fill', 'rgba(100, 150, 255, 0.12)')
+        .attr('stroke', 'rgb(100, 150, 255)')
+        .attr('stroke-width', 1.2)
+        .attr('stroke-dasharray', '4,4')
+        .style('pointer-events', 'none');
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isSelecting || !selectionStart || !selectionRect || !onSelectIndices) return;
+
+      const [cx, cy] = d3.pointer(event, g.node());
+      const [sx, sy] = selectionStart;
+
+      const x0 = Math.min(sx, cx);
+      const y0 = Math.min(sy, cy);
+      const wSel = Math.abs(cx - sx);
+      const hSel = Math.abs(cy - sy);
+
+      selectionRect
+        .attr('x', x0)
+        .attr('y', y0)
+        .attr('width', wSel)
+        .attr('height', hSel);
+    };
+
+    const handleMouseUp = (event: MouseEvent) => {
+      if (!isSelecting || !selectionStart || !selectionRect || !onSelectIndices) return;
+
+      const [ex, ey] = d3.pointer(event, g.node());
+      const [sx, sy] = selectionStart;
+
+      const x0 = Math.min(sx, ex);
+      const x1 = Math.max(sx, ex);
+      const y0 = Math.min(sy, ey);
+      const y1 = Math.max(sy, ey);
+
+      const selected: number[] = [];
+      scatter.selectAll<SVGCircleElement, { x: number; y: number }>('circle')
+        .each(function (_, i) {
+          const cx = +d3.select(this).attr('cx');
+          const cy = +d3.select(this).attr('cy');
+          if (cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1) {
+            selected.push(i);
+          }
+        });
+
+      console.log('Selected indices:', selected);
+      setSelectedIndices(selected);
+      if (onSelectIndices) onSelectIndices(selected);
+
+      cleanup();
+    };
+
+    const handleMouseLeave = () => {
+      isSelecting = false;
+      selectionStart = null;
+    };
+
+    return { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave };
+  }, [mode, onSelectIndices]);
 
   useEffect(() => {
     if (!data || data.length === 0 || !svgRef.current) return;
@@ -168,12 +271,13 @@ export default function Scatterplot({
       .attr('x', 0).attr('y', 0)
       .attr('width', width).attr('height', height);
 
-    // LEFT CLICK DRAG = Pan/Zoom (on zoomRect)
+    // LEFT CLICK DRAG = Pan/Zoom ONLY in zoom mode
     const zoom = d3.zoom()
       .filter((event) => {
+        if (mode !== 'zoom') return false;
         if (event.type === 'wheel') return true;
         if (event.type === 'mousedown') {
-          return event.button === 0; // LEFT only
+          return event.button === 0;
         }
         return false;
       })
@@ -194,6 +298,8 @@ export default function Scatterplot({
         yAxis.selectAll('.tick line').style('opacity', 0.12);
       });
 
+    g.call(zoom);
+
     const zoomRect = g.append('rect')
       .attr('width', width).attr('height', height)
       .style('fill', 'none')
@@ -213,6 +319,7 @@ export default function Scatterplot({
       .attr('stroke', 'white')
       .attr('stroke-width', 0.7)
       .attr('opacity', 0.95)
+      .style('cursor', 'pointer')
       .on('mouseenter', function (event, d) {
         d3.select(this).raise().transition().duration(150).attr('r', bubbleSize * 1.8).attr('opacity', 1);
         const [mx, my] = d3.pointer(event, g.node());
@@ -222,7 +329,8 @@ export default function Scatterplot({
         d3.select(this).transition().duration(150).attr('r', bubbleSize).attr('opacity', 0.95);
         setDetails(null);
       })
-      .on('click', (_, d) => {
+      .on('click', (event, d) => {
+        event.stopPropagation();
         setModalDets({
           activity: colorProperty[data.indexOf(d)],
           canonical_smiles: hoverProp[data.indexOf(d)],
@@ -231,10 +339,12 @@ export default function Scatterplot({
         open();
       });
 
-    // RIGHT CLICK DRAG = Selection window (separate overlay)
-    let selectionStart: [number, number] | null = null;
-    let selectionRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
-    let isSelecting = false;
+    // RIGHT CLICK DRAG = Selection window ONLY in select mode
+    const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } = 
+      createSelectionHandlers(g, scatter, width, height);
+
+    // Remove any existing selection overlay first
+    g.selectAll('.selection-overlay').remove();
 
     // Create a separate overlay rect for selection (on top, not affected by zoom)
     const selectionOverlay = g.append('rect')
@@ -242,89 +352,9 @@ export default function Scatterplot({
       .attr('width', width)
       .attr('height', height)
       .style('fill', 'none')
-      .style('pointer-events', 'all')
-      .style('cursor', 'crosshair');
+      .style('pointer-events', mode === 'select' ? 'all' : 'none')
+      .style('cursor', mode === 'select' ? 'crosshair' : 'default');
 
-    const handleMouseDown = (event: MouseEvent) => {
-      if (event.button !== 2 || !onSelectIndices) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-      isSelecting = true;
-
-      const [sx, sy] = d3.pointer(event, g.node());
-      selectionStart = [sx, sy];
-
-      // Remove any previous selection rect
-      g.selectAll('.selection-rect').remove();
-
-      // Create new selection rect
-      selectionRect = g.append('rect')
-        .attr('class', 'selection-rect')
-        .attr('x', sx)
-        .attr('y', sy)
-        .attr('width', 0)
-        .attr('height', 0)
-        .attr('fill', 'rgba(100, 150, 255, 0.12)')
-        .attr('stroke', 'rgb(100, 150, 255)')
-        .attr('stroke-width', 1.2)
-        .attr('stroke-dasharray', '4,4')
-        .style('pointer-events', 'none');
-    };
-
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!isSelecting || !selectionStart || !selectionRect || !onSelectIndices) return;
-
-      const [cx, cy] = d3.pointer(event, g.node());
-      const [sx, sy] = selectionStart;
-
-      const x0 = Math.min(sx, cx);
-      const y0 = Math.min(sy, cy);
-      const wSel = Math.abs(cx - sx);
-      const hSel = Math.abs(cy - sy);
-
-      selectionRect
-        .attr('x', x0)
-        .attr('y', y0)
-        .attr('width', wSel)
-        .attr('height', hSel);
-    };
-
-    const handleMouseUp = (event: MouseEvent) => {
-      if (!isSelecting || !selectionStart || !selectionRect || !onSelectIndices) return;
-
-      const [ex, ey] = d3.pointer(event, g.node());
-      const [sx, sy] = selectionStart;
-
-      const x0 = Math.min(sx, ex);
-      const x1 = Math.max(sx, ex);
-      const y0 = Math.min(sy, ey);
-      const y1 = Math.max(sy, ey);
-
-      const selected: number[] = [];
-      scatter.selectAll<SVGCircleElement, { x: number; y: number }>('circle')
-        .each(function (_, i) {
-          const cx = +d3.select(this).attr('cx');
-          const cy = +d3.select(this).attr('cy');
-          if (cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1) {
-            selected.push(i);
-          }
-        });
-
-      console.log('Selected indices:', selected);
-      setSelectedIndices(selected);
-      onSelectIndices(selected);
-
-      isSelecting = false;
-      selectionStart = null;
-    };
-
-    const handleMouseLeave = () => {
-      isSelecting = false;
-      selectionStart = null;
-    };
-
-    // Attach listeners to selection overlay
     const overlayNode = selectionOverlay.node() as SVGRectElement;
     if (overlayNode) {
       overlayNode.addEventListener('mousedown', handleMouseDown);
@@ -335,10 +365,13 @@ export default function Scatterplot({
 
     // Prevent browser context menu
     svg.on('contextmenu', (event) => {
-      if (onSelectIndices) {
+      if (onSelectIndices && mode === 'select') {
         event.preventDefault();
       }
     });
+
+    // Legends code (discrete and continuous) - unchanged from previous version
+    // [Insert the discrete color legend and color gradient legend code here - same as before]
 
     // Discrete color legend
     if (discreteColor && colorProperty.length) {
@@ -413,11 +446,10 @@ export default function Scatterplot({
           .style('font-size', '0.85rem');
       }
     }
+  }, [data, outerSize, selectedColorScale, bubbleSize, colorProperty, hoverProp, xAxisTitle, yAxisTitle, discreteColor, id, open, onSelectIndices, mode, createSelectionHandlers]);
 
-  }, [data, outerSize, selectedColorScale, bubbleSize, colorProperty, hoverProp, xAxisTitle, yAxisTitle, discreteColor, id, open, onSelectIndices]);
-
-  function handleColorScaleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setSelectedColorScale(e.target.value);
+  function handleColorScaleChange(value: string) {
+    setSelectedColorScale(value);
   }
 
   function clearSelection() {
@@ -427,51 +459,96 @@ export default function Scatterplot({
     }
   }
 
+  const modeInstruction = mode === 'zoom' 
+    ? '🖱️ Click bubbles to open modal, wheel/drag to zoom' 
+    : '📦 Right-drag to select bubbles, click to open modal';
+
   return (
     <div ref={parentRef} className="w-full">
       <svg ref={svgRef} />
       <Screenshotter svgRef={svgRef} />
-      <Modal opened={opened} onClose={close} size={"lg"}>
+      
+      <Group justify="apart" mt="xs" mb="xs">
+        <Group>
+          <Button
+            size="xs"
+            variant={mode === 'zoom' ? 'filled' : 'light'}
+            onClick={() => setMode('zoom')}
+            leftSection="🔍"
+          >
+            Zoom Mode
+          </Button>
+          <Button
+            size="xs"
+            variant={mode === 'select' ? 'filled' : 'light'}
+            onClick={() => setMode('select')}
+            leftSection="📦"
+          >
+            Selection Mode
+          </Button>
+        </Group>
+        <Text size="xs" c="dimmed" ta="right">
+          {modeInstruction}
+        </Text>
+      </Group>
+
+      {selectedIndices.length > 0 && (
+        <Group justify="apart" mb="md">
+          <Text fw={600} c="blue">
+            Selected: {selectedIndices.length} bubble(s)
+          </Text>
+          <Button size="xs" variant="subtle" onClick={clearSelection} color="red">
+            Clear Selection
+          </Button>
+        </Group>
+      )}
+
+      <Modal opened={opened} onClose={close} size="lg" title="Molecule Details">
         <div className='ml-forms'>
           {modalDets && (
             <div className='ml-forms'>
-              <span>Activity: {modalDets.activity.toFixed(2)}</span>
-              &nbsp;
-              <span>ID: {localStorage.getItem("dataSource") === "chembl" ?
-                <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${modalDets.id}/`}>{modalDets.id}</a> : modalDets.id}</span>
+              <Text mb="sm">
+                <Text span fw={500}>Activity:</Text> {modalDets.activity.toFixed(2)}
+              </Text>
+              <Text mb="lg">
+                <Text span fw={500}>ID:</Text> {localStorage.getItem("dataSource") === "chembl" ?
+                  <a href={`https://www.ebi.ac.uk/chembl/compound_report_card/${modalDets.id}/`} target="_blank">
+                    {modalDets.id}
+                  </a> : modalDets.id}
+              </Text>
               <MoleculeStructure height={500} width={500} structure={modalDets.canonical_smiles} key={randomInt(0, 1000000).toString()} id="smiles" />
             </div>
           )}
         </div>
       </Modal>
 
-      <div>
-        <br />
-        {selectedIndices.length > 0 && (
-          <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'rgba(100, 150, 255, 0.1)', borderRadius: '0.5rem', border: '1px solid rgb(100, 150, 255)' }}>
-            <strong>Selected: {selectedIndices.length} bubble(s)</strong> 
-            <button onClick={clearSelection} style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>Clear</button>
-          </div>
-        )}
-        <details>
-          <summary>Plot Settings</summary>
-          <div className='ml-forms'>
-            {colorProperty.length > 0 &&
-              <>
-                <label htmlFor="colorScaleSelect">Select Color Scale:</label>
-                <select className='input' id="colorScaleSelect" onChange={handleColorScaleChange} value={selectedColorScale}>
-                  {Object.keys(colorScales).map(scale => (
-                    <option key={scale} value={scale}>{scale}</option>
-                  ))}
-                </select>
-              </>
-            }
-
-            <label htmlFor="myRange">Select Dot Size:</label>
-            <input type="range" min="1" max="16" className="slider" id="myRange" onChange={e => setBubbleSize(parseFloat(e.target.value))} value={bubbleSize}></input>
-          </div>
-        </details>
-      </div>
+      <details>
+        <summary>Plot Settings</summary>
+        <div className='ml-forms' style={{ padding: '1rem 0' }}>
+          {colorProperty.length > 0 && (
+            <>
+              <Text size="sm" mb="xs" fw={500}>Color Scale:</Text>
+              <Select
+                size="xs"
+                data={Object.keys(colorScales)}
+                value={selectedColorScale}
+                onChange={handleColorScaleChange}
+                mb="md"
+              />
+            </>
+          )}
+          <Text size="sm" mb="xs" fw={500}>Bubble Size:</Text>
+          <Slider
+            size="xs"
+            min={1}
+            max={16}
+            value={bubbleSize}
+            onChange={setBubbleSize}
+            mb="xs"
+          />
+          <Text size="xs" c="dimmed">{bubbleSize.toFixed(0)}px</Text>
+        </div>
+      </details>
     </div>
   );
 }

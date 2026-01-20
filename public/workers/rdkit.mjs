@@ -60,6 +60,8 @@ async function substructure_search(params, requestId) {
       })
       query.delete();
 
+      console.log(searchResults);
+
       self.postMessage({
         function: 'substructure_search',
         id: requestId,
@@ -88,7 +90,7 @@ async function makeFingerprints(params, requestId) {
         radius: 2,
         nBits: 1024,
       };
-      processes_data = generateFingerprints(temp_ligand_process, settings, RDKitInstance);
+      processes_data = generateFingerprints(params.mol_data, settings, RDKitInstance);
       self.postMessage({
         function: 'only_fingerprint',
         id: requestId,

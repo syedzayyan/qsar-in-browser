@@ -108,7 +108,7 @@ export default function MLLayout({ children }) {
         {/* ---------------- Task Type Selector ---------------- */}
         <Select
           label="ML Task Type"
-          value={target.machine_learning_inference_type}
+          value={target.machine_learning_inference_type || "regression"}
           onChange={(v) => setTarget({ ...target, machine_learning_inference_type: v }) }
           data={[
             { value: "regression", label: "Regression" },

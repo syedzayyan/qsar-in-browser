@@ -3,6 +3,7 @@ import TargetContext from "../../context/TargetContext";
 import LigandContext from "../../context/LigandContext";
 import Link from "next/link";
 import FAQComp from "../ui-comps/FAQComp";
+import { Button, Progress } from "@mantine/core";
 
 export default function CompoundGetter() {
   const [unit, setUnit] = useState("Ki");
@@ -104,17 +105,15 @@ export default function CompoundGetter() {
         <option value="Potency">Potency</option>
         <option value="ED50">ED50</option>
       </select>
-      <button className="button" onClick={hehe}>
+      <Button className="button" onClick={hehe}>
         Fetch Data
-      </button>
+      </Button>
       {loading && (
         <div>
-          <progress
-            className="progress-bar"
+          <Progress
             value={progress}
-            max={100}
             style={{ width: "100%", marginBottom: "10px" }}
-          ></progress>
+          ></Progress>
           <br></br>
           <span style={{ textAlign: "center" }}>
             {Math.min(progress, 100).toFixed(2)} %

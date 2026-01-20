@@ -23,14 +23,13 @@ export default function ScreenLayout({ children }) {
         pushNotification({ message: "Running ML Model on Ligands" });
         let newScreenData = screenData
         newScreenData.forEach(obj => {
-            console.log(obj[data.smi_column]);
             obj["canonical_smiles"] = obj[data.smi_column];
             delete obj[data.smi_column];
         });
 
         const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         rdkit.postMessage({
-            function: 'fingerprint',
+            function: 'only_fingerprint',
             id: requestId,
             mol_data: newScreenData,
             formStuff: {
@@ -39,9 +38,8 @@ export default function ScreenLayout({ children }) {
                 nBits: parseInt(localStorage.getItem("nBits")),
             }
         });
-
         rdkit.onmessage = async (event) => {
-
+            console.log("Received message from RDKit:", event.data);
             if (event.data.id === requestId) {
                 let mol_fp = event.data.data.map(x => x["fingerprint"]);
                 pyodide.postMessage({
@@ -51,6 +49,7 @@ export default function ScreenLayout({ children }) {
                     func: "ml-screen"
                 })
                 pyodide.onmessage = async (event) => {
+                    console.log("Received message from Pyodide:", event.data);
                     if (event.data.success == "ok") {
                         let fp_mols = event.data.results;
                         newScreenData = await newScreenData.map((x, i) => {
