@@ -14,7 +14,6 @@ export default function Activity() {
         ? ligand.map((obj) => obj[target.activity_columns[0]])
         : [];
     
-
     return (
         <div className="tools-container">
             <Histogram data={data} xLabel={target?.activity_columns?.[0] || ""} yLabel="Count" toolTipData={ligand}>

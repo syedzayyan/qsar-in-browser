@@ -15,7 +15,7 @@ interface ScatterplotProps {
   yAxisTitle?: string;
   id?: string[];
   onSelectIndices?: (indices: number[]) => void;
-  discreteColor?: boolean;    
+  discreteColor?: boolean;
 }
 
 interface Details {
@@ -77,9 +77,9 @@ export default function DiscreteScatterplot({
   const [modalDets, setModalDets] = useState<ModalDets | null>(null);
 
   const [bubbleSize, setBubbleSize] = useState(6);
-  const [selectedColorScale, setSelectedColorScale] = useState('Set1');
+  const [selectedColorScale, setSelectedColorScale] = useState('Dark2');
   const [showFitLines, setShowFitLines] = useState(true);
-  
+
   // State for selectable color labels
   const [visibleLabels, setVisibleLabels] = useState<Set<string>>(() => {
     const unique = [...new Set(colorLabels)];
@@ -329,9 +329,9 @@ export default function DiscreteScatterplot({
         .join('g')
         .attr('class', 'r2-label-group')
         .attr('transform', (d, i) => {
-          return `translate(${width - 95}, ${i * 25 + 10})`;
+          return `translate(${width - width}, ${i * 25 + 10})`;
         })
-        .style('opacity', d => d.visible ? 1 : 0.3)
+        .style('opacity', d => d.visible ? 1 : 0.7)
         .call(g => {
           g.selectAll('rect').remove();
           g.append('rect')
@@ -361,40 +361,62 @@ export default function DiscreteScatterplot({
     }
 
     // Legend (bottom, clickable)
-    if (colorLabels.length && uniqueLabels.length > 0) {
-      const legendY = height + 48;
-      const legendItemSpacing = 80;
+    // Legend (bottom, clickable) - responsive wrapping
+// Legend (bottom, clickable) - BULLETPROOF responsive wrapping
+if (colorLabels.length && uniqueLabels.length > 0) {
+  const legendY = height + 48;
+  const availableWidth = width - 20;  // Safe padding
+  const maxItemsPerRow = Math.max(1, Math.floor(availableWidth / 85));  // 85px/item conservative
+  const rowHeight = 22;
 
-      g.selectAll('g.legend-item')
-        .data(uniqueLabels)
-        .join('g')
-        .attr('class', 'legend-item')
-        .attr('transform', (_, i) => `translate(${i * legendItemSpacing}, ${legendY})`)
-        .style('cursor', 'pointer')
-        .on('click', (event, label) => {
-          event.stopPropagation();
-          toggleLabel(label);
-        })
-        .call(g => {
-          g.selectAll('rect').remove();
-          g.append('rect')
-            .attr('width', 12)
-            .attr('height', 12)
-            .attr('fill', d => colorScale(d))
-            .attr('rx', 2)
-            .attr('stroke', d => visibleLabels.has(d) ? colorScale(d) : 'rgba(128,128,128,0.3)')
-            .attr('stroke-width', d => visibleLabels.has(d) ? 2 : 1)
-            .attr('opacity', d => visibleLabels.has(d) ? 1 : 0.3);
+  const legendGroup = g.append('g')
+    .attr('transform', `translate(10, ${legendY})`);
 
-          g.selectAll('text').remove();
-          g.append('text')
-            .attr('x', 18)
-            .attr('y', 10)
-            .style('font-size', '0.9rem')
-            .style('fill', d => visibleLabels.has(d) ? 'var(--mantine-color-text)' : 'rgba(128,128,128,0.5)')
-            .text(d => d);
-        });
-    }
+  legendGroup.selectAll('g.legend-item')
+    .data(uniqueLabels)
+    .join('g')
+    .attr('class', 'legend-item')
+    .attr('transform', (_, i) => {
+      const row = Math.floor(i / maxItemsPerRow);
+      const col = i % maxItemsPerRow;
+      return `translate(${col * 85}, ${row * rowHeight})`;
+    })
+    .style('cursor', 'pointer')
+    .on('click', (event, label) => {
+      event.stopPropagation();
+      toggleLabel(label);
+    })
+    .call(g => {
+      g.selectAll('rect').remove();
+      g.append('rect')
+        .attr('width', 12)
+        .attr('height', 12)
+        .attr('fill', d => colorScale(d))
+        .attr('rx', 2)
+        .attr('stroke', d => visibleLabels.has(d) ? colorScale(d) : 'rgba(128,128,128,0.3)')
+        .attr('stroke-width', d => visibleLabels.has(d) ? 2 : 1)
+        .attr('opacity', d => visibleLabels.has(d) ? 1 : 0.3);
+
+      g.selectAll('text').remove();
+      g.append('text')
+        .attr('x', 18)
+        .attr('y', 10)
+        .style('font-size', '0.85rem')  // Slightly smaller for narrow screens
+        .style('fill', d => visibleLabels.has(d) ? 'var(--mantine-color-text)' : 'rgba(128,128,128,0.5)')
+        .text(d => d);
+    });
+
+  // Clip legend to prevent overflow
+  legendGroup.append('rect')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', availableWidth)
+    .attr('height', Math.ceil(uniqueLabels.length / maxItemsPerRow) * rowHeight + 10)
+    .attr('fill', 'none')
+    .attr('stroke', 'none');
+}
+
+
   }, [data, outerSize, selectedColorScale, bubbleSize, colorLabels, hoverProp, xAxisTitle, yAxisTitle, id, open, showFitLines, visibleLabels]);
 
   function handleColorScaleChange(value: string) {
@@ -452,28 +474,6 @@ export default function DiscreteScatterplot({
           )}
         </div>
       </details>
-
-      <Modal opened={opened} onClose={close} size="lg" title="Details">
-        {modalDets && (
-          <div className='ml-forms'>
-            <Text mb="sm">
-              <Text span fw={500}>Label:</Text> {modalDets.activity}
-            </Text>
-            <Text mb="lg">
-              <Text span fw={500}>ID:</Text> {modalDets.id}
-            </Text>
-            {modalDets.canonical_smiles && (
-              <MoleculeStructure 
-                height={500} 
-                width={500} 
-                structure={modalDets.canonical_smiles} 
-                key={randomInt(0, 1000000).toString()} 
-                id="smiles" 
-              />
-            )}
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }

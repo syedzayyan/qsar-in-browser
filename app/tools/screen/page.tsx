@@ -7,61 +7,75 @@ import { ScreenDataContext } from "./layout";
 import TargetContext from "../../../context/TargetContext";
 
 export default function Screen() {
-    const screenData = useContext(ScreenDataContext);
-    const { target } = useContext(TargetContext);
+  const screenData = useContext(ScreenDataContext);
+  const { target } = useContext(TargetContext);
 
-    const [preds, setPreds] = useState([]);
+  const [preds, setPreds] = useState([]);
 
-    useEffect(() => {
-        if (!screenData?.length) return;
+  useEffect(() => {
+    let newScreenData = screenData;
+    if (screenData?.length > 0) {
+      const computedPreds = screenData.map((x, i) => {
+        const preds = x?.predictions;
+        // Detect typed array or array
+        if (preds && preds.length && preds.length > 0) {
+          if (preds.length === 2) {
+            newScreenData[i].predictions = preds[1] > 0.5 ? 1.0 : 0.0;
+            return preds[1] > 0.5 ? 1.0 : 0.0;
+          }
+          // Multi-class argmax
+          let maxIndex = 0;
+          for (let i = 1; i < preds.length; i++) {
+            if (preds[i] > preds[maxIndex]) {
+              maxIndex = i;
+            }
+          }
+          newScreenData[i].predictions = maxIndex;
+          return maxIndex;
+        }
+        newScreenData[i].predictions = preds;
+        return preds;
+      }).filter(p => p !== null);
+      setPreds(computedPreds);
+    }
+  }, [screenData, target]);
 
-        let computedPreds = screenData.map(x => {
-            if (!x.predictions || x.predictions.length < 2) return null;
-
-            const preds = Array.from(x.predictions);
-
-            return target?.machine_learning_inference_type === "classification"
-                ? preds[0] > preds[1] ? 1 : 0
-                : preds;
-        });
-        console.log(computedPreds);
-        setPreds(computedPreds);
-    }, [screenData, target]);
 
 
-    const downloadCsv = () => {
-        const csvContent =
-            "data:text/csv;charset=utf-8," +
-            screenData.map(row => Object.values(row).join(",")).join("\n");
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "data.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+  const downloadCsv = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      screenData.map(row => Object.values(row).join(",")).join("\n");
 
-    return (
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <>
+      {screenData.length > 0 && screenData[0].predictions !== undefined && (
         <>
-            {screenData.length > 0 && screenData[0].predictions !== undefined && (
-                <>
-                    <Histogram data={preds} />
-                    <br />
-                    <button className="button" onClick={downloadCsv}>
-                        Download Predictions in CSV Format
-                    </button>
-                    &nbsp;
-                    <DataTable
-                        data={screenData}
-                        rowsPerPage={5}
-                        act_column={["predictions"]}
-                        onSelectionChange={() => { }}
-                        checkboxExistence={false}
-                    />
-                </>
-            )}
+          <Histogram data={preds} />
+          <br />
+          <button className="button" onClick={downloadCsv}>
+            Download Predictions in CSV Format
+          </button>
+          &nbsp;
+          <DataTable
+            data={screenData}
+            rowsPerPage={5}
+            act_column={["predictions"]}
+            onSelectionChange={() => { }}
+            checkboxExistence={false}
+          />
         </>
-    );
+      )}
+    </>
+  );
 }

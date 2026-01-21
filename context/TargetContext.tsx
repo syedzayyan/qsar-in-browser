@@ -39,6 +39,7 @@ export function TargetProvider({ children }: TargetProviderProps) {
         scaffold_network: undefined,
         scaffCores: [],
         machine_learning: [],
+        machine_learning_inference_type: "regression"
     });
 
     return (
