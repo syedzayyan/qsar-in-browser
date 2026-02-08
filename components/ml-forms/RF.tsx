@@ -2,7 +2,8 @@
 
 import { useForm } from "@mantine/form"
 import { TextInput, Select, Button, Paper, Title, Text, Stack } from "@mantine/core"
-import { useEffect } from "react"
+import { useContext, useEffect } from "react"
+import NotificationContext from "../../context/NotificationContext"
 
 type RFModelInputs = {
   n_estimators: number
@@ -55,6 +56,9 @@ export default function RF({
     "entropy",
     "log_loss",
   ]
+
+  const { notifications } = useContext(NotificationContext);
+  const isRunning = notifications.some((n) => n.message.startsWith("machine_learning") && !n.done);
 
   return (
     <Paper
@@ -119,8 +123,9 @@ export default function RF({
             fullWidth
             variant="gradient"
             gradient={{ from: "teal", to: "lime", deg: 105 }}
+            disabled={isRunning}
           >
-            Train & Test RF
+            {isRunning ? "Training in Progress..." : "Train & Test RF"}
           </Button>
         </Stack>
       </form>

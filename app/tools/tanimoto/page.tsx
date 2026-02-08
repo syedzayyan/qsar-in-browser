@@ -4,19 +4,20 @@ import { useState, useEffect, useRef, useContext } from "react";
 import LigandContext from "../../../context/LigandContext";
 import Histogram from "../../../components/tools/toolViz/Histogram";
 import RDKitContext from "../../../context/RDKitContext";
-import ErrorContext from "../../../context/ErrorContext";
 import JSME from "../../../components/tools/toolViz/JSMEComp";
-import { Select } from "@mantine/core";
+import { Button, Select } from "@mantine/core";
+import NotificationContext from "../../../context/NotificationContext";
 
 export default function Tanimoto() {
   const { ligand } = useContext(LigandContext) || { ligand: [] };
   const { rdkit } = useContext(RDKitContext);
-  const { setErrors } = useContext(ErrorContext);
   const [selectedAnchorMol, setSelectedAnchorMol] = useState<string | null>(null);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const [taniData, setTaniData] = useState([]);
   const [anchorMol, setAnchorMol] = useState("CCO");
+
+  const { notifications, pushNotification } = useContext(NotificationContext);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -26,6 +27,7 @@ export default function Tanimoto() {
 
   function tanimotoDist() {
     const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    pushNotification({ message: "Generating Tanimoto Distances...", id: requestId, done: false });
     rdkit.postMessage({
       function: 'tanimoto',
       id: requestId,
@@ -40,6 +42,8 @@ export default function Tanimoto() {
     setSelectedAnchorMol(anchorMol);
     setTaniData([...taniData, anchorMol]);
   }
+
+  const isRunning = notifications.some(notification => notification.id.startsWith("fingerprint_") && !notification.done);
 
   return (
     <div className="tools-container" ref={containerRef}>
@@ -67,9 +71,9 @@ export default function Tanimoto() {
       &nbsp;
       <JSME width="400px" height="300px" onChange={(smiles) => setAnchorMol(smiles)} />
       &nbsp;
-      <button className="button" onClick={tanimotoDist}>
-        Generate Graph
-      </button>
+      <Button disabled={isRunning} className="button" onClick={tanimotoDist}>
+        {isRunning ? "Generating Graph..." : "Generate Graph"}
+      </Button>
       <Select
         label="Your favorite library"
         placeholder="Pick value"

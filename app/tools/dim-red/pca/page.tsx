@@ -13,7 +13,7 @@ export default function PCA() {
     const { setLigand, ligand } = useContext(LigandContext);
     const { target } = useContext(TargetContext);
     const { pyodide } = useContext(PyodideContext);
-    const { pushNotification } = useContext(NotificationContext);
+    const { notifications, pushNotification } = useContext(NotificationContext);
 
     const [opened, setOpened] = useState(false);
     const [indicesToDelete, setIndicesToDelete] = useState<number[]>([]);
@@ -22,9 +22,15 @@ export default function PCA() {
     const containerRef = useRef(null);
 
     async function runDimRed() {
-        pushNotification({ message: "Running PCA..." });
+        pushNotification({
+            id: "job-pca",          // <- consistent job ID
+            message: "Running PCA...",
+            autoClose: true,
+            done: false,
+            type: 'info'
+        });
         const msg = {
-            id: "job-123",
+            id: "pca-123",
             opts: 1,
             func: "dim_red",
             fp: ligand.map((obj) => obj.fingerprint),
@@ -47,10 +53,18 @@ export default function PCA() {
         });
         close();
     }
+
+    const isRunning = notifications.some(n => n.id === "job-pca" && n.done === false);
+
+
     return (
         <div className="tools-container" ref={containerRef}>
             <h1>Principal Component Analysis</h1>
-            <Button onClick={() => runDimRed()}>Run PCA</Button>
+            <Button onClick={runDimRed} disabled={isRunning}>
+                {isRunning ? "PCA Running..." : "Run PCA"}
+            </Button>
+
+
             <Modal opened={opened} onClose={close} title="Delete Molecules?">
                 <p>Are you sure you want to delete the selected molecules?</p>
                 <Group gap={"2rem"}>

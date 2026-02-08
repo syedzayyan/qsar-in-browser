@@ -2,7 +2,8 @@
 
 import { useForm } from "react-hook-form"
 import { TextInput, Button, Paper, Title, Text, Stack } from "@mantine/core"
-import { useEffect } from "react"
+import { useContext, useEffect } from "react"
+import NotificationContext from "../../context/NotificationContext"
 
 type XGBoostModelInputs = {
   max_depth: number
@@ -51,6 +52,9 @@ export default function XGB({
       model: taskType === "classification" ? 4 : 3,
     });
   }, [taskType]);
+
+    const { notifications } = useContext(NotificationContext);
+  const isRunning = notifications.some((n) => n.message.startsWith("machine_learning") && !n.done);
 
   return (
     <Paper
@@ -116,8 +120,9 @@ export default function XGB({
             fullWidth
             variant="gradient"
             gradient={{ from: "violet", to: "indigo" }}
+            disabled={isRunning}
           >
-            Train & Test XGBoost
+            {isRunning ? "Training in Progress..." : "Train & Test XGBoost"}
           </Button>
         </Stack>
       </form>

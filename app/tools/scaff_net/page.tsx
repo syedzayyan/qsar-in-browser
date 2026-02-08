@@ -8,6 +8,7 @@ import TargetContext from "../../../context/TargetContext";
 import { deserializeGraph, graph_molecule_image_generator } from "../../../components/utils/rdkit_loader";
 import RDKitContext from "../../../context/RDKitContext";
 import { Tabs } from "@mantine/core";
+import ScaffoldNetworkTreeView from "../../../components/tools/toolComp/SteppedWholeGraph";
 
 export default function DisplayGraph() {
   const { target } = useContext(TargetContext);
@@ -49,13 +50,17 @@ export default function DisplayGraph() {
           />
         </Tabs.Panel>
 
-        <Tabs.Panel value="Network_Details">
-          {target.scaffold_network != undefined && <ScaffNetDets />}
-        </Tabs.Panel>
+        {target.scaffold_network != undefined &&
+          <>
+            <Tabs.Panel value="Network_Details">
+              <ScaffNetDets />
+            </Tabs.Panel>
 
-        <Tabs.Panel value="Whole_Network">
-          {target.scaffold_network != undefined && <ScaffoldNetworkWholeGraph imageSize={200} />}
-        </Tabs.Panel>
+            <Tabs.Panel value="Whole_Network">
+              <ScaffoldNetworkTreeView imageSize={200} />
+            </Tabs.Panel>
+          </>
+        }
       </Tabs>
     </div >
   );

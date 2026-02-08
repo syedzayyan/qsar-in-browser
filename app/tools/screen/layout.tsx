@@ -16,7 +16,7 @@ export default function ScreenLayout({ children }) {
     const [loaded, setLoaded] = useState(true);
     const [screenData, setScreenData] = useState([]);
     const [broadLoading, setBroadLoading] = useState(false);
-    const [autoRunML, setAutoRunML] = useState(false);  // NEW: Auto-run toggle
+    const [autoRunML, setAutoRunML] = useState(true);  // NEW: Auto-run toggle
     const { pushNotification } = useContext(NotificationContext);
     const screenDataContextValue = screenData;
 
@@ -167,13 +167,6 @@ export default function ScreenLayout({ children }) {
                                 >
                                     {broadLoading ? 'Loading...' : 'Load Broad Dataset'}
                                 </Button>
-                                
-                                <Switch
-                                    label="Auto-run ML after loading"
-                                    checked={autoRunML}
-                                    onChange={(event) => setAutoRunML(event.currentTarget.checked)}
-                                    disabled={broadLoading || screenData.length > 0}
-                                />
                             </Stack>
                             
                             <Text size="sm" c="dimmed" ta="center" mt="xs">

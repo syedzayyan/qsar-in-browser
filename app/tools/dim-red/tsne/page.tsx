@@ -24,7 +24,7 @@ export default function TSNE() {
   const [pca, setPCA] = useState<any[]>([]);
   const containerRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
-  const { pushNotification } = useContext(NotificationContext);
+  const { notifications, pushNotification } = useContext(NotificationContext);
 
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<tsneType>()
   const [opened, setOpened] = useState(false);
@@ -48,10 +48,11 @@ export default function TSNE() {
 
   async function runDimRed(formStuff: tsneType) {
     setLoaded(false);
-    pushNotification({ message: "Running tSNE..." });
+    const requestId = `tsne_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    pushNotification({ id: requestId, message: "Running tSNE...", done: false, type: 'info' });
 
     const msg = {
-      id: "job-123",
+      id: requestId,
       opts: formStuff.pca_correct ? 2 : 3,
       fp: globalThis.fp,
       func: "dim_red",
@@ -70,6 +71,8 @@ export default function TSNE() {
     setLoaded(true);
   }
 
+  const isRunning = notifications.some(n => n.id.includes("tsne_") && n.done === false);
+
   return (
     <div className="tools-container" ref={containerRef}>
       <h1>t-distributed Stochastic Neighbor Embedding</h1>
@@ -78,7 +81,9 @@ export default function TSNE() {
         n_iter: 1000,
         pca_correct: true,
         n_jobs: 4,
-      })}>Run tSNE</Button>
+      })}
+      
+      disabled={isRunning}>{isRunning ? "tSNE Running..." : "Run tSNE"}</Button>
       <p>Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
         and tSNE computation is blocking.
       </p>

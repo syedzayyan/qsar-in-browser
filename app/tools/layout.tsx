@@ -11,7 +11,6 @@ import Navbar from "../../components/ui-comps/Navbar"
 import { AppShell, Burger, Flex, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Notification } from '@mantine/core';
-import { MLResultsContext } from "../../context/MLResultsContext";
 import NotificationContext from "../../context/NotificationContext";
 
 export default function DashboardLayout({
@@ -29,18 +28,21 @@ export default function DashboardLayout({
   const router = useRouter();
   const [opened, { toggle }] = useDisclosure();
 
-  const setScreenData = useContext(MLResultsContext);
-
   useEffect(() => {
     const pyodideWorker = new Worker("/workers/pyodide.mjs", { type: "module" });
     const rdkitWorker = new Worker("/workers/rdkit.mjs");
     setRDKit(rdkitWorker);
     setPyodide(pyodideWorker);
-    if (ligand.length < 1) {
-      pushNotification({ "message": "Data Loading Done!" });
-      router.push("/tools/load_data");
-    }
   }, []);
+
+
+
+  useEffect(() => {
+    if (ligand.length > 1) {
+      pushNotification({ "message": "Data Loading Done!" });
+    }
+
+  }, [ligand]);
 
   useEffect(() => {
     notifications.forEach((n) => {
@@ -61,13 +63,13 @@ export default function DashboardLayout({
 
       // Handle simple string messages (progress, etc.)
       if (message && typeof message === 'string') {
-        pushNotification({ message, autoClose: true, duration: 2000, id: id || undefined });
+        pushNotification({ message, autoClose: true, duration: 2000, id: id || undefined, type: 'info' });
         return;
       }
 
       // Handle errors
       if (error) {
-        pushNotification({ message: `Error: ${error}`, type: 'error' });
+        pushNotification({ id, message: `Error: ${error}`, type: 'error' });
         rdkit.terminate();
         return;
       }
@@ -81,7 +83,7 @@ export default function DashboardLayout({
               localStorage.setItem("path", data.settings.radius.toString());
               localStorage.setItem("nBits", data.settings.nBits.toString());
             }
-            pushNotification({ message: "Molecule Pre-processing Done! Going to Activity Distribution Tool..." });
+            pushNotification({ id, message: "Molecule Pre-processing Done! Going to Activity Distribution Tool...", type: 'success' });
             setTimeout(() => {
               setLigand(data.data);
               setTarget({ ...target, activity_columns: data.activity_columns, pre_processed: true });
@@ -90,50 +92,26 @@ export default function DashboardLayout({
             break;
 
           case 'mma':
-            pushNotification({ message: "Massive Molecular Analysis Done! Going to Scaffold Analysis Tool..." });
+            pushNotification({ id, message: "Massive Molecular Analysis Done! Going to Scaffold Analysis Tool...", type: 'success', done: true });
             setTarget({ ...target, scaffCores: data.data });
             break;
 
           case 'tanimoto':
-            pushNotification({ message: "Tanimoto Similarity Calculation Done!" });
+            pushNotification({ id, message: "Tanimoto Similarity Calculation Done!", type: 'success', done: true });
             setLigand(data.data);
             break;
 
           case 'only_fingerprint':
-            // if (data.id.includes("ml_screen_")) {
-            //   // Handle ML screen fingerprints
-            //   if (data.function === "only_fingerprint") {
-            //     let mol_fp = data.results.map(x => x["fingerprint"]);
-            //     pyodide.postMessage({
-            //       id: "job-123",
-            //       opts: target.machine_learning_inference_type === "regression" ? 1 : 2,
-            //       fp: mol_fp,
-            //       func: "ml-screen"
-            //     })
-            //     pyodide.onmessage = async (event) => {
-            //       console.log("Received message from Pyodide:", event.data);
-            //       if (event.data.success == "ok") {
-            //         let fp_mols = event.data.results;
-            //         newScreenData = await newScreenData.map((x, i) => {
-            //           x["predictions"] = fp_mols[i];
-            //           return x
-            //         });
-            //         setScreenData(newScreenData);
-            //         pushNotification({ message: "ML Model run complete" });
-            //       }
-            //     }
-            //   }
-            // }
             setLigand(data.results);
-            pushNotification({ message: "Fingerprints generated successfully!" });
+            pushNotification({ id, message: "Fingerprints generated successfully!", type: 'success', done: true });
             break;
 
           case 'substructure_search':
             setLigand(data.results);
-            pushNotification({ message: `Found ${data.results.length} matching substructures` });
+            pushNotification({ id, message: `Found ${data.results.length} matching substructures`, type: 'success', done: true });
             break;
           case 'scaffold_network':
-            pushNotification({ message: "Scaffold Network Generation Done!" });
+            pushNotification({ id, message: "Scaffold Network Generation Done!", type: 'success', done: true });
             setTarget({ ...target, scaffold_network: data.data });
             break;
           default:
@@ -154,7 +132,7 @@ export default function DashboardLayout({
         console.log(message);
         if (message.opts === 2 || message.opts === 3) {
           setTarget({ ...target, tsne_explained_variance: message.explained_variance });
-          pushNotification({ message: "tSNE Processing Done!" });
+          pushNotification({ id: message.id, message: "tSNE Processing Done!", type: 'success', done: true });
           setLigand((prevLigands) => {
             return prevLigands.map((ligand, index) => ({
               ...ligand,
@@ -162,7 +140,7 @@ export default function DashboardLayout({
             }));
           });
         } else {
-          pushNotification({ message: "PCA Processing Done!" });
+          pushNotification({ id: message.id, message: "PCA Processing Done!", type: 'success', done: true });
           setTarget({ ...target, pca_explained_variance: message.explained_variance });
           setLigand((prevLigands) => {
             return prevLigands.map((ligand, index) => ({
@@ -172,7 +150,7 @@ export default function DashboardLayout({
           });
         }
       } else if (message.func === "ml") {
-        pushNotification({ message: "Model Training Done! Going to Results Page..." });
+        pushNotification({ id: message.id, message: "Model Training Done! Going to Results Page...", type: 'success', done: true });
         setTarget({ ...target, machine_learning: message.results });
       } else {
         console.log(message);

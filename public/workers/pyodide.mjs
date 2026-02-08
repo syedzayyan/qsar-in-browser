@@ -25,7 +25,7 @@ self.onmessage = async (event) => {
   //     random_state: 42
   //   }
   // }
-  const { opts = 1, func = 'dim_red', fp, params = {} } = event.data;
+  const { id, func = 'dim_red', opts = 1, fp, params = {} } = event.data;
   const pyodide = await pyodideReadyPromise;
   await ensurePackages(pyodide);
   switch (func) {
@@ -48,6 +48,7 @@ self.onmessage = async (event) => {
 
         // Post results back to the main thread
         self.postMessage({
+          id, // echo same job ID
           ok: true,
           func,
           opts,
@@ -116,6 +117,7 @@ self.onmessage = async (event) => {
         // =========================
         self.postMessage({
           results: [metric1, metric2, flatData],
+          id, // echo same job ID
           func,
           opts,
           ok: true
@@ -132,7 +134,7 @@ self.onmessage = async (event) => {
     case "ml-screen":
       globalThis.one_off_mol_fp = fp;
       await pyodide.runPythonAsync(await (await fetch("/python/pyodide_ml_screen.py")).text());
-      self.postMessage({ success: "ok", results: globalThis.one_off_y.toJs() })
+      self.postMessage({ success: "ok", id, results: globalThis.one_off_y.toJs() })
       break;
     default:
       self.postMessage({ ok: false, error: `Unknown function: ${func}` });

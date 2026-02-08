@@ -18,8 +18,8 @@ import {
   rem,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { showNotification } from "@mantine/notifications";
 import { IconCheck, IconX, IconInfoCircle } from "@tabler/icons-react";
+import NotificationContext from "../../../context/NotificationContext";
 
 type ScaffoldNetParams = {
   includeGenericScaffolds: boolean;
@@ -54,6 +54,7 @@ const initialValues: ScaffoldNetParams = {
 export default function ScaffoldSettings() {
   const { ligand } = useContext(LigandContext);
   const { rdkit } = useContext(RDKitContext);
+  const {notifications, pushNotification} = useContext(NotificationContext);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -113,18 +114,25 @@ export default function ScaffoldSettings() {
         smiles_list: smiles_list,
       })
 
+      pushNotification({
+        message: "Scaffold network generation started",
+        id: "scaffold_network_" + Date.now(),
+        done: false,
+        type: 'info',
+      });
+
     } catch (err: any) {
       console.error(err);
-      showNotification({
-        title: "Error generating network",
+      pushNotification({
         message: err?.message ? String(err.message) : "An unexpected error occurred.",
-        color: "red",
-        icon: <IconX size={rem(16)} />,
+        type: 'error',
       });
     } finally {
       setSubmitting(false);
     }
   };
+
+  const isRunning = notifications.some((n) => n.id.startsWith("scaffold_network_") && !n.done);
 
   return (
     <Card shadow="sm" radius="md" p="md" withBorder>
@@ -207,8 +215,8 @@ export default function ScaffoldSettings() {
                 Reset
               </Button>
 
-              <Button type="submit" loading={submitting}>
-                Run network
+              <Button type="submit" loading={submitting} disabled={submitting || ligand.length === 0 || isRunning}>
+                {isRunning ? "Running network..." : "Run network"}
               </Button>
             </Group>
           </Group>

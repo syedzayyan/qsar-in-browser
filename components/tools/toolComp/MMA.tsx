@@ -20,7 +20,7 @@ export default function MMA() {
   const currentRequestId = useRef(null);
   const mounted = useRef(true);
   const prevOnMessage = useRef(null);
-  const { pushNotification } = useContext(NotificationContext);
+  const { notifications, pushNotification } = useContext(NotificationContext);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -82,12 +82,12 @@ export default function MMA() {
   }, [rdkit, setTarget]);
 
   const mmaRunner = useCallback(() => {
-    pushNotification({ message: "Running Matched Molecular Analysis..." });
+    
     if (!rdkit) return;
 
     const requestId = `mma_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     currentRequestId.current = requestId;
-
+    pushNotification({ message: "Running Matched Molecular Analysis...", id: requestId, done: false });
     // optimistic UX: mark as not loaded while running (target-derived effect will override if context already had results)
     setScaffCoresLoaded(false);
 
@@ -107,6 +107,8 @@ export default function MMA() {
     setSpecificMolArray(selectedArrays);
     open();
   }
+
+  const isRunning = notifications.some(n => n.id.startsWith("mma_") && !n.done);
 
   if (scaffCoreLoaded) {
     return (
@@ -148,7 +150,7 @@ export default function MMA() {
   } else {
     return (
       <div className="main-container">
-        <Button onClick={mmaRunner} disabled={!rdkit}>Run Matched Molecular Analysis</Button>
+        <Button disabled={isRunning} onClick={mmaRunner}>{isRunning ? "Running Matched Molecular Analysis..." : "Run Matched Molecular Analysis"}</Button>
       </div>
     );
   }

@@ -13,6 +13,7 @@ import { Button, Group, Input, Select } from "@mantine/core";
 import FoldMetricBarplot from "../../../components/tools/toolViz/BarChart";
 import DiscreteScatterplot from "../../../components/tools/toolViz/DiscreteScatterPlot";
 import { round } from "mathjs";
+import NotificationContext from "../../../context/NotificationContext";
 
 export default function MLLayout({ children }) {
   const [screenData, setScreenData] = useState([]);
@@ -24,6 +25,7 @@ export default function MLLayout({ children }) {
   const { rdkit } = useContext(RDKitContext);
   const { pyodide } = useContext(PyodideContext);
   const { setTarget, target } = useContext(TargetContext);
+  const { pushNotification } = useContext(NotificationContext);
   const pathname = usePathname();
 
   // -----------------------------
@@ -43,9 +45,16 @@ export default function MLLayout({ children }) {
   // One-off prediction
   // -----------------------------
   async function oneOffPred() {
-    const requestId = `fingerprint_${Date.now()}_${Math.random()
+    const requestId = `machine_learning_${Date.now()}_${Math.random()
       .toString(36)
       .slice(2)}`;
+
+    pushNotification({
+      message: "Your one-off prediction is being processed.",
+      type: "success",
+      id: requestId, 
+      done: false,
+    });
 
     rdkit.postMessage({
       function: "fingerprint",
@@ -64,7 +73,7 @@ export default function MLLayout({ children }) {
         const mol_fp = event.data.data[0].fingerprint;
 
         pyodide.postMessage({
-          id: "job-123",
+          id: requestId,
           opts: target.machine_learning_inference_type === "regression" ? 1 : 2,
           fp: [mol_fp],
           func: "ml-screen",
