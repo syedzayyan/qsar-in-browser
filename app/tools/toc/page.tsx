@@ -20,7 +20,8 @@ export default function TOC() {
 
     const [searchSmi, setSearchSmi] = useState('');
     const [searchRes, setSearchRes] = useState(ligand);
-    const [selectedRows, setSelectedRows] = useState<number[]>([]);
+    const [selectedRows, setSelectedRows] = useState<string[]>([]);
+
 
     useEffect(() => {
         if (inputRef.current) {
@@ -59,18 +60,14 @@ export default function TOC() {
     }
 
     function deleteSelected() {
-        const filtered = searchRes.filter((_, index) => !selectedRows.includes(index));
-        setSelectedRows([]);
-        setLigand(prevLigand => {
-            const updated = prevLigand.filter(
-                (_, idx) => !selectedRows.includes(idx)
-            );
-
-            // keep table in sync
+        setLigand(prev => {
+            const updated = prev.filter(mol => !selectedRows.includes(mol.id));
             setSearchRes(updated);
             return updated;
         });
+        setSelectedRows([]);
     }
+
 
     function resetTable() {
         setSearchSmi('');
@@ -108,8 +105,11 @@ export default function TOC() {
                 rowsPerPage={30}
                 act_column={target.activity_columns}
                 selectable
-                onSelectionChange={(selected) => setSelectedRows(selected)}
+                selectedRows={selectedRows}
+                onSelectionChange={setSelectedRows}
             />
+
+
         </div>
     )
 }

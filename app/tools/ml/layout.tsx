@@ -54,6 +54,7 @@ export default function MLLayout({ children }) {
       type: "success",
       id: requestId, 
       done: false,
+      autoClose: false,
     });
 
     rdkit.postMessage({

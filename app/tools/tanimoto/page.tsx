@@ -27,7 +27,7 @@ export default function Tanimoto() {
 
   function tanimotoDist() {
     const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    pushNotification({ message: "Generating Tanimoto Distances...", id: requestId, done: false });
+    pushNotification({ message: "Generating Tanimoto Distances...", id: requestId, done: false, autoClose: false });
     rdkit.postMessage({
       function: 'tanimoto',
       id: requestId,

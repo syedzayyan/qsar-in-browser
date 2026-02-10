@@ -49,7 +49,7 @@ export default function TSNE() {
   async function runDimRed(formStuff: tsneType) {
     setLoaded(false);
     const requestId = `tsne_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    pushNotification({ id: requestId, message: "Running tSNE...", done: false, type: 'info' });
+    pushNotification({ id: requestId, message: "Running tSNE...", done: false, type: 'info', autoClose: false });
 
     const msg = {
       id: requestId,

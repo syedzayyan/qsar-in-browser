@@ -20,7 +20,8 @@ export default function RandomForest() {
   const [threshold, setThreshold] = useState<number | null>(null);
 
   async function onSubmit(data: any) {
-    pushNotification({ message: "Running Machine Learning..." });
+    const requestID = `machine_learning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    pushNotification({ message: "Running Machine Learning...", id: requestID, type: "info", autoClose: false });
 
     // -----------------------
     // Activity column handling
@@ -33,7 +34,7 @@ export default function RandomForest() {
     }
 
     const msg = {
-      id: "job-123",
+      id: requestID,
       func: "ml",
       fp: ligand.map(mol => mol.fingerprint),
       opts: data.model, // 1,2,3,4 handled downstream

@@ -119,6 +119,7 @@ export default function ScaffoldSettings() {
         id: "scaffold_network_" + Date.now(),
         done: false,
         type: 'info',
+        autoClose: false,
       });
 
     } catch (err: any) {

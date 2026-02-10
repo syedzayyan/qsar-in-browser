@@ -25,7 +25,7 @@ export default function PCA() {
         pushNotification({
             id: "job-pca",          // <- consistent job ID
             message: "Running PCA...",
-            autoClose: true,
+            autoClose: false,
             done: false,
             type: 'info'
         });

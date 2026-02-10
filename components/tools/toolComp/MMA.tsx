@@ -87,7 +87,7 @@ export default function MMA() {
 
     const requestId = `mma_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     currentRequestId.current = requestId;
-    pushNotification({ message: "Running Matched Molecular Analysis...", id: requestId, done: false });
+    pushNotification({ message: "Running Matched Molecular Analysis...", id: requestId, done: false, autoClose: false });
     // optimistic UX: mark as not loaded while running (target-derived effect will override if context already had results)
     setScaffCoresLoaded(false);
 

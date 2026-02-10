@@ -262,7 +262,7 @@ const ScaffoldNetworkTreeView = ({
           </ActionIcon>
 
           <Text size="xs" c="dimmed">
-            {reverse ? 'Leaves → Cores' : 'Cores → Leaves'}
+            Cores → Leaves
           </Text>
         </Group>
 
@@ -287,12 +287,16 @@ const ScaffoldNetworkTreeView = ({
         <Group align="flex-start" wrap="nowrap" gap="sm" px="sm">
           {columns.map((nodeIds, columnIndex) => {
             const activeId = activePath[columnIndex];
+            const sortedByMolCounts = [...nodeIds].sort((a, b) => {
+              const ma = nodeMap[a]?.molCounts ?? -Infinity;
+              const mb = nodeMap[b]?.molCounts ?? -Infinity;
+              return mb - ma; // descending (highest first)
+            });
+
             const ordered = activeId
-              ? [
-                activeId,
-                ...nodeIds.filter((id) => id !== activeId),
-              ]
-              : nodeIds;
+              ? [activeId, ...sortedByMolCounts.filter((id) => id !== activeId)]
+              : sortedByMolCounts;
+
 
             return (
               <Stack key={columnIndex} gap="xs">

@@ -5,6 +5,7 @@ import Histogram from "../../../components/tools/toolViz/Histogram";
 import DataTable from "../../../components/ui-comps/PaginatedTables";
 import { ScreenDataContext } from "./layout";
 import TargetContext from "../../../context/TargetContext";
+import DataTable2 from "../../../components/ui-comps/PaginatedTables2";
 
 export default function Screen() {
   const screenData = useContext(ScreenDataContext);
@@ -67,7 +68,7 @@ export default function Screen() {
             Download Predictions in CSV Format
           </button>
           &nbsp;
-          <DataTable
+          <DataTable2
             data={screenData}
             rowsPerPage={5}
             act_column={["predictions"]}

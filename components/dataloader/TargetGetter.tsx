@@ -14,7 +14,7 @@ export default function TargetGetter() {
   const [loading, setLoading] = useState(false);
   const { target, setTarget } = useContext(TargetContext);
 
-   const [opened, { open, close }] = useDisclosure(false);
+  const [opened, { open, close }] = useDisclosure(false);
 
   function fetchTarget(e) {
     setLoading(true);
@@ -32,6 +32,12 @@ export default function TargetGetter() {
       });
     e.preventDefault();
   }
+  const resetAll = () => {
+    setTargetDetails(dummyData.targets);
+    setTargetQuery("");
+    setLoading(false);
+    setTarget({ target_id: "", target_name: "", target_organism: "", data_source: "", pre_processed: false, scaffold_network: "", scaffCores: [] });
+  };
 
   return (
     <div className="data-loaders chembl-loader container">
@@ -102,7 +108,10 @@ export default function TargetGetter() {
           </Table>
         )}
       </div>
-      <Modal opened={opened} onClose={close}>
+      <Modal opened={opened} onClose={() => {
+        close();
+        resetAll();
+      }}>
         <CompoundGetter />
       </Modal>
     </div>

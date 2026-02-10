@@ -10,6 +10,7 @@ import { ScreenDataContext } from "../layout";
 import RDKitContext from "../../../../context/RDKitContext";
 import Loader from "../../../../components/ui-comps/Loader";
 import fpSorter from "../../../../components/utils/fp_sorter";
+import DataTable2 from "../../../../components/ui-comps/PaginatedTables2";
 
 export default function CovScore(){
     const [hof, setHOF] = useState<coverageSets[]>([{ id: "1", canonical_smiles: "CCO", fingerprint: [0, 0, 1], predictions: 0 }])
@@ -149,7 +150,7 @@ export default function CovScore(){
             </div>
             <button onClick={handleAddInput} className="button">Add Prior SMILES</button>
         </form>
-        {hof.length > 1 && <DataTable data={hof} rowsPerPage={5} onSelectionChange={() => {}} />}
+        {hof.length > 1 && <DataTable2 data={hof} rowsPerPage={5} onSelectionChange={() => {}} />}
     </div>
     )
 }
