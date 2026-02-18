@@ -1,7 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import MoleculeStructure from "../toolComp/MoleculeStructure";
-import Screenshotter from "../../utils/d3toPNG";
 import TargetContext from "../../../context/TargetContext";
 import { round } from "mathjs";
 import { useDisclosure } from "@mantine/hooks";
@@ -189,9 +188,9 @@ export default function Histogram({
           enter
             .append("rect")
             .attr("x", (d: d_bin) => xScale(d.x0) + BUCKET_PADDING / 2)
-            .attr("y", boundsHeight)
+            .attr("y", (d: d_bin) => yScale(d.length))
             .attr("width", (d: d_bin) => Math.max(0, xScale(d.x1) - xScale(d.x0) - BUCKET_PADDING))
-            .attr("height", 0)
+            .attr("height", (d: d_bin) => Math.max(0, boundsHeight - yScale(d.length)))  // ← Full height immediately
             .attr("rx", 4)
             .attr("fill", "url(#histBlueGradient)")
             .attr("filter", "url(#softShadow)")
@@ -302,7 +301,6 @@ export default function Histogram({
     <div ref={parentRef} style={{ position: "relative", width: "100%", height: "100%" }}>
       {children}
       <svg ref={svgRef} width={width} height={height} role="img" aria-label="Histogram chart" />
-      <Screenshotter svgRef={svgRef} />
       <Modal opened={opened} onClose={close} size="75rem">
         <Grid>
           {modalDets.map((x, i) => (

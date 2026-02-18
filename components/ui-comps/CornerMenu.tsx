@@ -28,6 +28,7 @@ export default function CornerMenu() {
   }
 
   return (
+    <div style={{ maxHeight: '100vh', overflowY: 'auto' }}>
     <Group>
       <Group justify="center" align="center">
         <span>{target.target_name}</span>
@@ -78,5 +79,6 @@ export default function CornerMenu() {
         </>
       )}
     </Group>
+    </div>
   )
 }

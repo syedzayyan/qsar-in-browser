@@ -26,8 +26,26 @@ export default function Tanimoto() {
   }, [anchorMol]);
 
   function tanimotoDist() {
+    // Validate anchor molecule is not empty
+    if (!anchorMol || anchorMol.trim() === "") {
+      const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      pushNotification({
+        message: "Error: Please provide a valid SMILES string for calculating Tanimoto Coefficient",
+        id: errorId,
+        done: true,
+        duration: 5000,
+      });
+      return; // Exit early
+    }
+
     const requestId = `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    pushNotification({ message: "Generating Tanimoto Distances...", id: requestId, done: false, autoClose: false });
+    pushNotification({
+      message: "Generating Tanimoto Distances...",
+      id: requestId,
+      done: false,
+      autoClose: false
+    });
+    
     rdkit.postMessage({
       function: 'tanimoto',
       id: requestId,
@@ -39,11 +57,15 @@ export default function Tanimoto() {
         nBits: parseInt(localStorage.getItem("nBits")) || 2048,
       }
     });
+    
     setSelectedAnchorMol(anchorMol);
     setTaniData([...taniData, anchorMol]);
+    setAnchorMol('');
   }
 
-  const isRunning = notifications.some(notification => notification.id.startsWith("fingerprint_") && !notification.done);
+  const isRunning = notifications.some(
+    notification => notification.id.startsWith("fingerprint_") && !notification.done
+  );
 
   return (
     <div className="tools-container" ref={containerRef}>
@@ -59,7 +81,7 @@ export default function Tanimoto() {
           the full picture, but adds a piece to the puzzle.
         </p>
       </details>
-      <label>SMILES string:  </label>
+      <label>SMILES string: </label>
       <input
         defaultValue={anchorMol}
         type="text"
@@ -77,12 +99,11 @@ export default function Tanimoto() {
       <Select
         label="Your favorite library"
         placeholder="Pick value"
-        value = {selectedAnchorMol}
+        value={selectedAnchorMol}
         data={taniData}
         onChange={setSelectedAnchorMol}
       />
-      {
-        selectedAnchorMol &&
+      {selectedAnchorMol &&
         Array.isArray(ligand) &&
         ligand.length > 0 &&
         ligand[0] &&
@@ -93,8 +114,7 @@ export default function Tanimoto() {
             xLabel="Tanimoto Scores"
             yLabel="Count"
           />
-        )
-      }
+        )}
     </div>
   );
 }

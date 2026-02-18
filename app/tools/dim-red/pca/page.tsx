@@ -8,6 +8,7 @@ import TargetContext from "../../../../context/TargetContext";
 
 import { Button, Group, Modal } from "@mantine/core";
 import NotificationContext from "../../../../context/NotificationContext";
+import { round } from "mathjs";
 
 export default function PCA() {
     const { setLigand, ligand } = useContext(LigandContext);
@@ -21,16 +22,14 @@ export default function PCA() {
 
     const containerRef = useRef(null);
 
+    let requestId;
+    
     async function runDimRed() {
-        pushNotification({
-            id: "job-pca",          // <- consistent job ID
-            message: "Running PCA...",
-            autoClose: false,
-            done: false,
-            type: 'info'
-        });
+        requestId = `pca_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        pushNotification({ id: requestId, message: "Running PCA...", done: false, type: 'info', autoClose: false });
+
         const msg = {
-            id: "pca-123",
+            id: requestId,
             opts: 1,
             func: "dim_red",
             fp: ligand.map((obj) => obj.fingerprint),
@@ -54,7 +53,7 @@ export default function PCA() {
         close();
     }
 
-    const isRunning = notifications.some(n => n.id === "job-pca" && n.done === false);
+    const isRunning = notifications.some(n => n.id.includes("pca_") && n.done === false);
 
 
     return (
@@ -74,7 +73,7 @@ export default function PCA() {
             </Modal>
             {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].pca && (
                 <>
-                    <p>Explained Variance by first 2 Principal Components: {target.pca_explained_variance}</p>
+                    <p>Explained Variance by first 2 Principal Components: {round(target.pca_explained_variance, 3)}</p>
                     <br></br>
                     <Scatterplot
                         data={ligand.map((obj) => {

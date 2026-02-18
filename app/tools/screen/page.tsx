@@ -12,11 +12,14 @@ export default function Screen() {
   const { target } = useContext(TargetContext);
 
   const [preds, setPreds] = useState([]);
+  const [sortedScreenData, setSortedScreenData] = useState([]);
 
   useEffect(() => {
-    let newScreenData = screenData;
+    let newScreenData = [...screenData]; // Create a copy to avoid mutating original
+    let computedPreds = [];
+    
     if (screenData?.length > 0) {
-      const computedPreds = screenData.map((x, i) => {
+      computedPreds = screenData.map((x, i) => {
         const preds = x?.predictions;
         // Detect typed array or array
         if (preds && preds.length && preds.length > 0) {
@@ -37,17 +40,19 @@ export default function Screen() {
         newScreenData[i].predictions = preds;
         return preds;
       }).filter(p => p !== null);
+      
+      // Sort by predictions (descending order)
+      newScreenData.sort((a, b) => Number(b.predictions) - Number(a.predictions));
+      
+      setSortedScreenData(newScreenData);
       setPreds(computedPreds);
     }
   }, [screenData, target]);
 
-
-
-
   const downloadCsv = () => {
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      screenData.map(row => Object.values(row).join(",")).join("\n");
+      sortedScreenData.map(row => Object.values(row).join(",")).join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -60,7 +65,7 @@ export default function Screen() {
 
   return (
     <>
-      {screenData.length > 0 && screenData[0].predictions !== undefined && (
+      {sortedScreenData.length > 0 && sortedScreenData[0].predictions !== undefined && (
         <>
           <Histogram data={preds} />
           <br />
@@ -69,7 +74,7 @@ export default function Screen() {
           </button>
           &nbsp;
           <DataTable2
-            data={screenData}
+            data={sortedScreenData}
             rowsPerPage={5}
             act_column={["predictions"]}
             onSelectionChange={() => { }}

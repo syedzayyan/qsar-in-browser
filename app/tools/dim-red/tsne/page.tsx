@@ -9,6 +9,8 @@ import TargetContext from "../../../../context/TargetContext";
 import { useForm } from "react-hook-form";
 import { Button, Group, Modal } from "@mantine/core";
 import NotificationContext from "../../../../context/NotificationContext";
+import { round } from "mathjs";
+import FAQComp from "../../../../components/ui-comps/FAQComp"; // Add this import
 
 type tsneType = {
   perplexity: number;
@@ -25,6 +27,7 @@ export default function TSNE() {
   const containerRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
   const { notifications, pushNotification } = useContext(NotificationContext);
+  const [usedPCACorrection, setUsedPCACorrection] = useState(false); // Track if PCA was used
 
   const { register, handleSubmit, watch, formState: { errors }, } = useForm<tsneType>()
   const [opened, setOpened] = useState(false);
@@ -40,6 +43,7 @@ export default function TSNE() {
     });
     close();
   }
+
   if (Array.isArray(ligand)) {
     globalThis.fp = ligand.map((obj) => obj.fingerprint);
   } else {
@@ -48,6 +52,8 @@ export default function TSNE() {
 
   async function runDimRed(formStuff: tsneType) {
     setLoaded(false);
+    setUsedPCACorrection(formStuff.pca_correct); // Track the PCA correction setting
+
     const requestId = `tsne_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     pushNotification({ id: requestId, message: "Running tSNE...", done: false, type: 'info', autoClose: false });
 
@@ -82,11 +88,8 @@ export default function TSNE() {
         pca_correct: true,
         n_jobs: 4,
       })}
-      
-      disabled={isRunning}>{isRunning ? "tSNE Running..." : "Run tSNE"}</Button>
-      <p>Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
-        and tSNE computation is blocking.
-      </p>
+        disabled={isRunning}>{isRunning ? "tSNE Running..." : "Run tSNE"}</Button>
+
       <details open={pca.length < 0}>
         <summary>tSNE settings</summary>
         <form onSubmit={handleSubmit(runDimRed)} className="ml-forms" style={{ width: "200px" }}>
@@ -106,17 +109,28 @@ export default function TSNE() {
           <input type="submit" className="button" value={"Run tSNE"} />
         </form>
       </details>
+      <FAQComp
+        title="Why use PCA correction before t-SNE?"
+      >
+        High-dimensional molecular fingerprints (often 1024-2048 dimensions) can cause t-SNE to struggle with the 'curse of dimensionality'. Pre-reducing to ~30-40 dimensions with PCA removes noise while preserving the main variance structure, leading to faster computation and more stable t-SNE embeddings.
+        <a href="https://practicalcheminformatics.blogspot.com/2019/11/visualizing-chemical-space.html">A blog on this in detail.</a>
+
+      </FAQComp>
       {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].tsne && (
         <>
-          <p>Explained Variance by first 2 Principal Components: {target.tsne_explained_variance}</p>
-          <br></br>
-            <Modal opened={opened} onClose={close} title="Delete Molecules?">
-                <p>Are you sure you want to delete the selected molecules?</p>
-                <Group gap={"2rem"}>
-                    <Button onClick={close}>Cancel</Button>
-                    <Button onClick={handleDelete}>Delete</Button>
-                </Group>
-            </Modal>
+          {usedPCACorrection && target.pca_explained_variance && (
+            <>
+              <p>Explained Variance by first 30 Principal Components: {round(target.pca_explained_variance, 3)}</p>
+              <br></br>
+            </>
+          )}
+          <Modal opened={opened} onClose={close} title="Delete Molecules?">
+            <p>Are you sure you want to delete the selected molecules?</p>
+            <Group gap={"2rem"}>
+              <Button onClick={close}>Cancel</Button>
+              <Button onClick={handleDelete}>Delete</Button>
+            </Group>
+          </Modal>
           <Scatterplot
             data={ligand.map((obj) => {
               const [x, y] = obj.tsne;
@@ -133,7 +147,6 @@ export default function TSNE() {
             }}
           />
         </>
-
       )}
     </div>
   );

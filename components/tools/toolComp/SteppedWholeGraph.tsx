@@ -27,6 +27,10 @@ import {
 } from '@tabler/icons-react';
 import TargetContext from '../../../context/TargetContext';
 
+const BASE_CARD_WIDTH = 180;   // base size all cards share
+const BASE_CARD_HEIGHT = 220;  // adjust to taste
+const ACTIVE_WIDTH_FACTOR = 1.35; // how much wider a highlighted card is
+
 const ScaffoldNetworkTreeView = ({
   imageSize = 120,
   graph = null,
@@ -175,11 +179,21 @@ const ScaffoldNetworkTreeView = ({
 
     const isActive = activePath[columnIndex] === node.id;
 
+    // If you want *all* step-1 cards to be “large” regardless of active:
+    // const isStep1 = columnIndex === 0;
+    // const isHighlighted = isActive || isStep1;
+    const isHighlighted = isActive;
+
     useEffect(() => {
-      if (isActive && ref.current) {
+      if (isHighlighted && ref.current) {
         ref.current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }
-    }, [isActive]);
+    }, [isHighlighted]);
+
+    const width = isHighlighted
+      ? rem(BASE_CARD_WIDTH * ACTIVE_WIDTH_FACTOR)
+      : rem(BASE_CARD_WIDTH);
+    const height = rem(BASE_CARD_HEIGHT);
 
     return (
       <Paper
@@ -189,20 +203,25 @@ const ScaffoldNetworkTreeView = ({
         radius="md"
         style={{
           cursor: hasNext ? 'pointer' : 'default',
-          minWidth: rem(180),
-          borderColor: isActive
+          width,
+          minWidth: width,
+          height,
+          boxSizing: 'border-box',
+          borderColor: isHighlighted
             ? theme.colors[theme.primaryColor][6]
             : undefined,
           background:
-            isActive && colorScheme === 'dark'
+            isHighlighted && colorScheme === 'dark'
               ? theme.colors.dark[6]
-              : isActive
+              : isHighlighted
                 ? theme.colors.blue[0]
                 : undefined,
+          transform: isHighlighted ? 'scale(1.02)' : 'scale(1)',
+          transition: 'all 150ms ease',
         }}
         onClick={() => hasNext && handleNodeClick(node.id, columnIndex)}
       >
-        <Group justify="space-between">
+        <Group justify="space-between" align="flex-start">
           <Image
             src={node.image}
             width={imageSize * 0.5}
@@ -213,7 +232,6 @@ const ScaffoldNetworkTreeView = ({
         </Group>
 
         <Stack gap={4} mt="xs">
-
           <Text size="xs" lineClamp={2}>
             {node.smiles}
           </Text>
@@ -222,11 +240,11 @@ const ScaffoldNetworkTreeView = ({
               {nodeSemantic(node.id)}
             </Badge>
             {node.molCounts !== undefined && (
-
               <Badge size="xs" variant="light">
                 # Match {node.molCounts}
               </Badge>
-            )}</Stack>
+            )}
+          </Stack>
         </Stack>
       </Paper>
     );
@@ -276,7 +294,6 @@ const ScaffoldNetworkTreeView = ({
         </Button>
       </Group>
 
-
       <ScrollArea
         viewportRef={scrollViewportRef}
         type="scroll"
@@ -296,7 +313,6 @@ const ScaffoldNetworkTreeView = ({
             const ordered = activeId
               ? [activeId, ...sortedByMolCounts.filter((id) => id !== activeId)]
               : sortedByMolCounts;
-
 
             return (
               <Stack key={columnIndex} gap="xs">
