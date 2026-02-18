@@ -2,9 +2,8 @@ import { useContext, useState } from "react";
 import dummyData from "../utils/data.json";
 import CompoundGetter from "./CompoundGetter";
 import TargetContext from "../../context/TargetContext";
-import Loader from "../ui-comps/Loader";
 import { useDisclosure } from '@mantine/hooks';
-import { Modal, Button } from '@mantine/core';
+import { Modal, Loader } from '@mantine/core';
 import { Table } from '@mantine/core';
 import { Input, TextInput } from '@mantine/core';
 
@@ -74,7 +73,7 @@ export default function TargetGetter() {
         }}
       >
         {loading ? (
-          <Loader />
+          <Loader size={30} />
         ) : (
           <Table>
             <Table.Thead>
