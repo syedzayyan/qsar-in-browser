@@ -128,7 +128,7 @@ export default function CompoundGetter() {
       {ligand.length > 0 ? (
         <div style={{ marginTop: "10px" }}>
           <Link className="button" href="/tools/preprocess/">
-            Pre-Process Molecules
+            Process Molecules
           </Link>
         </div>
       ) : (

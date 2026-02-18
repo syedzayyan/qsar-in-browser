@@ -120,7 +120,7 @@ export default function SDFFileLoader() {
               <input
                 type="submit"
                 className="button"
-                value="Pre-Process Molecules"
+                value="Process Molecules"
               />
             </form>
         </div>
