@@ -153,7 +153,10 @@ export default function MLLayout({ children }) {
 
 
         {/* ---------------- Children get taskType prop ---------------- */}
-        {children}
+        <details open = {!hasResults}>
+          <summary>{hasResults && <>Reveal ML Forms</>}</summary>
+          {children}
+        </details>
 
         {/* ---------------- Scatterplot or barplot ---------------- */}
         {hasResults && (

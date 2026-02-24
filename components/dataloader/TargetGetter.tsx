@@ -22,7 +22,7 @@ export default function TargetGetter() {
     )
       .then((response) => response.json())
       .then((data) => {
-        let target_data = data.targets;
+        let target_data = data.targets || [];
         setTargetDetails(target_data);
         setLoading(false);
       })
@@ -53,7 +53,6 @@ export default function TargetGetter() {
         <Input
           placeholder="Search for relevant words to your Target"
           onChange={(e) => setTargetQuery(e.target.value)}
-          defaultValue={target.target_name}
           required={true}
           pattern=".{3,}"
         />
@@ -64,16 +63,9 @@ export default function TargetGetter() {
           value="Search for your Target"
         />
       </form>
-      <div
-        style={{
-          overflow: "scroll",
-          height: "300px",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
+
         {loading ? (
-          <Loader size={30} />
+          <Loader size={100} />
         ) : (
           <Table>
             <Table.Thead>
@@ -96,6 +88,8 @@ export default function TargetGetter() {
                       pre_processed: false,
                     });
                     open();
+                    setTargetDetails(dummyData.targets);
+                    setTargetQuery("");
                   }}
                 >
                   <Table.Td>{tars.pref_name}</Table.Td>
@@ -106,8 +100,7 @@ export default function TargetGetter() {
             </Table.Tbody>
           </Table>
         )}
-      </div>
-      <Modal opened={opened} onClose={() => {
+      <Modal size = "70%" opened={opened} onClose={() => {
         close();
         resetAll();
       }}>
