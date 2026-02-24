@@ -55,7 +55,7 @@ export default function IndexPage() {
             >
               GitHub
             </Anchor>
-            <Anchor
+            {/* <Anchor
               component={Link}
               href="/misc_tools"
               size="sm"
@@ -63,7 +63,7 @@ export default function IndexPage() {
               c="dimmed"
             >
               Misc Tools
-            </Anchor>
+            </Anchor> */}
             <ActionIcon
               onClick={() =>
                 setColorScheme(colorScheme === "light" ? "dark" : "light")
@@ -116,7 +116,7 @@ export default function IndexPage() {
         </Stack>
 
         {/* Preview Section */}
-        <Center mt="5rem">
+        {/* <Center mt="5rem">
           <Image
             src="/layout.png"
             alt="App layout preview"
@@ -125,7 +125,7 @@ export default function IndexPage() {
             w="100%"
             maw={1000}
           />
-        </Center>
+        </Center> */}
       </Container>
     </>
   );
