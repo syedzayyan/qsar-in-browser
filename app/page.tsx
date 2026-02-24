@@ -88,19 +88,20 @@ export default function IndexPage() {
         <Stack align="center" mt="6rem">
           <Image src="/logo.svg" alt="Logo" maw={180} radius="md" />
           <Title ta="center" order={1} size="h2" fw={700}>
-            Cheminformatics in Your Browser — Without Writing Code!
+            QSAR in the browser
           </Title>
 
           <Text ta="center" size="lg" c="dimmed" maw={800}>
-            QITB simplifies the world of chemistry and data analysis. Easily
-            upload chemical data or fetch it from trusted resources. Explore
-            molecular structures, analyze them, and run ML models directly in
-            your browser — no setup, no coding.
+            QSAR in the Browser (QITB) is an intuitive, browser-based platform 
+            allowing any analyst or researcher to understand small-molecule data. 
+            It was developed to make cheminformatics accessible. 
+            Users can upload their own datasets completely privately or 
+            retrieve small molecule data from the manually-curated ChEMBL database.  
+            
             <br />
             <br />
             <Text span fw={600} c="blue">
-              It’s open source, secure, and built for scientists who want speed
-              and simplicity.
+              Free, open-source, secure and simple.
             </Text>
           </Text>
 
@@ -111,7 +112,7 @@ export default function IndexPage() {
             gradient={{ from: "blue", to: "teal" }}
             onClick={() => router.push("/tools/load_data")}
           >
-            Start Here 🚀
+            Get Started 🚀
           </Button>
         </Stack>
 
