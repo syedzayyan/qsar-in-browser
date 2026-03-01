@@ -67,11 +67,11 @@ async function loadRDKit() {
 async function substructure_search(params, requestId) {
   const { ligand, searchSmi } = params;
   const RDKitInstance = await loadRDKit();
-  
+
   try {
     const searchResults = [];
     const query = RDKitInstance.get_mol(searchSmi);
-    
+
     for (const lig of ligand) {
       const mol = RDKitInstance.get_mol(lig.canonical_smiles);
       const substructRes = JSON.parse(mol.get_substruct_match(query));
@@ -81,7 +81,7 @@ async function substructure_search(params, requestId) {
       mol.delete();
     }
     query.delete();
-    
+
     notify({ id: requestId, function: 'substructure_search', results: searchResults });
   } catch (e) {
     notify({ id: requestId, function: 'substructure_search', error: e.message });
@@ -95,7 +95,7 @@ async function makeFingerprints(params, requestId) {
     radius: 2,
     nBits: 1024,
   };
-  
+
   const processes_data = generateFingerprints(params.mol_data, settings, RDKitInstance, requestId);
   notify({ id: requestId, function: 'only_fingerprint', results: processes_data });
   notify({ id: requestId, message: 'Processing Done' });
@@ -122,7 +122,15 @@ async function processFingerprintData(params, requestId) {
       !truthyOrFalsy[index] ? "p" + col : col
     );
 
-    temp_ligand_process = mol_data.map((lig) => {
+
+    temp_ligand_process = temp_ligand_process.filter(lig =>
+      activity_columns.every(col => {
+        const val = lig[col];
+        return val != null && isFinite(val) && val > 0;
+      })
+    );
+
+    temp_ligand_process = temp_ligand_process.map((lig) => {  // ← fixed
       const processedLig = { ...lig };
       new_activity_columns.forEach((col, j) => {
         if (!truthyOrFalsy[j]) {
@@ -149,12 +157,12 @@ async function processFingerprintData(params, requestId) {
 
   const new_clean_ligand_data = generateFingerprints(temp_ligand_process, settings, RDKitInstance, requestId);
 
-  notify({ 
-    id: requestId, 
+  notify({
+    id: requestId,
     function: 'fingerprint',
     data: new_clean_ligand_data,
     activity_columns: activity_columns,
-    settings: settings 
+    settings: settings
   });
   notify({ id: requestId, message: 'Processing Done' });
 }
@@ -211,7 +219,7 @@ function scaffoldArrayGetter(row_list_s, activity_columns, requestId) {
       const mol = RDKit.get_mol(x.canonical_smiles);
       let sidechains_smiles_list = [];
       let cores_smiles_list = [];
-      
+
       try {
         const mol_frags = mol.get_mmpa_frags(1, 1, 20);
         while (!mol_frags.sidechains.at_end()) {
@@ -244,7 +252,7 @@ function scaffoldArrayGetter(row_list_s, activity_columns, requestId) {
       } catch (e) {
         console.error(e);
       }
-      
+
       row_list_s[i]["Cores"] = cores_smiles_list;
       row_list_s[i]["R_Groups"] = sidechains_smiles_list;
       mol.delete();
@@ -353,7 +361,7 @@ function ksTest(obsOne, obsTwo) {
 async function tanimoto_gen(params, requestId) {
   self.importScripts('https://unpkg.com/mathjs@15.1.0/lib/browser/math.js');
   const RDKitInstance = await loadRDKit();
-  
+
   let mol;
   try {
     mol = RDKitInstance.get_mol(params.anchorMol);
@@ -374,31 +382,31 @@ async function tanimoto_gen(params, requestId) {
     notify({ id: requestId, function: 'tanimoto', error: 'Invalid fingerprint type' });
     return;
   }
-  
+
   mol.delete();
   const mol_fp_bit = bitStringToBitVector(molFP);
   const mol_data = params.mol_data;
-  
+
   for (let i = 0; i < mol_data.length; i++) {
     const tanimoto_sim = TanimotoSimilarity(mol_fp_bit, mol_data[i].fingerprint);
     mol_data[i][`${params.anchorMol}_tanimoto`] = tanimoto_sim;
     notify({ message: `Progress: ${Math.round((i / mol_data.length) * 100)}%`, id: requestId });
   }
-  
+
   notify({ id: requestId, function: 'tanimoto', data: mol_data });
 }
 
 function TanimotoSimilarity(v1, v2) {
   const numer = math.dot(v1, v2);
   if (numer === 0.0) return 0.0;
-  
-  const denom = math.number(math.square(math.norm(v1, 2))) + 
-                math.number(math.square(math.norm(v2, 2))) - numer;
+
+  const denom = math.number(math.square(math.norm(v1, 2))) +
+    math.number(math.square(math.norm(v2, 2))) - numer;
   return denom === 0.0 ? 0.0 : numer / denom;
 }
 
 async function scaffold_network(params, requestId) {
-  try{
+  try {
     const RDKitInstance = await loadRDKit();
     const network_graphs = scaffold_net_chunking_method(params.smiles_list, 600, RDKitInstance, params);
     const image_graph = graph_molecule_image_generator(RDKitInstance, network_graphs);

@@ -66,7 +66,7 @@ export default function CornerMenu() {
 
           <NavLink label="Virtual Screening">
             <NavLink component={Link} href="/tools/screen" label="Overview" />
-            <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" />
+            {/* <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" /> */}
           </NavLink>
 
           <Modal opened={opened} onClose={close}>

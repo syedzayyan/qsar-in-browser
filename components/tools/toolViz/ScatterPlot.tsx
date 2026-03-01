@@ -40,6 +40,9 @@ export default function Scatterplot({
   const parentRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
+  // Persist zoom transform across mode switches
+  const zoomTransformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
+
   const [details, setDetails] = useState<Details | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [modalDets, setModalDets] = useState<ModalDets | null>(null);
@@ -99,7 +102,7 @@ export default function Scatterplot({
   const colorInterpolator = colorScales[selectedColorScale] || d3.interpolateViridis;
   const colorScaler = d3.scaleSequential(colorInterpolator).domain(colorDomain);
 
-  // Selection handlers (now LEFT button)
+  // Selection handlers (LEFT button)
   const createSelectionHandlers = useCallback(
     (
       g: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -119,7 +122,6 @@ export default function Scatterplot({
       };
 
       const handleMouseDown = (event: MouseEvent) => {
-        // LEFT button for selection drag
         if (mode !== 'select' || event.button !== 0 || !onSelectIndices) return;
 
         event.preventDefault();
@@ -293,21 +295,24 @@ export default function Scatterplot({
       .attr('width', width)
       .attr('height', height);
 
-    // LEFT CLICK DRAG = Pan/Zoom ONLY in zoom mode
+    // Declare scatter early so it's accessible inside the zoom handler
+    const scatter = g.append('g').attr('clip-path', `url(#${uid}-clip)`);
+
+    // Zoom behavior — only active in zoom mode
     const zoom = d3
       .zoom()
       .filter(event => {
         if (mode !== 'zoom') return false;
         if (event.type === 'wheel') return true;
-        if (event.type === 'mousedown') {
-          // left button
-          return event.button === 0;
-        }
+        if (event.type === 'mousedown') return event.button === 0;
         return false;
       })
       .scaleExtent([0.5, 20])
       .extent([[0, 0], [width, height]])
       .on('zoom', event => {
+        // Save transform so it survives mode switches
+        zoomTransformRef.current = event.transform;
+
         const newX = event.transform.rescaleX(x);
         const newY = event.transform.rescaleY(y);
 
@@ -336,14 +341,22 @@ export default function Scatterplot({
 
     zoomRect.call(zoom);
 
-    const scatter = g.append('g').attr('clip-path', `url(#${uid}-clip)`);
+    // Restore previous zoom transform if one exists
+    if (zoomTransformRef.current !== d3.zoomIdentity) {
+      zoomRect.call(zoom.transform, zoomTransformRef.current);
+    }
+
+    // Apply the saved transform to initial circle positions
+    const savedTransform = zoomTransformRef.current;
+    const currentX = savedTransform.rescaleX(x);
+    const currentY = savedTransform.rescaleY(y);
 
     scatter
       .selectAll('circle')
       .data(data)
       .join('circle')
-      .attr('cx', d => x(d.x))
-      .attr('cy', d => y(d.y))
+      .attr('cx', d => currentX(d.x))
+      .attr('cy', d => currentY(d.y))
       .attr('r', bubbleSize)
       .attr('fill', (_, i) => (colorProperty.length ? colorScaler(colorProperty[i]) : '#6b7280'))
       .attr('stroke', 'white')
@@ -374,7 +387,19 @@ export default function Scatterplot({
         open();
       });
 
-    // LEFT CLICK DRAG = Selection window ONLY in select mode
+    // Also restore axis tick positions to match saved transform
+    if (zoomTransformRef.current !== d3.zoomIdentity) {
+      const restoredX = savedTransform.rescaleX(x);
+      const restoredY = savedTransform.rescaleY(y);
+      xAxis.call(d3.axisBottom(restoredX).ticks(Math.min(8, Math.floor(width / 80))).tickSize(-height));
+      yAxis.call(d3.axisLeft(restoredY).ticks(Math.min(8, Math.floor(height / 60))).tickSize(-width));
+      xAxis.selectAll('.tick line').style('opacity', 0.12);
+      yAxis.selectAll('.tick line').style('opacity', 0.12);
+      xAxis.selectAll('text').style('font-size', '0.95rem').style('fill', 'var(--mantine-color-text)');
+      yAxis.selectAll('text').style('font-size', '0.95rem').style('fill', 'var(--mantine-color-text)');
+    }
+
+    // Selection overlay — only active in select mode
     const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
       createSelectionHandlers(g, scatter, width, height);
 
@@ -491,17 +516,6 @@ export default function Scatterplot({
           {modeInstruction}
         </Text>
       </Group>
-
-      {selectedIndices.length > 0 && (
-        <Group justify="apart" mb="md">
-          <Text fw={600} c="blue">
-            Selected: {selectedIndices.length} bubble(s)
-          </Text>
-          <Button size="xs" variant="subtle" onClick={clearSelection} color="red">
-            Clear Selection
-          </Button>
-        </Group>
-      )}
 
       <Modal opened={opened} onClose={close} size="lg" title="Molecule Details">
         <div className="ml-forms">
