@@ -108,9 +108,7 @@ export default function Tanimoto() {
       <details open={false}>
         <summary>How is molecular similarity calculated?</summary>
         <p>
-          QITB compares every molecular fingerprint in the dataset to the molecular fingerprint 
-          of the reference molecule. Similarity is measured by a score called 
-           the molecular fingerprints to calculate a Tanimoto index 
+          QITB uses the molecular fingerprints to calculate a Tanimoto index 
           between each molecule in the loaded dataset and a provided reference molecule. 
           A maximum score of 1 represents high similarity, while the minimum score of 0 
           indicates low similarity. 

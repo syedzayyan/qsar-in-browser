@@ -26,11 +26,7 @@ export default function DisplayGraph() {
 
   return (
     <div className="tools-container">
-      <p>
-        Caution: this may freeze the browser tab for a while. Geek speak: Pyodide runs on the main thread
-        and MMA computation is blocking.
-      </p>
-      <h1>Scaffold Network</h1>
+      <h1>Scaffold Tree</h1>
 
       <Tabs defaultValue="Network_Settings">
         <Tabs.List>
