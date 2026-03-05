@@ -103,6 +103,9 @@ const CSVLoader: React.FC<Props> = ({
               </div>
             ) : (
               <>
+              {/* @SZM If we could get this to look like the JSON upload that would be more professional. 
+              I don't know why they're so different when they're such similar functions. Would have something more like: 
+              <p>Upload CSV file, Smaller Text: Ensure it has columns for 'ID', 'SMILES' and 'Activity'.</p> */}
                 <p>Provide your own CSV file, ensure it has columns for 'id', 'activity' and 'SMILES'.</p>
                 <p>
                   Drag & drop your file here, or click to browse.
@@ -159,7 +162,7 @@ const CSVLoader: React.FC<Props> = ({
               <input
                 type="submit"
                 className="button"
-                value={"Pre-Process Molecules"}
+                value={"Generate Molecular Fingerprints"}
               />
               <br />
               <span>{errors.id_column?.message}</span>
