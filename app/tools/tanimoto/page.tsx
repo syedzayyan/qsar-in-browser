@@ -69,19 +69,9 @@ export default function Tanimoto() {
 
   return (
     <div className="tools-container" ref={containerRef}>
-      <details open={false}>
-        <summary>What does this mean?</summary>
-        <p>
-          Tanimoto indexes are a similarity score between two molecules. The
-          index is between 0 and 1 where a value closer to one indicated two
-          molecules are very similar. If we have a reference molecule, which in
-          this case is a random molecule, we could compare this molecule, to all
-          the molecule in your database. This will help us understand, the
-          diversity of our database, compared to a reference. This is still not
-          the full picture, but adds a piece to the puzzle.
-        </p>
-      </details>
-      <label>SMILES string: </label>
+      <h1>Similarity Distribution</h1> 
+      
+      <label>Reference Molecule (SMILES String) </label>
       <input
         defaultValue={anchorMol}
         type="text"
@@ -97,7 +87,7 @@ export default function Tanimoto() {
         {isRunning ? "Generating Graph..." : "Generate Graph"}
       </Button>
       <Select
-        label="Your favorite library"
+        label="Previously selected molecules"
         placeholder="Pick value"
         value={selectedAnchorMol}
         data={taniData}
@@ -115,6 +105,17 @@ export default function Tanimoto() {
             yLabel="Count"
           />
         )}
+      <details open={false}>
+        <summary>How is molecular similarity calculated?</summary>
+        <p>
+          QITB compares every molecular fingerprint in the dataset to the molecular fingerprint 
+          of the reference molecule. Similarity is measured by a score called 
+           the molecular fingerprints to calculate a Tanimoto index 
+          between each molecule in the loaded dataset and a provided reference molecule. 
+          A maximum score of 1 represents high similarity, while the minimum score of 0 
+          indicates low similarity. 
+        </p>
+      </details>
     </div>
   );
 }
