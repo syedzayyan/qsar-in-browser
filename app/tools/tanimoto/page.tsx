@@ -106,12 +106,16 @@ export default function Tanimoto() {
           />
         )}
       <details open={false}>
-        <summary>How is molecular similarity calculated?</summary>
+        <summary>How is this histogram generated?</summary>
         <p>
-          QITB uses the molecular fingerprints to calculate a Tanimoto index 
-          between each molecule in the loaded dataset and a provided reference molecule. 
-          A maximum score of 1 represents high similarity, while the minimum score of 0 
-          indicates low similarity. 
+          QITB uses Tanimoto coefficients to represent mathematical similarity 
+          between two molecular fingerprints. The histogram presents these 
+          coefficients for every molecule in the dataset, compared to the provided 
+          reference molecule. A maximum score of 1 represents high similarity, 
+          while the minimum score of 0 indicates low similarity. Thus, a distribution 
+          nearer 1 represents a high similarity between the dataset and the reference 
+          molecule, while a distribution nearer 0 represents a low level of similarity 
+          between the reference molecule and the dataset. 
         </p>
       </details>
     </div>
