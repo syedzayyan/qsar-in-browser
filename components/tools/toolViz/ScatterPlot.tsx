@@ -36,7 +36,7 @@ export default function Scatterplot({
   id = [],
   onSelectIndices
 }: ScatterplotProps) {
-  const margin = { top: 10, right: 20, bottom: 80, left: 80 };
+  const margin = { top: 60, right: 120, bottom: 120, left: 120 };
   const parentRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
