@@ -103,9 +103,9 @@ const CSVLoader: React.FC<Props> = ({
               </div>
             ) : (
               <>
-                <p>Upload Your CSV File Here With SMILES Strings.</p>
+                <p>Provide your own CSV file, ensure it has columns for 'id', 'activity' and 'SMILES'.</p>
                 <p>
-                  You could also drag and drop the file here or Click to browse.
+                  Drag & drop your file here, or click to browse.
                 </p>
               </>
             )}

@@ -107,7 +107,7 @@ const LoadFromWork: React.FC = () => {
           </Dropzone.Idle>
 
           <div>
-            <Text size="lg">Upload Previous Work (A JSON file from QITB)</Text>
+            <Text size="lg">Upload Previous Work (A QITB.json file)</Text>
             <Text size="sm"  mt={7}>
               Drag & drop your JSON file here, or click to browse.
             </Text>
