@@ -217,7 +217,7 @@ export default function ScaffoldSettings() {
               </Button>
 
               <Button type="submit" loading={submitting} disabled={submitting || ligand.length === 0 || isRunning}>
-                {isRunning ? "Running network..." : "Run network"}
+                {isRunning ? "Generating Tree..." : "Generate Tree"}
               </Button>
             </Group>
           </Group>
