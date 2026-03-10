@@ -69,7 +69,7 @@ export default function XGB({
       </Title>
 
       <Text c="dimmed" size="sm" mb="lg" ta="center">
-        Uses the Python <b>XGBoost</b> library.
+        Configure your <b>XGBoost</b> model parameters below.
       </Text>
 
       <form onSubmit={handleSubmit(onSubmit)}>
