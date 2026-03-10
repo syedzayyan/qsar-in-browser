@@ -102,7 +102,7 @@ export default function Scatterplot({
   const colorInterpolator = colorScales[selectedColorScale] || d3.interpolateViridis;
   const colorScaler = d3.scaleSequential(colorInterpolator).domain(colorDomain);
 
-  // Selection handlers (LEFT button)
+  // Selection handlers (right-click drag in select mode, matching working version)
   const createSelectionHandlers = useCallback(
     (
       g: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -284,7 +284,7 @@ export default function Scatterplot({
       .style('font-size', '1rem')
       .text(yAxisTitle);
 
-    // Clip
+    // Clip path
     svg
       .append('defs')
       .append('clipPath')
@@ -295,10 +295,11 @@ export default function Scatterplot({
       .attr('width', width)
       .attr('height', height);
 
-    // Declare scatter early so it's accessible inside the zoom handler
+    // Declare scatter group early so the zoom closure can reference it,
+    // but append it to the DOM AFTER zoomRect so circles sit on top.
     const scatter = g.append('g').attr('clip-path', `url(#${uid}-clip)`);
 
-    // Zoom behavior — only active in zoom mode
+    // Zoom behavior
     const zoom = d3
       .zoom()
       .filter(event => {
@@ -310,7 +311,6 @@ export default function Scatterplot({
       .scaleExtent([0.5, 20])
       .extent([[0, 0], [width, height]])
       .on('zoom', event => {
-        // Save transform so it survives mode switches
         zoomTransformRef.current = event.transform;
 
         const newX = event.transform.rescaleX(x);
@@ -319,10 +319,9 @@ export default function Scatterplot({
         xAxis.call(d3.axisBottom(newX).ticks(Math.min(8, Math.floor(width / 80))).tickSize(-height));
         yAxis.call(d3.axisLeft(newY).ticks(Math.min(8, Math.floor(height / 60))).tickSize(-width));
 
-        scatter
-          .selectAll('circle')
-          .attr('cx', d => newX(d.x))
-          .attr('cy', d => newY(d.y));
+        scatter.selectAll('circle')
+          .attr('cx', (d: any) => newX(d.x))
+          .attr('cy', (d: any) => newY(d.y));
 
         xAxis.selectAll('.tick line').style('opacity', 0.12);
         yAxis.selectAll('.tick line').style('opacity', 0.12);
@@ -332,8 +331,9 @@ export default function Scatterplot({
 
     g.call(zoom);
 
+    // zoomRect is inserted before scatter in the DOM so circles remain on top
     const zoomRect = g
-      .append('rect')
+      .insert('rect', 'g')   // insert before the scatter <g> to stay below it
       .attr('width', width)
       .attr('height', height)
       .style('fill', 'none')
@@ -341,12 +341,12 @@ export default function Scatterplot({
 
     zoomRect.call(zoom);
 
-    // Restore previous zoom transform if one exists
+    // Restore previous zoom transform
     if (zoomTransformRef.current !== d3.zoomIdentity) {
       zoomRect.call(zoom.transform, zoomTransformRef.current);
     }
 
-    // Apply the saved transform to initial circle positions
+    // Apply saved zoom transform to initial circle positions
     const savedTransform = zoomTransformRef.current;
     const currentX = savedTransform.rescaleX(x);
     const currentY = savedTransform.rescaleY(y);
@@ -387,7 +387,7 @@ export default function Scatterplot({
         open();
       });
 
-    // Also restore axis tick positions to match saved transform
+    // Restore axis tick styles after zoom restore
     if (zoomTransformRef.current !== d3.zoomIdentity) {
       const restoredX = savedTransform.rescaleX(x);
       const restoredY = savedTransform.rescaleY(y);
@@ -399,7 +399,7 @@ export default function Scatterplot({
       yAxis.selectAll('text').style('font-size', '0.95rem').style('fill', 'var(--mantine-color-text)');
     }
 
-    // Selection overlay — only active in select mode
+    // Selection overlay — only captures events in select mode
     const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
       createSelectionHandlers(g, scatter, width, height);
 
@@ -428,6 +428,7 @@ export default function Scatterplot({
       }
     });
 
+    // Color gradient legend
     if (colorProperty.length) {
       const legendHeight = 8;
       const legendMarginTop = height + 48;
@@ -486,12 +487,34 @@ export default function Scatterplot({
 
   const modeInstruction =
     mode === 'zoom'
-      ? '🖱️ Left-click drag to zoom/pan, click bubbles to open modal'
+      ? '🖱️ Click bubbles to open modal, wheel/drag to zoom'
       : '📦 Left-click drag to select bubbles';
 
   return (
-    <div ref={parentRef} className="w-full">
+    <div ref={parentRef} className="w-full" style={{ position: 'relative' }}>
       <svg ref={svgRef} />
+
+      {/* Hover tooltip */}
+      {details && (
+        <div
+          style={{
+            position: 'absolute',
+            left: details.xPos + margin.left + 12,
+            top: details.yPos + margin.top - 10,
+            background: 'var(--mantine-color-body)',
+            border: '1px solid var(--mantine-color-default-border)',
+            borderRadius: 6,
+            padding: '4px 10px',
+            fontSize: '0.85rem',
+            pointerEvents: 'none',
+            zIndex: 10,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+          }}
+        >
+          {details.name}
+        </div>
+      )}
 
       <Group justify="apart" mt="xs" mb="xs">
         <Group>
@@ -522,19 +545,16 @@ export default function Scatterplot({
           {modalDets && (
             <div className="ml-forms">
               <Text mb="sm">
-                <Text span fw={500}>
-                  Activity:
-                </Text>{' '}
+                <Text span fw={500}>Activity:</Text>{' '}
                 {modalDets.activity.toFixed(2)}
               </Text>
               <Text mb="lg">
-                <Text span fw={500}>
-                  ID:
-                </Text>{' '}
+                <Text span fw={500}>ID:</Text>{' '}
                 {localStorage.getItem('dataSource') === 'chembl' ? (
                   <a
                     href={`https://www.ebi.ac.uk/chembl/compound_report_card/${modalDets.id}/`}
                     target="_blank"
+                    rel="noreferrer"
                   >
                     {modalDets.id}
                   </a>
