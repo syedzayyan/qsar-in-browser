@@ -91,7 +91,7 @@ export default function TSNE() {
         disabled={isRunning}>{isRunning ? "tSNE Running..." : "Run tSNE"}</Button>
 
       <details open={pca.length < 0}>
-        <summary>tSNE settings</summary>
+        <summary>Change t-SNE parameters</summary>
         <form onSubmit={handleSubmit(runDimRed)} className="ml-forms" style={{ width: "200px" }}>
           <div>
             <label htmlFor="tsne_perplexity">PCA Correction</label>
@@ -109,6 +109,7 @@ export default function TSNE() {
           <input type="submit" className="button" value={"Run tSNE"} />
         </form>
       </details>
+
       <FAQComp
         title="Why use PCA correction before t-SNE?"
       >
@@ -148,6 +149,29 @@ export default function TSNE() {
           />
         </>
       )}
+                  <details open={false}>
+                <summary>How to interpret the t-SNE Chemical Space Map</summary>
+                <p>
+                    Each point on this scatter plot represents a molecule. t-Distributed Stochastic Neighbour Embedding (t-SNE) 
+                    arranges molecules so that smilar molecules are closer together, while dissimilar molecules are further apart. 
+                    
+                    Like PCA, t-SNE Dimension 1 and t-SNE Dimension 2 do not necessarily correspond to intuitive chemical properties,
+                    however clusters of molecules should correspond to chemically or structurally related groups of molecules. Unlike PCA, 
+                    t-SNE does not use linear combinations of features. Instead, it focuses on preserving local 'neighbourhoods' in the data. 
+                </p>
+            </details>
+            <details open={false}>
+                <summary>Why use PCA to view chemical space?</summary>
+                <p>
+                    Molecular fingerprints contain a large amount of data on any given molecule - 100s or 1,000s of 
+                    distinct chemical features. Visualising this data directly is extremely challenging. t‑SNE captures 
+                    subtle local relationships between molecular fingerprints, allowing representation on a 2D map.
+
+                    To improve performance and reduce noise, this tool first applies PCA to compress the molecular 
+                    fingerprints to 30 principal components before t-SNE is then run on this reduced representation.
+                    Applying PCA before t-SNE is a standard, best-practice approach used by cheminformaticians. 
+                </p>
+            </details>
     </div>
   );
 }

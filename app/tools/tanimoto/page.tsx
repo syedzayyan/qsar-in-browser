@@ -106,17 +106,28 @@ export default function Tanimoto() {
           />
         )}
       <details open={false}>
-        <summary>How is this histogram generated?</summary>
+        <summary>How this histogram is generated</summary>
         <p>
-          QITB uses Tanimoto coefficients to represent mathematical similarity 
-          between two molecular fingerprints. The histogram presents these 
+          QITB calculates Tanimoto coefficients to represent the mathematical similarity 
+          between two molecular fingerprints. This histogram presents these 
           coefficients for every molecule in the dataset, compared to the provided 
-          reference molecule. A maximum score of 1 represents high similarity, 
-          while the minimum score of 0 indicates low similarity. Thus, a distribution 
-          nearer 1 represents a high similarity between the dataset and the reference 
-          molecule, while a distribution nearer 0 represents a low level of similarity 
-          between the reference molecule and the dataset. 
+          reference molecule. The default molecule provided is 'CCO' - ethanol, but 
+          you can draw any molecule or provide its SMILE string to use your own reference molecule. 
         </p>
+      </details>
+      <details open={false}>
+        <summary>How to interpret this graph</summary>
+        <p>
+          A maximum score of 1.0 represents high similarity between a given molecule and the 
+          provided reference molecule. A minimum score of 0.0 indicates low similarity between 
+          a given molecule and the reference molecule. Overall, a distribution close to 1.0 
+          represents a high similarity between the dataset and the reference molecule, 
+          while a distribution nearer 0 represents a low level of similarity between the 
+          reference molecule and the dataset. As Tanimoto coefficients are calculated from 
+          molecular fingerprints, this histogram changes dependent on the fingerprint chosen 
+          (MACCS, Morgan etc).
+        </p>
+        
       </details>
     </div>
   );
