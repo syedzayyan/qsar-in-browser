@@ -17,6 +17,9 @@ export default function Navbar() {
               QSAR IN THE BROWSER
             </Link>
           </Text>
+          <Text size='sm' fw={200}>
+            v{process.env.NEXT_PUBLIC_APP_VERSION}
+          </Text>
         </Group>
         <Group gap="md">&nbsp;&nbsp;&nbsp;</Group>
         <ActionIcon

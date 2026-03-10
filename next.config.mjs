@@ -1,18 +1,28 @@
+import { readFileSync } from 'fs';
+
+const packageJson = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
+);
+
 /**
  * @type {import('next').NextConfig}
  */
-const nextConfig = {  
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    config.module.rules.push(
-      {
-        test: /\.md$/,
-        // This is the asset module.
-        type: 'asset/source',
-      }
-    )
-    return config
+const nextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
   },
+
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.md$/,
+      type: 'asset/source',
+    });
+
+    return config;
+  },
+
   output: "export",
+
   images: {
     unoptimized: true,
   },

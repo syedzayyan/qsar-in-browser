@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import MoleculeStructure from '../toolComp/MoleculeStructure';
-import { randomInt } from 'mathjs';
 import Screenshotter from '../../utils/d3toPNG';
-import { Modal, Button, Group, Text, Slider, Select } from '@mantine/core';
+import { Button, Group, Text, Slider, Select } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 
 
@@ -224,6 +222,11 @@ export default function DiscreteScatterplot({
         xAxis.call(d3.axisBottom(newX).ticks(Math.min(8, Math.floor(width / 80))).tickSize(-height));
         yAxis.call(d3.axisLeft(newY).ticks(Math.min(8, Math.floor(height / 60))).tickSize(-width));
 
+        // ✅ Reapply styles after axes are re-called
+        xAxis.selectAll('text').style('font-size', '0.95rem').style('fill', 'var(--mantine-color-text)');
+        yAxis.selectAll('text').style('font-size', '0.95rem').style('fill', 'var(--mantine-color-text)');
+
+
         scatter.selectAll('circle')
           .attr('cx', d => newX(d.x))
           .attr('cy', d => newY(d.y));
@@ -362,59 +365,59 @@ export default function DiscreteScatterplot({
 
     // Legend (bottom, clickable)
     // Legend (bottom, clickable) - responsive wrapping
-// Legend (bottom, clickable) - BULLETPROOF responsive wrapping
-if (colorLabels.length && uniqueLabels.length > 0) {
-  const legendY = height + 48;
-  const availableWidth = width - 20;  // Safe padding
-  const maxItemsPerRow = Math.max(1, Math.floor(availableWidth / 85));  // 85px/item conservative
-  const rowHeight = 22;
+    // Legend (bottom, clickable) - BULLETPROOF responsive wrapping
+    if (colorLabels.length && uniqueLabels.length > 0) {
+      const legendY = height + 48;
+      const availableWidth = width - 20;  // Safe padding
+      const maxItemsPerRow = Math.max(1, Math.floor(availableWidth / 85));  // 85px/item conservative
+      const rowHeight = 22;
 
-  const legendGroup = g.append('g')
-    .attr('transform', `translate(10, ${legendY})`);
+      const legendGroup = g.append('g')
+        .attr('transform', `translate(10, ${legendY})`);
 
-  legendGroup.selectAll('g.legend-item')
-    .data(uniqueLabels)
-    .join('g')
-    .attr('class', 'legend-item')
-    .attr('transform', (_, i) => {
-      const row = Math.floor(i / maxItemsPerRow);
-      const col = i % maxItemsPerRow;
-      return `translate(${col * 85}, ${row * rowHeight})`;
-    })
-    .style('cursor', 'pointer')
-    .on('click', (event, label) => {
-      event.stopPropagation();
-      toggleLabel(label);
-    })
-    .call(g => {
-      g.selectAll('rect').remove();
-      g.append('rect')
-        .attr('width', 12)
-        .attr('height', 12)
-        .attr('fill', d => colorScale(d))
-        .attr('rx', 2)
-        .attr('stroke', d => visibleLabels.has(d) ? colorScale(d) : 'rgba(128,128,128,0.3)')
-        .attr('stroke-width', d => visibleLabels.has(d) ? 2 : 1)
-        .attr('opacity', d => visibleLabels.has(d) ? 1 : 0.3);
+      legendGroup.selectAll('g.legend-item')
+        .data(uniqueLabels)
+        .join('g')
+        .attr('class', 'legend-item')
+        .attr('transform', (_, i) => {
+          const row = Math.floor(i / maxItemsPerRow);
+          const col = i % maxItemsPerRow;
+          return `translate(${col * 85}, ${row * rowHeight})`;
+        })
+        .style('cursor', 'pointer')
+        .on('click', (event, label) => {
+          event.stopPropagation();
+          toggleLabel(label);
+        })
+        .call(g => {
+          g.selectAll('rect').remove();
+          g.append('rect')
+            .attr('width', 12)
+            .attr('height', 12)
+            .attr('fill', d => colorScale(d))
+            .attr('rx', 2)
+            .attr('stroke', d => visibleLabels.has(d) ? colorScale(d) : 'rgba(128,128,128,0.3)')
+            .attr('stroke-width', d => visibleLabels.has(d) ? 2 : 1)
+            .attr('opacity', d => visibleLabels.has(d) ? 1 : 0.3);
 
-      g.selectAll('text').remove();
-      g.append('text')
-        .attr('x', 18)
-        .attr('y', 10)
-        .style('font-size', '0.85rem')  // Slightly smaller for narrow screens
-        .style('fill', d => visibleLabels.has(d) ? 'var(--mantine-color-text)' : 'rgba(128,128,128,0.5)')
-        .text(d => d);
-    });
+          g.selectAll('text').remove();
+          g.append('text')
+            .attr('x', 18)
+            .attr('y', 10)
+            .style('font-size', '0.85rem')  // Slightly smaller for narrow screens
+            .style('fill', d => visibleLabels.has(d) ? 'var(--mantine-color-text)' : 'rgba(128,128,128,0.5)')
+            .text(d => d);
+        });
 
-  // Clip legend to prevent overflow
-  legendGroup.append('rect')
-    .attr('x', 0)
-    .attr('y', 0)
-    .attr('width', availableWidth)
-    .attr('height', Math.ceil(uniqueLabels.length / maxItemsPerRow) * rowHeight + 10)
-    .attr('fill', 'none')
-    .attr('stroke', 'none');
-}
+      // Clip legend to prevent overflow
+      legendGroup.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', availableWidth)
+        .attr('height', Math.ceil(uniqueLabels.length / maxItemsPerRow) * rowHeight + 10)
+        .attr('fill', 'none')
+        .attr('stroke', 'none');
+    }
 
 
   }, [data, outerSize, selectedColorScale, bubbleSize, colorLabels, hoverProp, xAxisTitle, yAxisTitle, id, open, showFitLines, visibleLabels]);

@@ -14,6 +14,13 @@ export default function Activity() {
         ? ligand.map((obj) => obj[target.activity_columns[0]])
         : [];
     
+    data.forEach(x => {
+    if (typeof x !== "number") console.log("not a number:", x);
+    else if (isNaN(x))         console.log("NaN:", x);
+    else if (!isFinite(x))     console.log("Infinite:", x);
+    else if (x <= 0)           console.log("non-positive (bad for log10):", x);
+    });
+
     return (
         <div className="tools-container">
             <h1>Activity Distribution</h1>

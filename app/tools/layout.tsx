@@ -101,11 +101,6 @@ export default function DashboardLayout({
             setLigand(data.data);
             break;
 
-          case 'only_fingerprint':
-            setLigand(data.results);
-            pushNotification({ id, message: "Fingerprints generated successfully!", type: 'success', done: true });
-            break;
-
           case 'substructure_search':
             setLigand(data.results);
             pushNotification({ id, message: `Found ${data.results.length} matching substructures`, type: 'success', done: true });

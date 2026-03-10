@@ -1,59 +1,52 @@
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect } from "react";
 import TargetContext from "../../context/TargetContext";
 import LigandContext from "../../context/LigandContext";
 import Link from "next/link";
 import FAQComp from "../ui-comps/FAQComp";
 import { Button, Progress, Select, Grid, Paper } from "@mantine/core";
-import PieChart from "../tools/toolViz/PieChart";
 
 export default function CompoundGetter() {
   const [unit, setUnit] = useState("Ki");
   const [binding, setBinding] = useState("B");
-  const [pieData, setPieData] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+
   const { target, setTarget } = useContext(TargetContext);
   const { ligand, setLigand } = useContext(LigandContext);
+
   const [ligandSearch, setLigandSearch] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
   // -----------------------------
-  // Fetch pie aggregation data
+  // Fetch count for selected combo
   // -----------------------------
-  useEffect(() => {
-    if (!target?.target_id) return;
+useEffect(() => {
+  if (!target?.target_id) return;
 
-    const esQuery = {
-      index_name: "chembl_activity",
-      es_query: JSON.stringify({
-        size: 0,
-        query: { query_string: { query: `target_chembl_id:${target.target_id}` } },
-        aggs: { main_agg: { terms: { field: "standard_type", size: 20, missing: "N/A", order: { _count: "desc" } } } }
-      })
-    };
+  async function fetchCount() {
+    try {
+      setTotalCount(null);
+      const response = await fetch(
+        `https://www.ebi.ac.uk/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`
+      );
 
-    const base64Encoded = btoa(
-      unescape(encodeURIComponent(JSON.stringify(esQuery)))
-    );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
 
-    fetch(
-      `https://www.ebi.ac.uk/chembl/interface_api/es_proxy/es_data/get_es_data/${base64Encoded}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const buckets =
-          data?.es_response?.aggregations?.main_agg?.buckets ?? [];
-        setPieData(
-          buckets.map((b: any) => ({
-            key: b.key,
-            value: b.doc_count,
-          }))
-        );
-      })
-      .catch(console.error);
-  }, [target?.target_id]);
+      const json = await response.json();
+      const totalCount = json?.page_meta?.total_count ?? null;
+      setTotalCount(totalCount);
+    } catch (err) {
+      console.error("Count fetch failed:", err);
+      setTotalCount(null);
+    }
+  }
 
+  fetchCount();
+}, [target?.target_id, unit, binding]);
   // -----------------------------
-  // Fetch activity data
+  // Fetch full activity data
   // -----------------------------
   async function getFullActivityData(url: string) {
     setLigandSearch(false);
@@ -103,103 +96,86 @@ export default function CompoundGetter() {
   // Layout
   // -----------------------------
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: 20 }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: 20 }}>
       <h2 style={{ textAlign: "center", marginBottom: 30 }}>
         Small Molecule Getter
       </h2>
 
-      <Grid gutter="xl">
-        {/* PIE CHART */}
-        <Grid.Col span={{ xs: 12, md: 6 }}>
-          <Paper shadow="sm" p="md">
-            <h3 style={{ textAlign: "center", marginBottom: 20 }}>
-              Associated Bioactivities
-            </h3>
+      <Paper shadow="sm" p="md">
+        <FAQComp>
+          For your specific target selection, small molecules tested against
+          your target will be searched. Select the assay type and unit.
+          Binding assays with Ki are the default.
+        </FAQComp>
 
-            {pieData.length === 0 ? (
-              <p style={{ textAlign: "center" }}>Loading chart...</p>
-            ) : (
-              <PieChart data={pieData} />
-            )}
-          </Paper>
-        </Grid.Col>
+        <Select
+          label="Assay Type"
+          value={binding}
+          onChange={(v) => v && setBinding(v)}
+          data={[
+            { value: "B", label: "Binding" },
+            { value: "F", label: "Functional" },
+            { value: "ADMET", label: "ADMET" },
+            { value: "T", label: "Toxicity" },
+            { value: "P", label: "Physiochemical" },
+            { value: "U", label: "Unclassified" },
+          ]}
+          mb="md"
+        />
 
-        {/* FORM */}
-        <Grid.Col span={{ xs: 12, md: 6 }}>
-          <Paper shadow="sm" p="md">
-            <FAQComp>
-              For your specific target select, small molecules will be searched that
-              have been tested in assays against your target is filtered. You could
-              select the type of assay they have been tested in and the units
-              provided. Generally speaking it is best to avoid&nbsp;
-              <a href="https://pubs.acs.org/doi/full/10.1021/acs.jcim.4c00049">
-                mixing various forms of data types
-              </a>
-              . Since, Binding Assays are more prevalent with Ki being the preferred
-              unit, they are the default.
-            </FAQComp>
+        <Select
+          label="Unit Type"
+          value={unit}
+          onChange={(v) => v && setUnit(v)}
+          data={[
+            { value: "Ki", label: "Ki" },
+            { value: "IC50", label: "IC50" },
+            { value: "XC50", label: "XC50" },
+            { value: "EC50", label: "EC50" },
+            { value: "AC50", label: "AC50" },
+            { value: "Kd", label: "Kd" },
+            { value: "Potency", label: "Potency" },
+            { value: "ED50", label: "ED50" },
+          ]}
+          mb="lg"
+        />
 
-            <Select
-              label="Assay Type"
-              value={binding}
-              onChange={(v) => v && setBinding(v)}
-              data={[
-                { value: "B", label: "Binding" },
-                { value: "F", label: "Functional" },
-                { value: "ADMET", label: "ADMET" },
-                { value: "T", label: "Toxicity" },
-                { value: "P", label: "Physiochemical" },
-                { value: "U", label: "Unclassified" },
-              ]}
-              mb="md"
-            />
+        {/* COUNT DISPLAY */}
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          {totalCount === null ? (
+            <p>Loading count...</p>
+          ) : (
+            <h3>{totalCount.toLocaleString()} matching activities</h3>
+          )}
+        </div>
 
-            <Select
-              label="Unit Type"
-              value={unit}
-              onChange={(v) => v && setUnit(v)}
-              data={[
-                { value: "Ki", label: "Ki" },
-                { value: "IC50", label: "IC50" },
-                { value: "XC50", label: "XC50" },
-                { value: "EC50", label: "EC50" },
-                { value: "AC50", label: "AC50" },
-                { value: "Kd", label: "Kd" },
-                { value: "Potency", label: "Potency" },
-                { value: "ED50", label: "ED50" },
-              ]}
-              mb="lg"
-            />
+        <Button fullWidth onClick={fetchData}>
+          Fetch Full Dataset
+        </Button>
 
-            <Button fullWidth onClick={fetchData}>
-              Fetch Data
+        {loading && (
+          <>
+            <Progress value={progress} mt="md" />
+            <div style={{ textAlign: "center", marginTop: 8 }}>
+              {Math.min(progress, 100).toFixed(1)}%
+            </div>
+          </>
+        )}
+
+        {ligand.length > 0 && (
+          <Link href="/tools/preprocess/" passHref>
+            <Button fullWidth mt="md">
+              Process Molecules
             </Button>
+          </Link>
+        )}
 
-            {loading && (
-              <>
-                <Progress value={progress} mt="md" />
-                <div style={{ textAlign: "center", marginTop: 8 }}>
-                  {Math.min(progress, 100).toFixed(1)}%
-                </div>
-              </>
-            )}
-
-            {ligand.length > 0 && (
-              <Link href="/tools/preprocess/" passHref>
-                <Button fullWidth mt="md">
-                  Process Molecules
-                </Button>
-              </Link>
-            )}
-
-            {ligandSearch && ligand.length === 0 && (
-              <p style={{ textAlign: "center", marginTop: 20 }}>
-                No compounds found.
-              </p>
-            )}
-          </Paper>
-        </Grid.Col>
-      </Grid>
+        {ligandSearch && ligand.length === 0 && (
+          <p style={{ textAlign: "center", marginTop: 20 }}>
+            No compounds found.
+          </p>
+        )}
+      </Paper>
     </div>
   );
 }

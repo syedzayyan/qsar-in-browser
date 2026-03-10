@@ -22,7 +22,7 @@ export default function MLLayout({ children }) {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const { rdkit } = useContext(RDKitContext);
+  const [ rdkit, setRDKIT ]  = useState<Worker>();
   const { pyodide } = useContext(PyodideContext);
   const { setTarget, target } = useContext(TargetContext);
   const { pushNotification } = useContext(NotificationContext);
@@ -41,6 +41,13 @@ export default function MLLayout({ children }) {
     }
   }, [oneOffSMILES]);
 
+  useEffect(() => {
+    const pyodideWorker = new Worker("/workers/pyodide.mjs", { type: "module" });
+    const rdkitWorker = new Worker("/workers/rdkit.mjs");
+
+    setRDKIT(rdkitWorker);
+  }, [])
+
   // -----------------------------
   // One-off prediction
   // -----------------------------
@@ -54,11 +61,11 @@ export default function MLLayout({ children }) {
       type: "success",
       id: requestId, 
       done: false,
-      autoClose: false,
+      autoClose: true,
     });
 
     rdkit.postMessage({
-      function: "fingerprint",
+      function: "only_fingerprint",
       id: requestId,
       mol_data: [{ canonical_smiles: oneOffSMILES }],
       activity_columns: target.activity_columns,
@@ -70,8 +77,9 @@ export default function MLLayout({ children }) {
     });
 
     rdkit.onmessage = async (event) => {
+      console.log(event);
       if (event.data.id === requestId) {
-        const mol_fp = event.data.data[0].fingerprint;
+        const mol_fp = event.data.results[0].fingerprint;
 
         pyodide.postMessage({
           id: requestId,

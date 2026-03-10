@@ -67,8 +67,8 @@ export default function CornerMenu() {
           <NavLink label="Model Predictions">
             <NavLink component={Link} href="/tools/screen" label="Predict from Dataset" />
             {/* I don't think we should have this feature in the released version just yet */}
-            {/* <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" /> */}
-            <NavLink component={Link} href="/tools/screen/cov_score" label="" />
+            {/* {/* <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" /> */}
+            <NavLink component={Link} href="/tools/screen/cov_score" label="" /> */}
           </NavLink>
 
           <Modal opened={opened} onClose={close}>
