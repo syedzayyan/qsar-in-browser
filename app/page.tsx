@@ -92,11 +92,12 @@ export default function IndexPage() {
           </Title>
 
           <Text ta="center" size="lg" c="dimmed" maw={800}>
-            QSAR in the Browser (QITB) is an intuitive, browser-based platform 
-            allowing any analyst or researcher to understand small-molecule data. 
-            It was developed to make cheminformatics accessible. 
-            Users can upload their own datasets completely privately or 
-            retrieve small molecule data from the manually-curated ChEMBL database.  
+            QSAR in the Browser (QITB) is a browser-based platform that 
+            makes small molecule data accessible to students, analysts and researchers. 
+            <br />
+            <br />
+            You can get started quickly using small molecule data from the online, manually-curated 
+            ChEMBL database. Alternatively, you can upload your own datasets completely privately, as all calculations remain local to your machine.
             
             <br />
             <br />
