@@ -110,13 +110,6 @@ export default function TSNE() {
         </form>
       </details>
 
-      <FAQComp
-        title="Why use PCA correction before t-SNE?"
-      >
-        High-dimensional molecular fingerprints (often 1024-2048 dimensions) can cause t-SNE to struggle with the 'curse of dimensionality'. Pre-reducing to ~30-40 dimensions with PCA removes noise while preserving the main variance structure, leading to faster computation and more stable t-SNE embeddings.
-        <a href="https://practicalcheminformatics.blogspot.com/2019/11/visualizing-chemical-space.html">A blog on this in detail.</a>
-
-      </FAQComp>
       {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].tsne && (
         <>
           {usedPCACorrection && target.pca_explained_variance && (

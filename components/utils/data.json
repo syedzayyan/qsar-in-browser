@@ -237,10 +237,10 @@
                     "xref_src": "canSAR-Target"
                 }
             ],
-            "organism": "Escherichia coli K-12",
-            "pref_name": "Penicillin-binding protein 1A",
+            "organism": "Homo sapiens",
+            "pref_name": "Cytochrome P450 3A4",
             "species_group_flag": false,
-            "target_chembl_id": "CHEMBL1813",
+            "target_chembl_id": "CHEMBL340",
             "target_components": [
                 {
                     "accession": "P02918",
@@ -2935,10 +2935,10 @@
                     "xref_src": "canSAR-Target"
                 }
             ],
-            "organism": "Influenza A virus (A/Puerto Rico/8/1934(H1N1))",
-            "pref_name": "Neuraminidase",
+            "organism": "Homo sapiens",
+            "pref_name": "GTPase KRas",
             "species_group_flag": false,
-            "target_chembl_id": "CHEMBL2051",
+            "target_chembl_id": "CHEMBL2189121",
             "target_components": [
                 {
                     "accession": "P03468",
@@ -3190,10 +3190,10 @@
                     "xref_src": "canSAR-Target"
                 }
             ],
-            "organism": "Influenza A virus (A/Udorn/307/1972(H3N2))",
-            "pref_name": "Influenza virus A matrix protein M2",
+            "organism": "Homo sapiens",
+            "pref_name": "Beta-2 adrenergic receptor",
             "species_group_flag": false,
-            "target_chembl_id": "CHEMBL2052",
+            "target_chembl_id": "CHEMBL210",
             "target_components": [
                 {
                     "accession": "P0DOF8",
