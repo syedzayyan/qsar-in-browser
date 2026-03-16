@@ -42,34 +42,37 @@ export default function DataLoader() {
   return (
     <div className="tools-container">
       <div style={{ width: "80%", margin: "0 auto" }}>
-        <h2>Fetch the data</h2>
+        <h2>Load Small Molecule Data</h2>
         <p>
-          Starting off with analysis, we need data. For now, you could use the
-          in-built program to fetch data format ChEMBL, or you can use your own
-          dataset in a CSV format. If you are new here and just want to try the
-          program out, I'd suggest the ChEMBL program with the CHEMBL223 Target.
-          ChEMBL is a bioactivity database, and you could find details about
-          it&nbsp;
-          <a
+          QITB needs molecular structures and activity measurements to begin. Molecular 
+          structures can be encoded as SMILES strings eg ('CCO' for ethanol) and activity 
+          measurements can be any experimental or calculated measurement of interest for the 
+          corresponding molecule - like binding affinity, assay potency etc. 
+        </p>
+        <p>
+          If you are new to QSAR and cheminformatics, you can pick a protein target of interest 
+          from the EMBL's manually curated below database of small molecules -&nbsp;<a
             href="https://www.ebi.ac.uk/chembl/"
             target="_blank"
             rel="noopener noreferrer"
-          >
-            here
+          >ChEMBL 
           </a>
+          . If you have small molecules you are interested in analysing, organise 
+          them into a CSV file with columns for 'ID', 'SMILES' and 'Activity' to 
+          analyse them with QITB. 
         </p>
       </div>
       <br />
       <Tabs defaultValue="gallery">
         <Tabs.List>
           <Tabs.Tab value="gallery">
-            ChEMBL
+            Online Curated Data
           </Tabs.Tab>
           <Tabs.Tab value="messages" >
-            Upload CSV
+            Your Data
           </Tabs.Tab>
           <Tabs.Tab value="settings">
-            QITB JSON
+            Previous Session
           </Tabs.Tab>
         </Tabs.List>
 

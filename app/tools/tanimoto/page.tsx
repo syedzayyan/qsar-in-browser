@@ -69,19 +69,9 @@ export default function Tanimoto() {
 
   return (
     <div className="tools-container" ref={containerRef}>
-      <details open={false}>
-        <summary>What does this mean?</summary>
-        <p>
-          Tanimoto indexes are a similarity score between two molecules. The
-          index is between 0 and 1 where a value closer to one indicated two
-          molecules are very similar. If we have a reference molecule, which in
-          this case is a random molecule, we could compare this molecule, to all
-          the molecule in your database. This will help us understand, the
-          diversity of our database, compared to a reference. This is still not
-          the full picture, but adds a piece to the puzzle.
-        </p>
-      </details>
-      <label>SMILES string: </label>
+      <h1>Similarity Distribution</h1> 
+      
+      <label>Reference Molecule (SMILES String) </label>
       <input
         defaultValue={anchorMol}
         type="text"
@@ -97,7 +87,7 @@ export default function Tanimoto() {
         {isRunning ? "Generating Graph..." : "Generate Graph"}
       </Button>
       <Select
-        label="Your favorite library"
+        label="Previously selected molecules"
         placeholder="Pick value"
         value={selectedAnchorMol}
         data={taniData}
@@ -115,6 +105,30 @@ export default function Tanimoto() {
             yLabel="Count"
           />
         )}
+      <details open={false}>
+        <summary>How this histogram is generated</summary>
+        <p>
+          QITB calculates Tanimoto coefficients to represent the mathematical similarity 
+          between two molecular fingerprints. This histogram presents these 
+          coefficients for every molecule in the dataset, compared to the provided 
+          reference molecule. The default molecule provided is 'CCO' - ethanol, but 
+          you can draw any molecule or provide its SMILE string to use your own reference molecule. 
+        </p>
+      </details>
+      <details open={false}>
+        <summary>How to interpret this graph</summary>
+        <p>
+          A maximum score of 1.0 represents high similarity between a given molecule and the 
+          provided reference molecule. A minimum score of 0.0 indicates low similarity between 
+          a given molecule and the reference molecule. Overall, a distribution close to 1.0 
+          represents a high similarity between the dataset and the reference molecule, 
+          while a distribution nearer 0 represents a low level of similarity between the 
+          reference molecule and the dataset. As Tanimoto coefficients are calculated from 
+          molecular fingerprints, this histogram changes dependent on the fingerprint chosen 
+          (MACCS, Morgan etc).
+        </p>
+        
+      </details>
     </div>
   );
 }

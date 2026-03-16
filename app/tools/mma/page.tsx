@@ -5,17 +5,21 @@ import FAQComp from "../../../components/ui-comps/FAQComp";
 export default function Matched(){
     return(
         <div className="tools-container">
-            <h1>Matched Molecular Series - Analysis</h1>
-            <FAQComp >
-                <h4>What is Matched Molecular Series?</h4>
-                <p>Matched Molecular Series simply put is a method through which molecules are cut in one place, and then it
-                    is checked which molecules sort of shair common cores. This is can help find molecules that are very similar
-                    to each other, and only differing by a common atom for example. This helps to understand and find out activity cliffs
-                    in the data. Activity cliffs are basically molecules where small changes lead to big changes in activity.
-                    More about Activity cliffs can be found here: <a href = "https://pubs.acs.org/doi/10.1021/acsomega.9b02221">Link</a>
+            <h1>Common Motifs</h1>
+            <h3>Matched Molecular Series - Analysis</h3>
+            <details open={false}>
+                <summary>How to interpret these results</summary>
+                <p>
+                    QITB groups molecules that share a core structure but vary elsewhere in their structure. 
+                    You can see how many 'Matched Molecules' there are per group. Via the highlight, you can
+                    see the location of the common motif in each molecule.
                 </p>
-                <h4>How is it done?</h4>
-                <p>MMA has appeared in literature and some of the more prominent ones are listed here:
+            </details>
+            
+            <details open={false}>
+                <summary>How are common motifs calculated?</summary>
+                <p>
+                    QITB groups molecules that share the same core structure by using Matched Molecular Series Analysis which you can read more about here:
                     <ul>
                         <li>Wawer, Mathias, and Jürgen Bajorath. 
                             "Local structural changes, global data views: graphical substructure− activity relationship trailing." 
@@ -29,8 +33,8 @@ export default function Matched(){
                             <a href = "https://doi.org/10.1021/jm500022q">Link</a>
                         </li>
                     </ul>
-                </p>
-            </FAQComp>
+                    </p>
+            </details>
             <MMA />
         </div>
     )

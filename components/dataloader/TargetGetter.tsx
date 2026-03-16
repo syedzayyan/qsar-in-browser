@@ -49,19 +49,23 @@ export default function TargetGetter() {
           flexDirection: "column",
         }}
       >
-        <h2>ChEMBL Data Fetcher</h2>
+        <h2>Browse protein targets from ChEMBL</h2>
+        {/* @SZM I would love to be able to decrease the spacing between the header and the text here - looks odd. */}
+        <p>Search and select your protein target of interest. 
+        If ChEMBL has any small molecule data for your target, QITB will use it for analysis and visualisation.
+        </p>
         <Input
           placeholder="Search for relevant words to your Target"
           onChange={(e) => setTargetQuery(e.target.value)}
           required={true}
           pattern=".{3,}"
         />
-        <Input
+        {/* <Input
           type="submit"
           onSubmit={fetchTarget}
           className="button"
           value="Search for your Target"
-        />
+        /> */}
       </form>
 
         {loading ? (

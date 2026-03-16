@@ -227,6 +227,22 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
                   </Button>
                 </Stack>
               </form>
+=======
+                    <Remove color={removeHoverColor} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+              {/* @SZM If we could get this to look like the JSON upload that would be more professional. 
+              I don't know why they're so different when they're such similar functions. Would have something more like: 
+              <p>Upload CSV file, Smaller Text: Ensure it has columns for 'ID', 'SMILES' and 'Activity'.</p> */}
+                <p>Provide your own CSV file, ensure it has columns for 'id', 'activity' and 'SMILES'.</p>
+                <p>
+                  Drag & drop your file here, or click to browse.
+                </p>
+              </>
+>>>>>>> f81e368b881494cb201a69dd7b419b3ed30fda23
             )}
           </Stack>
         )}
@@ -274,6 +290,24 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
         </Stack>
       </Modal>
     </>
+=======
+              <input
+                type="submit"
+                className="button"
+                value={"Generate Molecular Fingerprints"}
+              />
+              <br />
+              <span>{errors.id_column?.message}</span>
+              <span>{errors.smi_column?.message}</span>
+              {callofScreenFunction && ( // Check if the function is provided
+                <span>{errors.act_column?.message}</span>
+              )}
+            </form>
+          ) : null}
+        </div>
+      )}
+    </CSVReader>
+>>>>>>> f81e368b881494cb201a69dd7b419b3ed30fda23
   );
 };
 

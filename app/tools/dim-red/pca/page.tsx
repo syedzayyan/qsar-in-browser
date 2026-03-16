@@ -73,7 +73,12 @@ export default function PCA() {
             </Modal>
             {Array.isArray(ligand) && ligand.length > 0 && ligand[0] && ligand[0].pca && (
                 <>
-                    <p>Explained Variance by first 2 Principal Components: {round(target.pca_explained_variance, 3)}</p>
+                    <p>
+                    The first two principal components explain{" "}
+                    {Math.round(Number(target.pca_explained_variance) * 1000) / 10}% of the variation in
+                    the molecular fingerprint data.
+                    </p>
+
                     <br></br>
                     <Scatterplot
                         data={ligand.map((obj) => {
@@ -92,6 +97,28 @@ export default function PCA() {
                     />
                 </>
             )}
+            <details open={false}>
+                <summary>How to interpret the PCA chemical space map</summary>
+                <p>
+                    Each point on this scatter plot represents a molecule. Similar molecules are closer together, 
+                    while dissimilar molecules are further apart. Principal Component 1 (PC1) and Principal Component 
+                    2 (PC2) do not necessarily correspond to intuitive chemical properties - instead they are a 
+                    weighted sum of the most distinguishing features of the fingerprint across the dataset. 
+                    In this case, PC1 and PC2 account for{" "}
+                    {Math.round(Number(target.pca_explained_variance) * 1000) / 10}% of the variation across the molecular
+                    fingerprint data.
+                </p>
+            </details>
+            <details open={false}>
+                <summary>Why use PCA to view chemical space?</summary>
+                <p>
+                    Molecular fingerprints contain a large amount of data on any given molecule - 100s or 1,000s of 
+                    distinct chemical features. Visualising this data directly is extremely challenging, so 
+                    cheminformaticians use PCA to approximate molecular fingerprints into two or three 'Principal 
+                    Components', allowing a visualisation of this dataset's chemical space. 
+                </p>
+            </details>
+            
         </div>
     );
 }

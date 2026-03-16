@@ -102,27 +102,15 @@ const DataPreProcessToolKit = () => {
 
   return (
     <div>
-      <FAQComp>
-        <p>
-          In order for small molecules to be visualised, compounds need to be
-          converted into a fingerprint: a collection of 0s and 1s representing
-          chemical motifs or environments.
-        </p>
-        <p>
-          If you have downloaded data from ChEMBL, there may be duplicates. You
-          can also choose whether to convert activity values to negative
-          logarithm base 10.
-        </p>
-      </FAQComp>
 
       {stage === "choose" && (
         <Paper p="md" withBorder>
           <form onSubmit={handleChooseSubmit}>
             <Stack gap="md">
               <Text fw={500} size="lg">
-                Pre-Processing Molecules
+                Generate Molecular Fingerprints
               </Text>
-
+              <p>Select how you would like to generate molecular fingerprints from the SMILES data:</p>
               <Radio.Group
                 name="preprocess-mode"
                 value={selection}
@@ -130,10 +118,11 @@ const DataPreProcessToolKit = () => {
               >
                 <Stack gap="xs">
                   <Radio value="express" label="Express" />
+                  <p>Uses default parameters, recommended for beginners.</p>
                   <Radio value="advanced" label="Advanced" />
+                  <p>Allows you to specify parameters.</p>
                 </Stack>
               </Radio.Group>
-
               <Button type="submit" disabled={!selection}>
                 Submit
               </Button>

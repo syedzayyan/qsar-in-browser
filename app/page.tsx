@@ -55,7 +55,7 @@ export default function IndexPage() {
             >
               GitHub
             </Anchor>
-            <Anchor
+            {/* <Anchor
               component={Link}
               href="/misc_tools"
               size="sm"
@@ -63,7 +63,7 @@ export default function IndexPage() {
               c="dimmed"
             >
               Misc Tools
-            </Anchor>
+            </Anchor> */}
             <ActionIcon
               onClick={() =>
                 setColorScheme(colorScheme === "light" ? "dark" : "light")
@@ -88,19 +88,21 @@ export default function IndexPage() {
         <Stack align="center" mt="6rem">
           <Image src="/logo.svg" alt="Logo" maw={180} radius="md" />
           <Title ta="center" order={1} size="h2" fw={700}>
-            Cheminformatics in Your Browser — Without Writing Code!
+            QSAR in the browser
           </Title>
 
           <Text ta="center" size="lg" c="dimmed" maw={800}>
-            QITB simplifies the world of chemistry and data analysis. Easily
-            upload chemical data or fetch it from trusted resources. Explore
-            molecular structures, analyze them, and run ML models directly in
-            your browser — no setup, no coding.
+            QSAR in the Browser (QITB) is a browser-based platform that 
+            makes small molecule data accessible to students, analysts and researchers. 
+            <br />
+            <br />
+            You can get started quickly using small molecule data from the online, manually-curated 
+            ChEMBL database. Alternatively, you can upload your own datasets completely privately, as all calculations remain local to your machine.
+            
             <br />
             <br />
             <Text span fw={600} c="blue">
-              It’s open source, secure, and built for scientists who want speed
-              and simplicity.
+              Free, open-source, secure and simple.
             </Text>
           </Text>
 
@@ -111,12 +113,12 @@ export default function IndexPage() {
             gradient={{ from: "blue", to: "teal" }}
             onClick={() => router.push("/tools/load_data")}
           >
-            Start Here 🚀
+            Get Started 🚀
           </Button>
         </Stack>
 
         {/* Preview Section */}
-        <Center mt="5rem">
+        {/* <Center mt="5rem">
           <Image
             src="/layout.png"
             alt="App layout preview"
@@ -125,7 +127,7 @@ export default function IndexPage() {
             w="100%"
             maw={1000}
           />
-        </Center>
+        </Center> */}
       </Container>
     </>
   );

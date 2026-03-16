@@ -98,15 +98,18 @@ useEffect(() => {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 20 }}>
       <h2 style={{ textAlign: "center", marginBottom: 30 }}>
-        Small Molecule Getter
+        Select Activity Measurements
       </h2>
 
       <Paper shadow="sm" p="md">
-        <FAQComp>
-          For your specific target selection, small molecules tested against
-          your target will be searched. Select the assay type and unit.
-          Binding assays with Ki are the default.
-        </FAQComp>
+        <p>
+          Select Assay Type and Unit Type 
+          to extract all small molecules listed 
+          on ChEMBL for 
+          your selected protein target of interest. {/* SZM please could we have this line replaced with the name of the selected target? */}
+          Please note, some Assay Type-Unit Type combinations ('activities')
+          do not have any small molecule data.
+        </p>
 
         <Select
           label="Assay Type"

@@ -23,6 +23,7 @@ export default function Activity() {
 
     return (
         <div className="tools-container">
+            <h1>Activity Distribution</h1>
             <Histogram data={data} xLabel={target?.activity_columns?.[0] || ""} yLabel="Count" toolTipData={ligand}>
                 <span>
                     {data.length > 0 ? (

@@ -37,36 +37,36 @@ export default function CornerMenu() {
           Save Work <img height="30px" width="30px" src="/save_disk.svg"></img>
         </Button>)}
       </Group>
-      <NavLink label="Data Operations">
-        <NavLink component={Link} href="/tools/load_data" label="Load Data" />
-        <NavLink component={Link} href="/tools/preprocess" label="Process Data" />
-        <NavLink component={Link} href="/tools/toc" label="Explore Data" />
+      <NavLink label="Data Setup">
+        <NavLink component={Link} href="/tools/load_data" label="Load New Data" />
+        <NavLink component={Link} href="/tools/preprocess" label="Generate Fingerprints" />
+        <NavLink component={Link} href="/tools/toc" label="Molecules Table" />
       </NavLink>
 
       {target.pre_processed && (
         <>
-          <NavLink label="Distributions">
+          <NavLink label="Distribution Histograms">
             <NavLink component={Link} href="/tools/activity" label="Activity" />
-            <NavLink component={Link} href="/tools/tanimoto" label="Tanimoto" />
+            <NavLink component={Link} href="/tools/tanimoto" label="Similarity" />
           </NavLink>
 
-          <NavLink label="Dimension Reduction">
+          <NavLink label="Chemical Space Maps">
             <NavLink component={Link} href="/tools/dim-red/pca" label="PCA" />
-            <NavLink component={Link} href="/tools/dim-red/tsne" label="tSNE" />
+            <NavLink component={Link} href="/tools/dim-red/tsne" label="t-SNE" />
           </NavLink>
 
-          <NavLink label="Scaffold Operations">
-            <NavLink component={Link} href="/tools/mma" label="MMA" />
-            <NavLink component={Link} href="/tools/scaff_net" label="Scaffold Networks" />
+          <NavLink label="Structural Analysis">
+            <NavLink component={Link} href="/tools/mma" label="Common Motifs" />
+            <NavLink component={Link} href="/tools/scaff_net" label="Scaffold Tree" />
           </NavLink>
 
           <NavLink label="Machine Learning">
-            <NavLink component={Link} href="/tools/ml/fp" label="Fingerprint-Based Models" />
+            <NavLink component={Link} href="/tools/ml/fp" label="Train a Model" />
           </NavLink>
 
-          <NavLink label="Virtual Screening">
-            <NavLink component={Link} href="/tools/screen" label="Overview" />
-            {/* <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" /> */}
+          <NavLink label="Model Predictions">
+            <NavLink component={Link} href="/tools/screen" label="Predict from Dataset" />
+            {/* {/* <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" /> */}
           </NavLink>
 
           <Modal opened={opened} onClose={close}>

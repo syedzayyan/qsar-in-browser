@@ -6,7 +6,7 @@ import { round } from "mathjs";
 import { useDisclosure } from "@mantine/hooks";
 import { Card, Grid, Modal } from "@mantine/core";
 
-const MARGIN = { top: 40, right: 30, bottom: 60, left: 80 };
+const MARGIN = { top: 120, right: 150, bottom: 150, left: 120 };
 const BUCKET_NUMBER = 70;
 const BUCKET_PADDING = 1;
 
