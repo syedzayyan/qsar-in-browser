@@ -1,5 +1,9 @@
 import { Dispatch, SetStateAction, useState } from "react";
-import { useCSVReader, lightenDarkenColor, formatFileSize } from "react-papaparse";
+import {
+  useCSVReader,
+  lightenDarkenColor,
+  formatFileSize,
+} from "react-papaparse";
 import { useForm, SubmitHandler } from "react-hook-form";
 import convertToJSON from "../utils/arrayToJson";
 import {
@@ -17,10 +21,18 @@ import {
   Alert,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconUpload, IconX, IconAlertCircle, IconFileTypeCsv } from "@tabler/icons-react";
+import {
+  IconUpload,
+  IconX,
+  IconAlertCircle,
+  IconFileTypeCsv,
+} from "@tabler/icons-react";
 
 const DEFAULT_REMOVE_HOVER_COLOR = "#A01919";
-const REMOVE_HOVER_COLOR_LIGHT = lightenDarkenColor(DEFAULT_REMOVE_HOVER_COLOR, 40);
+const REMOVE_HOVER_COLOR_LIGHT = lightenDarkenColor(
+  DEFAULT_REMOVE_HOVER_COLOR,
+  40,
+);
 
 export type Inputs = {
   id_column: string;
@@ -34,22 +46,35 @@ interface Props {
   act_col?: boolean;
 }
 
-const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }) => {
+const CSVLoader: React.FC<Props> = ({
+  callofScreenFunction,
+  csvSetter,
+  act_col,
+}) => {
   const { CSVReader } = useCSVReader();
   const [zoneHover, setZoneHover] = useState(false);
-  const [removeHoverColor, setRemoveHoverColor] = useState(DEFAULT_REMOVE_HOVER_COLOR);
+  const [removeHoverColor, setRemoveHoverColor] = useState(
+    DEFAULT_REMOVE_HOVER_COLOR,
+  );
   const [headers, setHeader] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<Record<string, any>[]>([]);
 
-  // Null handling state
-  const [nullModalOpened, { open: openNullModal, close: closeNullModal }] = useDisclosure(false);
+  const [nullModalOpened, { open: openNullModal, close: closeNullModal }] =
+    useDisclosure(false);
   const [nullCount, setNullCount] = useState(0);
   const [nullStrategy, setNullStrategy] = useState<"remove" | "fill">("fill");
   const [fillValue, setFillValue] = useState<number>(0);
-  const [pendingSubmitData, setPendingSubmitData] = useState<Inputs | null>(null);
+  const [pendingSubmitData, setPendingSubmitData] = useState<Inputs | null>(
+    null,
+  );
   const [selectedActCol, setSelectedActCol] = useState<string>("");
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<Inputs>();
+  const {
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<Inputs>();
 
   const watchedId = watch("id_column");
   const watchedSmi = watch("smi_column");
@@ -57,10 +82,13 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
 
   const headerOptions = headers.map((h) => ({ value: h, label: h }));
 
-  const countNullsInColumn = (data: Record<string, any>[], col: string): number => {
+  const countNullsInColumn = (
+    data: Record<string, any>[],
+    col: string,
+  ): number => {
     return data.filter((row) => {
       const val = row[col];
-      return val === null || val === undefined || val === "" || val !== val; // NaN check
+      return val === null || val === undefined || val === "" || val !== val;
     }).length;
   };
 
@@ -68,7 +96,7 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
     data: Record<string, any>[],
     col: string,
     strategy: "remove" | "fill",
-    fill: number
+    fill: number,
   ): Record<string, any>[] => {
     if (strategy === "remove") {
       return data.filter((row) => {
@@ -87,7 +115,6 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
   };
 
   const onFormSubmit: SubmitHandler<Inputs> = (formData) => {
-    // Only check nulls if act_col is enabled
     if (act_col !== false && formData.act_column) {
       const nulls = countNullsInColumn(csvData, formData.act_column);
       if (nulls > 0) {
@@ -103,7 +130,12 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
 
   const handleNullConfirm = () => {
     if (!pendingSubmitData) return;
-    const cleaned = applyNullStrategy(csvData, selectedActCol, nullStrategy, fillValue);
+    const cleaned = applyNullStrategy(
+      csvData,
+      selectedActCol,
+      nullStrategy,
+      fillValue,
+    );
     csvSetter(cleaned);
     closeNullModal();
     callofScreenFunction(pendingSubmitData);
@@ -119,12 +151,22 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
           csvSetter(data);
           setCsvData(data);
         }}
-        onDragOver={(event: DragEvent) => { event.preventDefault(); setZoneHover(true); }}
-        onDragLeave={(event: DragEvent) => { event.preventDefault(); setZoneHover(false); }}
+        onDragOver={(event: DragEvent) => {
+          event.preventDefault();
+          setZoneHover(true);
+        }}
+        onDragLeave={(event: DragEvent) => {
+          event.preventDefault();
+          setZoneHover(false);
+        }}
       >
-        {({ getRootProps, acceptedFile, ProgressBar, getRemoveFileProps, Remove }: any) => (
+        {({
+          getRootProps,
+          acceptedFile,
+          ProgressBar,
+          getRemoveFileProps,
+        }: any) => (
           <Stack gap="md">
-            {/* Drop zone */}
             <Paper
               {...getRootProps()}
               withBorder
@@ -133,8 +175,12 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
               style={{
                 borderStyle: "dashed",
                 borderWidth: 2,
-                borderColor: zoneHover ? "var(--mantine-color-blue-5)" : "var(--mantine-color-default-border)",
-                background: zoneHover ? "var(--mantine-color-blue-0)" : "var(--mantine-color-default)",
+                borderColor: zoneHover
+                  ? "var(--mantine-color-blue-5)"
+                  : "var(--mantine-color-default-border)",
+                background: zoneHover
+                  ? "var(--mantine-color-blue-0)"
+                  : "var(--mantine-color-default)",
                 cursor: "pointer",
                 transition: "all 0.2s ease",
                 minHeight: 120,
@@ -146,10 +192,17 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
               {acceptedFile ? (
                 <Group justify="space-between" w="100%">
                   <Group gap="sm">
-                    <IconFileTypeCsv size={32} color="var(--mantine-color-blue-5)" />
+                    <IconFileTypeCsv
+                      size={32}
+                      color="var(--mantine-color-blue-5)"
+                    />
                     <Stack gap={2}>
-                      <Text fw={500} size="sm">{acceptedFile.name}</Text>
-                      <Badge size="xs" variant="light">{formatFileSize(acceptedFile.size)}</Badge>
+                      <Text fw={500} size="sm">
+                        {acceptedFile.name}
+                      </Text>
+                      <Badge size="xs" variant="light">
+                        {formatFileSize(acceptedFile.size)}
+                      </Badge>
                     </Stack>
                   </Group>
                   <div style={{ width: "40%" }}>
@@ -161,8 +214,12 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
                     variant="subtle"
                     color="red"
                     leftSection={<IconX size={14} />}
-                    onMouseOver={() => setRemoveHoverColor(REMOVE_HOVER_COLOR_LIGHT)}
-                    onMouseOut={() => setRemoveHoverColor(DEFAULT_REMOVE_HOVER_COLOR)}
+                    onMouseOver={() =>
+                      setRemoveHoverColor(REMOVE_HOVER_COLOR_LIGHT)
+                    }
+                    onMouseOut={() =>
+                      setRemoveHoverColor(DEFAULT_REMOVE_HOVER_COLOR)
+                    }
                     onClick={(e: React.MouseEvent) => {
                       getRemoveFileProps().onClick(e);
                       setHeader([]);
@@ -175,13 +232,25 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
               ) : (
                 <Stack align="center" gap="xs">
                   <IconUpload size={32} color="var(--mantine-color-dimmed)" />
-                  <Text size="sm" fw={500}>Upload your CSV file</Text>
-                  <Text size="xs" c="dimmed">Drag & drop or click to browse — must contain SMILES strings</Text>
+                  <Text size="sm" fw={500}>
+                    Upload your CSV file
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Drag & drop or click to browse
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Ensure your file has columns for <strong>ID</strong>,{" "}
+                    <strong>SMILES</strong>
+                    {act_col !== false && (
+                      <>
+                        , and <strong>Activity</strong>
+                      </>
+                    )}
+                  </Text>
                 </Stack>
               )}
             </Paper>
 
-            {/* Column selectors */}
             {acceptedFile && (
               <form onSubmit={handleSubmit(onFormSubmit)}>
                 <Stack gap="sm">
@@ -218,37 +287,37 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
                     />
                   )}
 
-                  {errors.id_column && <Text c="red" size="xs">{errors.id_column.message}</Text>}
-                  {errors.smi_column && <Text c="red" size="xs">{errors.smi_column.message}</Text>}
-                  {errors.act_column && <Text c="red" size="xs">{errors.act_column.message}</Text>}
+                  {errors.id_column && (
+                    <Text c="red" size="xs">
+                      {errors.id_column.message}
+                    </Text>
+                  )}
+                  {errors.smi_column && (
+                    <Text c="red" size="xs">
+                      {errors.smi_column.message}
+                    </Text>
+                  )}
+                  {errors.act_column && (
+                    <Text c="red" size="xs">
+                      {errors.act_column.message}
+                    </Text>
+                  )}
 
-                  <Button type="submit" fullWidth mt="xs" leftSection={<IconFileTypeCsv size={16} />}>
+                  <Button
+                    type="submit"
+                    fullWidth
+                    mt="xs"
+                    leftSection={<IconFileTypeCsv size={16} />}
+                  >
                     Pre-Process Molecules
                   </Button>
                 </Stack>
               </form>
-=======
-                    <Remove color={removeHoverColor} />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-              {/* @SZM If we could get this to look like the JSON upload that would be more professional. 
-              I don't know why they're so different when they're such similar functions. Would have something more like: 
-              <p>Upload CSV file, Smaller Text: Ensure it has columns for 'ID', 'SMILES' and 'Activity'.</p> */}
-                <p>Provide your own CSV file, ensure it has columns for 'id', 'activity' and 'SMILES'.</p>
-                <p>
-                  Drag & drop your file here, or click to browse.
-                </p>
-              </>
->>>>>>> f81e368b881494cb201a69dd7b419b3ed30fda23
             )}
           </Stack>
         )}
       </CSVReader>
 
-      {/* Null value modal */}
       <Modal
         opened={nullModalOpened}
         onClose={closeNullModal}
@@ -257,9 +326,15 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
         centered
       >
         <Stack gap="md">
-          <Alert icon={<IconAlertCircle size={16} />} color="yellow" variant="light">
-            Found <strong>{nullCount}</strong> null value{nullCount !== 1 ? "s" : ""} in the{" "}
-            <strong>"{selectedActCol}"</strong> column. How would you like to handle them?
+          <Alert
+            icon={<IconAlertCircle size={16} />}
+            color="yellow"
+            variant="light"
+          >
+            Found <strong>{nullCount}</strong> null value
+            {nullCount !== 1 ? "s" : ""} in the{" "}
+            <strong>"{selectedActCol}"</strong> column. How would you like to
+            handle them?
           </Alert>
 
           <Radio.Group
@@ -277,37 +352,23 @@ const CSVLoader: React.FC<Props> = ({ callofScreenFunction, csvSetter, act_col }
             <NumberInput
               label="Fill value"
               value={fillValue}
-              onChange={(val) => setFillValue(typeof val === "number" ? val : 0)}
+              onChange={(val) =>
+                setFillValue(typeof val === "number" ? val : 0)
+              }
               decimalScale={4}
               size="sm"
             />
           )}
 
           <Group justify="flex-end" mt="xs">
-            <Button variant="subtle" onClick={closeNullModal}>Cancel</Button>
+            <Button variant="subtle" onClick={closeNullModal}>
+              Cancel
+            </Button>
             <Button onClick={handleNullConfirm}>Apply & Continue</Button>
           </Group>
         </Stack>
       </Modal>
     </>
-=======
-              <input
-                type="submit"
-                className="button"
-                value={"Generate Molecular Fingerprints"}
-              />
-              <br />
-              <span>{errors.id_column?.message}</span>
-              <span>{errors.smi_column?.message}</span>
-              {callofScreenFunction && ( // Check if the function is provided
-                <span>{errors.act_column?.message}</span>
-              )}
-            </form>
-          ) : null}
-        </div>
-      )}
-    </CSVReader>
->>>>>>> f81e368b881494cb201a69dd7b419b3ed30fda23
   );
 };
 
