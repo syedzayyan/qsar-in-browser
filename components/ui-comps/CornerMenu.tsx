@@ -67,6 +67,7 @@ export default function CornerMenu() {
           <NavLink label="Model Predictions">
             <NavLink component={Link} href="/tools/screen" label="Predict from Dataset" />
             {/* {/* <NavLink component={Link} href="/tools/screen/cov_score" label="Coverage Score" /> */}
+            <NavLink component={Link} href="/tools/generative_mol" label="Generate New Molecules" />
           </NavLink>
 
           <Modal opened={opened} onClose={close}>

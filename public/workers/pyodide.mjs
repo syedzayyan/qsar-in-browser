@@ -1,109 +1,117 @@
 import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.mjs";
 
-// start loading pyodide immediately
+// ============================
+// IndexedDB Utils (Fixed)
+// ============================
+// TOP OF pyodide_worker.js - replace your DB utils
+const DB_NAME = 'MolGA_DB';
+const STORE_NAME = 'models';
+let dbPromise = null;
+
+function getDB() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const request = self.indexedDB.open(DB_NAME, 3);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      console.log('DB opened v3');
+      resolve(request.result);
+    };
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      console.log('Upgrading DB to v3');
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        db.deleteObjectStore(STORE_NAME);
+      }
+      db.createObjectStore(STORE_NAME, { keyPath: 'name' });
+    };
+  });
+  return dbPromise;
+}
+
+async function saveModel(modelName, modelBytes) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.onerror = () => reject(tx.error);
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.put({ name: modelName, data: modelBytes, ts: Date.now() });
+    req.onsuccess = () => resolve(modelName);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function loadModel(modelName) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    tx.onerror = () => reject(tx.error);
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(modelName);
+    req.onsuccess = () => resolve(req.result?.data || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+
+// ============================
+// Pyodide setup
+// ============================
 let pyodideReadyPromise = loadPyodide();
 
-// helper to ensure packages are available
 async function ensurePackages(pyodide) {
-  // scikit-learn and numpy are required
   await pyodide.loadPackage(["scikit-learn", "numpy", "xgboost"]);
 }
 
 self.onmessage = async (event) => {
-  // Expect event.data to be an object like:
-  // {
-  //   id: <any id to echo back>,
-  //   func: 'dim_red',      // function name
-  //   opts: 1 | 2 | 3,            // 1 = PCA (normal), 2 = PCA->tSNE, 3 = tSNE (direct)
-  //   fp: <Array of feature vectors (Array of Arrays)>,
-  //   params: {                  // optional parameters:
-  //     n_components: 2,          // for normal PCA output dims
-  //     pca_pre_components: 30,   // PCA pre-reduction before t-SNE
-  //     perplexity: 30,
-  //     n_iter: 1000,
-  //     n_jobs: 1,
-  //     random_state: 42
-  //   }
-  // }
   const { id, func = 'dim_red', opts = 1, fp, params = {} } = event.data;
   const pyodide = await pyodideReadyPromise;
   await ensurePackages(pyodide);
-  switch (func) {
-    case 'dim_red':
-      try {
 
-
-        // inject the JS data into the Python global namespace
-        // This avoids string interpolation and keeps values structured.
+  try {
+    switch (func) {
+      case 'dim_red':
         pyodide.globals.set("js_fp", fp);
         pyodide.globals.set("js_opts", opts);
         pyodide.globals.set("js_params", params);
-
-        // Run the Python code
         await pyodide.runPythonAsync(await (await fetch("/python/dim_red.py")).text());
 
-        // Extract results from the Python globals
-        const py_result = pyodide.globals.get("pca_result"); // PyProxy
-        const py_explained = pyodide.globals.get("explained_variance"); // PyProxy or None
+        const py_result = pyodide.globals.get("pca_result");
+        const py_explained = pyodide.globals.get("explained_variance");
 
-        // Post results back to the main thread
         self.postMessage({
-          id, // echo same job ID
+          id,
           ok: true,
           func,
           opts,
-          result: py_result.toJs(),
+          result: py_result?.toJs() || null,
           explained_variance: py_explained
         });
-      } catch (error) {
-        // send a structured error back
-        self.postMessage({ ok: false, error: String(error && error.message ? error.message : error) });
-      }
-      break;
-    case "ml":
-      try {
-        // =========================
-        // Globals for Pyodide
-        // =========================
+        break;
+
+      case "ml":
         globalThis.neg_log_activity_column = params.activity_columns;
         globalThis.fp = fp;
         globalThis.model_parameters = params;
         globalThis.opts = params.model;
 
-        // =========================
-        // Run Python
-        // =========================
-        await pyodide.runPythonAsync(
-          await (await fetch("/python/pyodide_ml.py")).text()
-        );
+        await pyodide.runPythonAsync(await (await fetch("/python/pyodide_ml.py")).text());
 
-        // =========================
-        // Metrics handling
-        // =========================
-        const results = globalThis.metrics.toJs();
+        const results = globalThis.metrics?.toJs() || [];
+        let metric1 = [], metric2 = [];
 
-        let metric1 = [];
-        let metric2 = [];
-
-        // Regression: MAE, R2
         if (globalThis.opts === 1 || globalThis.opts === 3) {
-          metric1 = results.map(arr => arr[0]); // MAE
-          metric2 = results.map(arr => arr[1]); // R2
+          metric1 = results.map(arr => arr[0]);
+          metric2 = results.map(arr => arr[1]);
+        } else if (globalThis.opts === 2 || globalThis.opts === 4) {
+          metric1 = results.map(arr => arr[0]);
+          metric2 = results.map(arr => arr[1]);
         }
 
-        // Classification: Accuracy, ROC-AUC
-        if (globalThis.opts === 2 || globalThis.opts === 4) {
-          metric1 = results.map(arr => arr[0]); // Accuracy
-          metric2 = results.map(arr => arr[1]); // ROC-AUC
-        }
-
-        // =========================
-        // Per-fold predictions
-        // =========================
         let flatData = [];
-        globalThis.perFoldPreds.toJs().flatMap(subArray => {
+        globalThis.perFoldPreds?.toJs()?.flatMap?.(subArray => {
           let anArray = [];
-          subArray[0].map((_, index) => {
+          subArray[0]?.map?.((_, index) => {
             anArray.push({
               x: subArray[0][index],
               y: subArray[1][index]
@@ -112,32 +120,78 @@ self.onmessage = async (event) => {
           flatData.push(anArray);
         });
 
-        // =========================
-        // Post back
-        // =========================
+        // After pyodide_ml.py runs and model.pkl exists:
+        const modelBytesPy = await pyodide.runPythonAsync(`
+with open("model.pkl", "rb") as f:
+    b = f.read()
+b
+`);
+        const modelUint8 = new Uint8Array(modelBytesPy.toJs());
+        await saveModel('model', modelUint8);
+        const modelName = `model_${params.model || globalThis.opts}_${Date.now()}`;
+
         self.postMessage({
           results: [metric1, metric2, flatData],
-          id, // echo same job ID
+          modelId: modelName,  // Tell UI which model was saved
+          id,
           func,
           opts,
           ok: true
         });
+        break;
 
-      } catch (error) {
+      case "ml-screen":
+        globalThis.one_off_mol_fp = fp;
+        await pyodide.runPythonAsync(await (await fetch("/python/pyodide_ml_screen.py")).text());
         self.postMessage({
-          ok: false,
-          error: String(error && error.message ? error.message : error)
+          success: "ok",
+          id,
+          results: globalThis.one_off_y?.toJs() || []
         });
-      }
-      break;
+        break;
 
-    case "ml-screen":
-      globalThis.one_off_mol_fp = fp;
-      await pyodide.runPythonAsync(await (await fetch("/python/pyodide_ml_screen.py")).text());
-      self.postMessage({ success: "ok", id, results: globalThis.one_off_y.toJs() })
-      break;
-    default:
-      self.postMessage({ ok: false, error: `Unknown function: ${func}` });
-      return;
+      case 'score_batch':
+        try {
+          const modelBytes = await loadModel('model');
+          if (!modelBytes) throw new Error('No model in IndexedDB, train "ml" first');
+
+          pyodide.FS.writeFile('/model.pkl', modelBytes);
+          globalThis.one_off_mol_fp = fp;
+
+          await pyodide.runPythonAsync(`
+import js
+import joblib, numpy as np
+model = joblib.load('/model.pkl')
+X = np.array(${JSON.stringify(fp)})
+js.one_off_y = model.predict(X).tolist()
+    `);
+
+          self.postMessage({ id, ok: true, result: globalThis.one_off_y.toJs() });
+        } catch (e) {
+          self.postMessage({ id, ok: false, error: String(e) });
+        }
+        break;
+
+
+      case 'test_db':
+        const testBytes = new Uint8Array([1, 2, 3, 4, 5]);
+        await saveModel('test_model', testBytes);
+        const loaded = await loadModel('test_model');
+        self.postMessage({
+          id,
+          ok: true,
+          result: loaded ? `SUCCESS: ${loaded.length} bytes` : 'NULL'
+        });
+        break;
+
+      default:
+        throw new Error(`Unknown function: ${func}`);
+    }
+  } catch (error) {
+    self.postMessage({
+      id,
+      ok: false,
+      error: `pyodide_worker ${func}: ${String(error && error.message ? error.message : error)}`
+    });
   }
 };

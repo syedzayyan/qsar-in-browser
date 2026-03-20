@@ -90,6 +90,7 @@ export default function MLLayout({ children }) {
 
         pyodide.onmessage = (event) => {
           if (event.data.success === "ok") {
+            console.log(event)
             setOneOffSmilesResult(event.data.results[0]);
             console.log(oneOffSMILESResult)
             console.log(typeof (oneOffSMILESResult))

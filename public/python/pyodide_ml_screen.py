@@ -12,5 +12,9 @@ if js.opts == 1:
     js.one_off_y = model.predict(X)
 elif js.opts == 2:
     js.one_off_y = model.predict_proba(X)
+if js.opts == 3:
+    js.one_off_y = model.predict(X)
+elif js.opts == 4:
+    js.one_off_y = model.predict_proba(X)
 else:
     js.one_off_y = None
