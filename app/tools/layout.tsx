@@ -13,6 +13,7 @@ import { AppShell, Burger, Flex, Group, Notification } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import NotificationContext from "../../context/NotificationContext";
 import { GAContextProvider, useGAContext } from "../../context/GAContext";
+import { MLResultsContextProvider, useMLResults } from "../../context/MLResultsContext";
 
 // ── Inner — has access to GAContext ───────────────────────────────────────────
 function DashboardInner({ children }: { children: React.ReactNode }) {
@@ -22,7 +23,10 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const { rdkit } = useContext(RDKitContext);
   const { notifications, pushNotification, removeNotification } = useContext(NotificationContext);
   const { setGAState } = useGAContext();
-
+  const { setScreenData, setSortedScreenData, setPreds } = useMLResults();
+  const screenDataRef = useRef<any[]>([]);
+  const { screenData } = useMLResults();
+  useEffect(() => { screenDataRef.current = screenData; }, [screenData]);
   const router = useRouter();
   const [opened, { toggle }] = useDisclosure();
 
@@ -47,7 +51,55 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     rdkit.onmessage = (event: MessageEvent) => {
       const payload = event.data;
       const { message, id, error, ...data } = payload;
+      // ── ML Screening — must be first, before GA guards ──────────────────
+      if (payload.function === "only_fingerprint") {
+        const validMols = (payload.results ?? []).filter((x: any) => x?.fingerprint != null);
+        const pyodideWorker = new Worker("/workers/pyodide.mjs", { type: "module" });
+        if (validMols.length === 0) {
+          pushNotification({ message: "No valid fingerprints generated", type: "error" });
+          return;
+        }
 
+        // carry the original mol data alongside fingerprints
+        const aligned = validMols.map((x: any) =>
+          (payload.mol_data ?? []).find((m: any) => m.canonical_smiles === x.canonical_smiles) ?? x
+        );
+
+        pyodideWorker.postMessage({
+          id: `ml_screen_${Date.now()}`,
+          func: "ml_screen",
+          fp: validMols.map((x: any) => x.fingerprint),
+          opts: targetRef.current.machine_learning_inference_type === "regression" ? 1 : 2,
+          params: { model: targetRef.current.machine_learning_inference_type === "regression" ? 1 : 2 },
+          _aligned: aligned,
+        });
+        pyodideWorker.onmessage = (event: MessageEvent) => {
+          const message = event.data;
+          if (message.id?.startsWith("ml_screen_")) {
+            if (!message.ok) {
+              pushNotification({ message: `ML error: ${message.error}`, type: "error" });
+              return;
+            }
+            const fp_mols: any[] = message.result;
+            const aligned: any[] = message._aligned ?? screenDataRef.current;
+
+            const updated = aligned.map((x: any, i: number) => ({ ...x, predictions: fp_mols[i] }));
+            const sorted = [...updated].sort((a, b) => Number(b.predictions) - Number(a.predictions));
+            const computedPreds = sorted.map(x => {
+              const p = x.predictions;
+              if (Array.isArray(p)) return p.length === 2 ? (p[1] > 0.5 ? 1.0 : 0.0) : p.indexOf(Math.max(...p));
+              return p;
+            }).filter(p => p !== null);
+
+            setScreenData(updated);
+            setSortedScreenData(sorted);
+            setPreds(computedPreds);
+            pushNotification({ message: `ML complete — ${updated.length} molecules scored`, type: "success" });
+            pyodideWorker.terminate();
+            return;
+          }
+        }
+      }
       // GA progress
       if (payload.type === "ga_progress") {
         setGAState((prev) => ({
@@ -126,7 +178,6 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
             pushNotification({ id, message: "Scaffold Network Generation Done!", type: "success", done: true });
             setTarget({ ...targetRef.current, scaffold_network: data.data });
             break;
-
           default:
             console.warn("Unknown function:", data.function);
         }
@@ -209,7 +260,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <GAContextProvider>
-      <DashboardInner>{children}</DashboardInner>
+      <MLResultsContextProvider>
+        <DashboardInner>{children}</DashboardInner>
+      </MLResultsContextProvider>
     </GAContextProvider>
   );
 }

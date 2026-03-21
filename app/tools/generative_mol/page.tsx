@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useState, useCallback, useRef } from "react";
+import { useContext, useState, useCallback } from "react";
 import {
   Button, Card, Group, Stack, Title, Text, Badge,
   Progress, Table, SimpleGrid, Divider, Paper, NumberInput, Select, Flex,
@@ -14,6 +14,19 @@ import MoleculeStructure from "../../../components/tools/toolComp/MoleculeStruct
 const DEFAULT_SMILES = ["CCO", "CC(=O)C", "Nc1ccccc1", "CC1=CC=CC=C1", "c1ccncc1"];
 const ZINC_URL = "https://raw.githubusercontent.com/AustinT/mol_ga/refs/heads/main/mol_ga/data/zinc250k.smiles";
 const ZINC_SAMPLE_SIZE = 20;
+
+function readFpSettings() {
+  try {
+    return {
+      fingerprint: localStorage.getItem("fingerprint") ?? "maccs",
+      fpRadius: Number(localStorage.getItem("path")) || 2,
+      fpNBits: Number(localStorage.getItem("nBits")) || 1024,
+    };
+  } catch (e) {
+    console.error("Error reading fingerprint settings:", e);
+    return { fingerprint: "maccs", fpRadius: 2, fpNBits: 1024 };
+  }
+}
 
 export default function GenerativeMol() {
   const { gaState, setGAState } = useGAContext();
@@ -33,24 +46,37 @@ export default function GenerativeMol() {
   const isRunning = gaState.isRunning;
   const hasResults = !isRunning && gaState.population.length > 0;
 
-  // ── Seed editing ────────────────────────────────────────────────────────────
   const startEditing = () => {
-    setSeedDraft(seedSmiles.join(", "));
-    setEditingSeeds(true);
+    try {
+      setSeedDraft(seedSmiles.join(", "));
+      setEditingSeeds(true);
+    } catch (e) {
+      console.error("Error starting seed edit:", e);
+    }
   };
 
   const confirmEdit = () => {
-    const parsed = seedDraft
-      .split(/[\n,]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parsed.length > 0) setSeedSmiles(parsed);
-    setEditingSeeds(false);
+    try {
+      const parsed = seedDraft
+        .split(/[\n,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (parsed.length > 0) setSeedSmiles(parsed);
+      setEditingSeeds(false);
+    } catch (e) {
+      console.error("Error confirming seed edit:", e);
+      setZincError("Failed to parse SMILES");
+    }
   };
 
-  const cancelEdit = () => setEditingSeeds(false);
+  const cancelEdit = () => {
+    try {
+      setEditingSeeds(false);
+    } catch (e) {
+      console.error("Error canceling seed edit:", e);
+    }
+  };
 
-  // ── ZINC sampling ───────────────────────────────────────────────────────────
   const sampleFromZinc = useCallback(async () => {
     setLoadingZinc(true);
     setZincError(null);
@@ -59,7 +85,6 @@ export default function GenerativeMol() {
       if (!res.ok) throw new Error(`Failed to fetch ZINC: ${res.status}`);
       const text = await res.text();
       const all = text.split("\n").map((l) => l.trim()).filter(Boolean);
-      // Reservoir sample ZINC_SAMPLE_SIZE molecules
       const sampled: string[] = [];
       for (let i = 0; i < all.length; i++) {
         if (sampled.length < ZINC_SAMPLE_SIZE) {
@@ -71,50 +96,76 @@ export default function GenerativeMol() {
       }
       setSeedSmiles(sampled);
     } catch (e: any) {
-      setZincError(e.message);
+      console.error("Error sampling from ZINC:", e);
+      setZincError(e.message || "Failed to sample from ZINC");
     } finally {
       setLoadingZinc(false);
     }
   }, []);
 
-  // ── GA controls ─────────────────────────────────────────────────────────────
   const startGA = useCallback(() => {
-    if (isRunning || !rdkit) return;
+    try {
+      if (isRunning || !rdkit || seedSmiles.length === 0) return;
 
-    setGAState({
-      isRunning: true,
-      gen: 0,
-      bestScore: 0,
-      bestSmiles: "",
-      population: [],
-      scores: [],
-    });
+      const { fingerprint, fpRadius, fpNBits } = readFpSettings();
 
-    rdkit.postMessage({
-      id: Date.now(),
-      function: "run_ga",
-      zincSmiles: seedSmiles,
-      populationSize: seedSmiles.length,
-      offspringSize: seedSmiles.length,
-      maxGenerations: settings.maxGenerations,
-      modelKind: settings.modelKind,
-      fingerprint: localStorage.getItem("fingerprint") ?? "maccs",
-      fpRadius: Number(localStorage.getItem("path")) ?? 2,
-      fpNBits: Number(localStorage.getItem("nBits")) ?? 1024,
-    });
+      setGAState({
+        isRunning: true,
+        gen: 0,
+        bestScore: 0,
+        bestSmiles: "",
+        population: [],
+        scores: [],
+      });
+
+      rdkit.postMessage({
+        id: Date.now(),
+        function: "run_ga",
+        zincSmiles: seedSmiles,
+        populationSize: seedSmiles.length,
+        offspringSize: seedSmiles.length,
+        maxGenerations: settings.maxGenerations,
+        modelKind: settings.modelKind,
+        fingerprint,
+        fpRadius,
+        fpNBits,
+      });
+    } catch (e) {
+      console.error("Error starting GA:", e);
+      setGAState({
+        isRunning: false,
+        gen: 0,
+        bestScore: 0,
+        bestSmiles: "",
+        population: [],
+        scores: [],
+      });
+    }
   }, [isRunning, rdkit, settings, seedSmiles, setGAState]);
 
   const resetGA = useCallback(() => {
-    if (!rdkit) return;
-    rdkit.postMessage({ function: "cancel_ga" });
-    setGAState({
-      isRunning: false,
-      gen: 0,
-      bestScore: 0,
-      bestSmiles: "",
-      population: [],
-      scores: [],
-    });
+    try {
+      if (!rdkit) return;
+      rdkit.postMessage({ function: "cancel_ga", id: Date.now() });
+      setGAState({
+        isRunning: false,
+        gen: 0,
+        bestScore: 0,
+        bestSmiles: "",
+        population: [],
+        scores: [],
+      });
+    } catch (e) {
+      console.error("Error resetting GA:", e);
+      setGAState({
+        isRunning: false,
+        gen: 0,
+        bestScore: 0,
+        bestSmiles: "",
+        population: [],
+        scores: [],
+      });
+    }
   }, [rdkit, setGAState]);
 
   const statusColor = isRunning ? "yellow" : hasResults ? "green" : "gray";
@@ -130,10 +181,12 @@ export default function GenerativeMol() {
       }))
     : [];
 
+  const bestScore = hasResults && gaState.scores.length > 0
+    ? Math.max(...gaState.scores).toFixed(4)
+    : null;
+
   return (
     <Stack gap="xl" p="md" h="100%">
-
-      {/* Header */}
       <div>
         <Group justify="apart">
           <Title order={1}>Generative Chemistry</Title>
@@ -144,7 +197,6 @@ export default function GenerativeMol() {
         </Text>
       </div>
 
-      {/* Controls */}
       <Card withBorder p="lg" radius="md">
         <Stack>
           <Group justify="apart" mb="md">
@@ -195,7 +247,6 @@ export default function GenerativeMol() {
         </Stack>
       </Card>
 
-      {/* Progress */}
       {isRunning && (
         <Card withBorder p="lg" radius="md">
           <Stack gap="xs">
@@ -217,7 +268,6 @@ export default function GenerativeMol() {
         </Card>
       )}
 
-      {/* Results */}
       {hasResults && (
         <Card withBorder p="lg" radius="md">
           <Title order={4} mb="md">Final Results (Top 10)</Title>
@@ -250,12 +300,13 @@ export default function GenerativeMol() {
           <Divider my="md" />
           <Group justify="apart">
             <Text size="sm" c="dimmed">Total: <strong>{gaState.population.length}</strong> molecules</Text>
-            <Text size="sm" c="green" fw={500}>Best: <strong>{Math.max(...gaState.scores).toFixed(4)}</strong></Text>
+            {bestScore !== null && (
+              <Text size="sm" c="green" fw={500}>Best: <strong>{bestScore}</strong></Text>
+            )}
           </Group>
         </Card>
       )}
 
-      {/* Seed Dataset */}
       <Card withBorder p="md" radius="md">
         <Group justify="apart" mb="xs">
           <div>

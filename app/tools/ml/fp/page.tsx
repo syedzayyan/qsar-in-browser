@@ -15,7 +15,7 @@ export default function RandomForest() {
   const { pushNotification } = useContext(NotificationContext);
 
   const { ligand } = useContext(LigandContext);
-  const { target } = useContext(TargetContext);
+  const { target, setTarget } = useContext(TargetContext);
 
   const [threshold, setThreshold] = useState<number | null>(null);
 
@@ -23,30 +23,37 @@ export default function RandomForest() {
     const requestID = `machine_learning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     pushNotification({ message: "Running Machine Learning...", id: requestID, type: "info", autoClose: false });
 
-    // -----------------------
-    // Activity column handling
-    // -----------------------
     let y = ligand.map(obj => obj[target.activity_columns[0]]);
-
-    // Threshold-based classification
     if (target.machine_learning_inference_type === "classification" && threshold !== null) {
       y = y.map(v => (v >= threshold ? 1 : 0));
     }
 
-    const msg = {
+    pyodide.postMessage({
       id: requestID,
       func: "ml",
       fp: ligand.map(mol => mol.fingerprint),
-      opts: data.model, // 1,2,3,4 handled downstream
+      opts: data.model,
       params: {
         ...data,
         activity_columns: y,
         task_type: target.machine_learning_inference_type,
-        threshold
-      }
-    };
+        threshold,
+      },
+    });
 
-    pyodide.postMessage(msg);
+    pyodide.onmessage = (event) => {
+      const { id: evtId, ok, results, error } = event.data;
+      if (evtId !== requestID) return;
+
+      if (!ok || error) {
+        pushNotification({ message: `ML failed: ${error}`, id: requestID, type: "error", autoClose: true });
+        return;
+      }
+
+      // results = [metric1, metric2, flatData]
+      setTarget(prev => ({ ...prev, machine_learning: results }));
+      pushNotification({ message: "ML training complete!", id: requestID, type: "success", autoClose: true });
+    };
   }
 
   return (

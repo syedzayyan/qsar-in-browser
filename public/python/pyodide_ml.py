@@ -1,6 +1,8 @@
 import js
 import numpy as np
 import joblib
+import io
+import base64
 
 from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
@@ -123,4 +125,9 @@ if js.opts == 4:
     model = xgboost.XGBClassifier(**params)
 
 model.fit(X, y)
-joblib.dump(model, "model.pkl")
+joblib.dump(model, "./model.pkl")
+
+buf = io.BytesIO()
+joblib.dump(model, buf)
+model_b64 = base64.b64encode(buf.getvalue()).decode()
+js.model_b64 = model_b64

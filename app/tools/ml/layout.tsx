@@ -1,12 +1,9 @@
 "use client";
 
 import { useContext, useEffect, useRef, useState } from "react";
-import Scatterplot from "../../../components/tools/toolViz/ScatterPlot";
 import { usePathname } from "next/navigation";
-import RDKitContext from "../../../context/RDKitContext";
 import PyodideContext from "../../../context/PyodideContext";
 import TargetContext from "../../../context/TargetContext";
-import { MLResultsContext } from "../../../context/MLResultsContext";
 import JSME from "../../../components/tools/toolViz/JSMEComp";
 import Dropdown from "../../../components/tools/toolViz/DropDown";
 import { Button, Group, Input, Select } from "@mantine/core";
@@ -16,13 +13,13 @@ import { round } from "mathjs";
 import NotificationContext from "../../../context/NotificationContext";
 
 export default function MLLayout({ children }) {
-  const [screenData, setScreenData] = useState([]);
+
   const [oneOffSMILES, setOneOffSmiles] = useState("CCO");
   const [oneOffSMILESResult, setOneOffSmilesResult] = useState<number>();
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const [ rdkit, setRDKIT ]  = useState<Worker>();
+  const [rdkit, setRDKIT] = useState<Worker>();
   const { pyodide } = useContext(PyodideContext);
   const { setTarget, target } = useContext(TargetContext);
   const { pushNotification } = useContext(NotificationContext);
@@ -31,9 +28,6 @@ export default function MLLayout({ children }) {
   // -----------------------------
   // Reset on route change
   // -----------------------------
-  useEffect(() => {
-    setScreenData([]);
-  }, [pathname]);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -59,7 +53,7 @@ export default function MLLayout({ children }) {
     pushNotification({
       message: "Your one-off prediction is being processed.",
       type: "success",
-      id: requestId, 
+      id: requestId,
       done: false,
       autoClose: true,
     });
@@ -77,26 +71,43 @@ export default function MLLayout({ children }) {
     });
 
     rdkit.onmessage = async (event) => {
-      console.log(event);
-      if (event.data.id === requestId) {
-        const mol_fp = event.data.results[0].fingerprint;
+      const { id: evtId, function: evtFunc, results, ok, error } = event.data;
 
-        pyodide.postMessage({
-          id: requestId,
-          opts: target.machine_learning_inference_type === "regression" ? 1 : 2,
-          fp: [mol_fp],
-          func: "ml-screen",
-        });
+      if (evtId !== requestId || evtFunc !== 'only_fingerprint') return;
 
-        pyodide.onmessage = (event) => {
-          if (event.data.success === "ok") {
-            console.log(event)
-            setOneOffSmilesResult(event.data.results[0]);
-            console.log(oneOffSMILESResult)
-            console.log(typeof (oneOffSMILESResult))
-          }
-        };
+      if (error) {
+        pushNotification({ message: `Fingerprint error: ${error}`, type: "error", id: requestId, done: true });
+        return;
       }
+
+      if (!results?.[0]?.fingerprint) {
+        pushNotification({ message: "No fingerprint returned", type: "error", id: requestId, done: true });
+        return;
+      }
+
+      const mol_fp = results[0].fingerprint;
+
+      pyodide.postMessage({
+        id: requestId,
+        opts: target.machine_learning_inference_type === "regression" ? 1 : 2,
+        fp: [mol_fp],
+        func: "ml_screen",
+        params: {
+          model: target.machine_learning_inference_type === "regression" ? 1 : 2,
+        },
+      });
+
+      pyodide.onmessage = (event) => {
+        const { id: pEvtId, ok, result, error } = event.data;
+        if (pEvtId !== requestId) return;
+
+        if (error) {
+          pushNotification({ message: `Prediction error: ${error}`, type: "error", id: requestId, done: true });
+          return;
+        }
+
+        setOneOffSmilesResult(result[0]);
+      };
     };
   }
 
@@ -126,7 +137,6 @@ export default function MLLayout({ children }) {
   // -----------------------------
   return (
     <div className="tools-container">
-      <MLResultsContext.Provider value={setScreenData}>
         {/* ---------------- Task Type Selector ---------------- */}
         {/* Task Type Selector + Clear Button */}
         <Group>
@@ -162,7 +172,7 @@ export default function MLLayout({ children }) {
 
 
         {/* ---------------- Children get taskType prop ---------------- */}
-        <details open = {!hasResults}>
+        <details open={!hasResults}>
           <summary>{hasResults && <>Reveal ML Forms</>}</summary>
           {children}
         </details>
@@ -227,7 +237,6 @@ export default function MLLayout({ children }) {
             )}
           </>
         )}
-      </MLResultsContext.Provider>
     </div>
   );
 }
