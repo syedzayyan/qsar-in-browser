@@ -35,54 +35,8 @@ export default function MMA() {
     }
   }, [target]);
 
-  // worker message handling using rdkit.onmessage (since rdkit is a real Worker)
-  useEffect(() => {
-    if (!rdkit) return;
-
-    // preserve any existing onmessage handler to restore on cleanup
-    prevOnMessage.current = rdkit.onmessage;
-
-    function handleMessage(event) {
-      const data = event.data || {};
-      // ignore unrelated messages
-      if (!data.id) return;
-
-      // only accept responses meant for the current request
-      if (currentRequestId.current && data.id === currentRequestId.current) {
-        // expected shape: { id, function, result } - adjust to your worker's shape
-        const result = data.result ?? data; // adapt as needed
-
-        // If context setter exists, update shared target
-        if (typeof setTarget === "function") {
-          // Merge scaffCores into target - adjust field name to your shape
-          setTarget(prev => ({ ...prev, scaffCores: result.scaffCores ?? result }));
-        } else {
-          // fallback: set local loaded flag. You might want to store result locally if needed.
-          if (mounted.current) {
-            setScaffCoresLoaded(true);
-          }
-        }
-
-        // clear current request id
-        currentRequestId.current = null;
-      }
-    }
-
-    // attach handler
-    rdkit.onmessage = handleMessage;
-
-    // cleanup - restore previous handler to avoid clobbering other users of the worker
-    return () => {
-      try {
-        rdkit.onmessage = prevOnMessage.current || null;
-      } catch (err) {
-        // ignore if worker already terminated
-      }
-    };
-  }, [rdkit, setTarget]);
-
   const mmaRunner = useCallback(() => {
-    
+
     if (!rdkit) return;
 
     const requestId = `mma_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -100,10 +54,10 @@ export default function MMA() {
     });
   }, [rdkit, ligand, target]);
 
-  function scaffoldFinder(cores) {
+  function scaffoldFinder(cores: string) {
     if (!target || !target.scaffCores) return;
     // your original selection logic
-    const selectedArrays = target.scaffCores[1].filter((array) => array[1] === cores);
+    const selectedArrays = target.scaffCores[1].filter((array: any[]) => array[1] === cores);
     setSpecificMolArray(selectedArrays);
     open();
   }
@@ -114,7 +68,7 @@ export default function MMA() {
     return (
       <div className="main-container">
         <Grid grow>
-          {target.scaffCores[0].map((cores, key) => (
+          {target.scaffCores[0].map((cores: any[], key: number) => (
             <Grid.Col span={4} key={key}>
               <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <MoleculeStructure structure={cores[0]} id={cores[0]} svgMode />
@@ -129,7 +83,7 @@ export default function MMA() {
 
           <Modal opened={opened} onClose={close} size="75rem">
             <Grid grow>
-              {specificMolArray.map((cores, key) => (
+              {specificMolArray.map((cores: any[], key: number) => (
                 <Grid.Col key={key} span={4}><Card key={key}>
                   <MoleculeStructure
                     structure={cores[0]}

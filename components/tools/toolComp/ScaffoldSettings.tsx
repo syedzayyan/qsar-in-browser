@@ -54,7 +54,7 @@ const initialValues: ScaffoldNetParams = {
 export default function ScaffoldSettings() {
   const { ligand } = useContext(LigandContext);
   const { rdkit } = useContext(RDKitContext);
-  const {notifications, pushNotification} = useContext(NotificationContext);
+  const { notifications, pushNotification } = useContext(NotificationContext);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -157,64 +157,69 @@ export default function ScaffoldSettings() {
       <form onSubmit={form.onSubmit(onSubmit)}>
         <Stack>
           {/* grouped checkboxes in a nice grid */}
-          <SimpleGrid cols={2}>
-            <Checkbox
-              {...form.getInputProps("includeGenericScaffolds", { type: "checkbox" })}
-              label="Include generic scaffolds"
-              description="Abstract generic frameworks (remove atom labels)"
+          <details>
+            <summary style={{ cursor: "pointer", fontWeight: 500 }}>Reveal advanced settings</summary>
+            <SimpleGrid cols={2} mt="md">
+              <Checkbox
+                {...form.getInputProps("includeGenericScaffolds", { type: "checkbox" })}
+                label="Include generic scaffolds"
+                description="Abstract generic frameworks (remove atom labels)"
+              />
+
+              <Checkbox
+                {...form.getInputProps("includeGenericBondScaffolds", { type: "checkbox" })}
+                label="Include generic bond scaffolds"
+                description="Also abstract bonds to generic bond types"
+              />
+
+              <Checkbox
+                {...form.getInputProps("includeScaffoldsWithoutAttachments", { type: "checkbox" })}
+                label="Scaffolds without attachments"
+              />
+
+              <Checkbox
+                {...form.getInputProps("includeScaffoldsWithAttachments", { type: "checkbox" })}
+                label="Scaffolds with attachments"
+              />
+              <Checkbox
+                {...form.getInputProps("keepOnlyFirstFragment", { type: "checkbox" })}
+                label="Keep only first fragment"
+                description="If fragmentation yields multiple fragments, keep the first"
+              />
+
+              <Checkbox
+                {...form.getInputProps("pruneBeforeFragmenting", { type: "checkbox" })}
+                label="Prune before fragmenting"
+              />
+
+              <Checkbox {...form.getInputProps("flattenIsotopes", { type: "checkbox" })} label="Flatten isotopes" />
+              <Checkbox {...form.getInputProps("flattenChirality", { type: "checkbox" })} label="Flatten chirality" />
+
+              <Checkbox {...form.getInputProps("flattenKeepLargest", { type: "checkbox" })} label="Keep largest flatten" />
+              <Checkbox {...form.getInputProps("collectMolCounts", { type: "checkbox" })} label="Collect molecule counts" />
+            </SimpleGrid>
+
+            <TextInput
+              mt="md"
+              label="bondBreakersRxns"
+              description="Optional reaction SMARTS (one-line). Used to break bonds as specified."
+              placeholder="e.g. [C:1]-[O:2]>>[C:1].[O:2]"
+              {...form.getInputProps("bondBreakersRxns")}
             />
-
-            <Checkbox
-              {...form.getInputProps("includeGenericBondScaffolds", { type: "checkbox" })}
-              label="Include generic bond scaffolds"
-              description="Also abstract bonds to generic bond types"
-            />
-
-            <Checkbox
-              {...form.getInputProps("includeScaffoldsWithoutAttachments", { type: "checkbox" })}
-              label="Scaffolds without attachments"
-            />
-
-            <Checkbox
-              {...form.getInputProps("includeScaffoldsWithAttachments", { type: "checkbox" })}
-              label="Scaffolds with attachments"
-            />
-
-            <Checkbox
-              {...form.getInputProps("keepOnlyFirstFragment", { type: "checkbox" })}
-              label="Keep only first fragment"
-              description="If fragmentation yields multiple fragments, keep the first"
-            />
-
-            <Checkbox
-              {...form.getInputProps("pruneBeforeFragmenting", { type: "checkbox" })}
-              label="Prune before fragmenting"
-            />
-
-            <Checkbox {...form.getInputProps("flattenIsotopes", { type: "checkbox" })} label="Flatten isotopes" />
-            <Checkbox {...form.getInputProps("flattenChirality", { type: "checkbox" })} label="Flatten chirality" />
-
-            <Checkbox {...form.getInputProps("flattenKeepLargest", { type: "checkbox" })} label="Keep largest flatten" />
-            <Checkbox {...form.getInputProps("collectMolCounts", { type: "checkbox" })} label="Collect molecule counts" />
-          </SimpleGrid>
-
-          <TextInput
-            mt="xs"
-            label="bondBreakersRxns"
-            description="Optional reaction SMARTS (one-line). Used to break bonds as specified."
-            placeholder="e.g. [C:1]-[O:2]>>[C:1].[O:2]"
-            {...form.getInputProps("bondBreakersRxns")}
-          />
-
-          <Group align="center" mt="sm">
-            <Text size="sm" color="dimmed">
-              Ready to run on {ligand?.length ?? 0} ligand(s)
-            </Text>
-
-            <Group >
+            <Group align="center" mt="sm">
               <Button variant="default" onClick={() => form.setValues(initialValues)} disabled={submitting}>
                 Reset
               </Button>
+            </Group>
+          </details>
+
+          <Group align="center" mt="sm">
+            <Text size="sm" c="dimmed">
+              Ready to run on {ligand?.length ?? 0} ligand(s)
+            </Text>
+
+            <Group>
+
 
               <Button type="submit" loading={submitting} disabled={submitting || ligand.length === 0 || isRunning}>
                 {isRunning ? "Generating Tree..." : "Generate Tree"}

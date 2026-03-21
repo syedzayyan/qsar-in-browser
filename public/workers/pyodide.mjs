@@ -1,4 +1,4 @@
-import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.mjs";
+import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.mjs";
 
 // ============================
 // IndexedDB
@@ -127,7 +127,6 @@ function postErr(id, func, error) {
 // Message handler
 // ============================
 self.onmessage = async (event) => {
-  console.log('Worker received message:', event.data);
   const { id, func = 'dim_red', opts = 1, fp, params = {} } = event.data;
 
   let pyodide;

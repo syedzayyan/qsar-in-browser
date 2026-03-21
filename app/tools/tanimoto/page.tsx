@@ -7,6 +7,7 @@ import RDKitContext from "../../../context/RDKitContext";
 import JSME from "../../../components/tools/toolViz/JSMEComp";
 import { Button, Select } from "@mantine/core";
 import NotificationContext from "../../../context/NotificationContext";
+import { readFpSettingsAsFpDets } from "../../../components/utils/get_fp_settings";
 
 export default function Tanimoto() {
   const { ligand } = useContext(LigandContext) || { ligand: [] };
@@ -45,19 +46,16 @@ export default function Tanimoto() {
       done: false,
       autoClose: false
     });
-    
+
     rdkit.postMessage({
-      function: 'tanimoto',
+      function: "tanimoto",
       id: requestId,
       mol_data: ligand,
       anchorMol: anchorMol,
-      fp_dets: {
-        type: localStorage.getItem("fingerprint") || "Morgan",
-        radius: parseInt(localStorage.getItem("path")) || 2,
-        nBits: parseInt(localStorage.getItem("nBits")) || 2048,
-      }
+      fp_dets: readFpSettingsAsFpDets(),
+      // { type: "morgan", path: 2, radius: 2, nBits: 2048, useChirality: false, … }
     });
-    
+
     setSelectedAnchorMol(anchorMol);
     setTaniData([...taniData, anchorMol]);
     setAnchorMol('');
@@ -69,8 +67,8 @@ export default function Tanimoto() {
 
   return (
     <div className="tools-container" ref={containerRef}>
-      <h1>Similarity Distribution</h1> 
-      
+      <h1>Similarity Distribution</h1>
+
       <label>Reference Molecule (SMILES String) </label>
       <input
         defaultValue={anchorMol}
@@ -108,26 +106,26 @@ export default function Tanimoto() {
       <details open={false}>
         <summary>How this histogram is generated</summary>
         <p>
-          QITB calculates Tanimoto coefficients to represent the mathematical similarity 
-          between two molecular fingerprints. This histogram presents these 
-          coefficients for every molecule in the dataset, compared to the provided 
-          reference molecule. The default molecule provided is 'CCO' - ethanol, but 
-          you can draw any molecule or provide its SMILE string to use your own reference molecule. 
+          QITB calculates Tanimoto coefficients to represent the mathematical similarity
+          between two molecular fingerprints. This histogram presents these
+          coefficients for every molecule in the dataset, compared to the provided
+          reference molecule. The default molecule provided is 'CCO' - ethanol, but
+          you can draw any molecule or provide its SMILE string to use your own reference molecule.
         </p>
       </details>
       <details open={false}>
         <summary>How to interpret this graph</summary>
         <p>
-          A maximum score of 1.0 represents high similarity between a given molecule and the 
-          provided reference molecule. A minimum score of 0.0 indicates low similarity between 
-          a given molecule and the reference molecule. Overall, a distribution close to 1.0 
-          represents a high similarity between the dataset and the reference molecule, 
-          while a distribution nearer 0 represents a low level of similarity between the 
-          reference molecule and the dataset. As Tanimoto coefficients are calculated from 
-          molecular fingerprints, this histogram changes dependent on the fingerprint chosen 
+          A maximum score of 1.0 represents high similarity between a given molecule and the
+          provided reference molecule. A minimum score of 0.0 indicates low similarity between
+          a given molecule and the reference molecule. Overall, a distribution close to 1.0
+          represents a high similarity between the dataset and the reference molecule,
+          while a distribution nearer 0 represents a low level of similarity between the
+          reference molecule and the dataset. As Tanimoto coefficients are calculated from
+          molecular fingerprints, this histogram changes dependent on the fingerprint chosen
           (MACCS, Morgan etc).
         </p>
-        
+
       </details>
     </div>
   );

@@ -11,6 +11,7 @@ import FoldMetricBarplot from "../../../components/tools/toolViz/BarChart";
 import DiscreteScatterplot from "../../../components/tools/toolViz/DiscreteScatterPlot";
 import { round } from "mathjs";
 import NotificationContext from "../../../context/NotificationContext";
+import { readFpSettingsAsFormStuff } from "../../../components/utils/get_fp_settings";
 
 export default function MLLayout({ children }) {
 
@@ -59,15 +60,11 @@ export default function MLLayout({ children }) {
     });
 
     rdkit.postMessage({
-      function: "only_fingerprint",
-      id: requestId,
-      mol_data: [{ canonical_smiles: oneOffSMILES }],
+      function:         "only_fingerprint",
+      id:               requestId,
+      mol_data:         [{ canonical_smiles: oneOffSMILES }],
       activity_columns: target.activity_columns,
-      formStuff: {
-        fingerprint: localStorage.getItem("fingerprint"),
-        radius: parseInt(localStorage.getItem("path") ?? "2"),
-        nBits: parseInt(localStorage.getItem("nBits") ?? "2048"),
-      },
+      formStuff:        readFpSettingsAsFormStuff(),
     });
 
     rdkit.onmessage = async (event) => {

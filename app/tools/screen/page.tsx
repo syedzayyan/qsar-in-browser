@@ -9,6 +9,7 @@ import Histogram from "../../../components/tools/toolViz/Histogram";
 import DataTable2 from "../../../components/ui-comps/PaginatedTables2";
 import Papa from 'papaparse';
 import { useMLResults } from "../../../context/MLResultsContext";
+import { readFpSettingsAsFormStuff } from "../../../components/utils/get_fp_settings";
 
 export default function Screen() {
     const { screenData, setScreenData, sortedScreenData, preds } = useMLResults();
@@ -63,14 +64,10 @@ export default function Screen() {
         setScreenData(normalised);
 
         rdkit.postMessage({
-            function: 'only_fingerprint',
+            function: "only_fingerprint",
             id: `ml_screen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             mol_data: normalised,
-            formStuff: {
-                fingerprint: localStorage.getItem("fingerprint"),
-                radius: parseInt(localStorage.getItem("path")),
-                nBits: parseInt(localStorage.getItem("nBits")),
-            }
+            formStuff: readFpSettingsAsFormStuff(),
         });
     }
 

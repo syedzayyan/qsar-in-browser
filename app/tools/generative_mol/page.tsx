@@ -10,23 +10,11 @@ import { IconPlayerPlay, IconRefresh, IconDownload, IconEdit, IconCheck, IconX }
 import { useGAContext } from "../../../context/GAContext";
 import RDKitContext from "../../../context/RDKitContext";
 import MoleculeStructure from "../../../components/tools/toolComp/MoleculeStructure";
+import { readFpSettings } from "../../../components/utils/get_fp_settings";
 
 const DEFAULT_SMILES = ["CCO", "CC(=O)C", "Nc1ccccc1", "CC1=CC=CC=C1", "c1ccncc1"];
 const ZINC_URL = "https://raw.githubusercontent.com/AustinT/mol_ga/refs/heads/main/mol_ga/data/zinc250k.smiles";
 const ZINC_SAMPLE_SIZE = 20;
-
-function readFpSettings() {
-  try {
-    return {
-      fingerprint: localStorage.getItem("fingerprint") ?? "maccs",
-      fpRadius: Number(localStorage.getItem("path")) || 2,
-      fpNBits: Number(localStorage.getItem("nBits")) || 1024,
-    };
-  } catch (e) {
-    console.error("Error reading fingerprint settings:", e);
-    return { fingerprint: "maccs", fpRadius: 2, fpNBits: 1024 };
-  }
-}
 
 export default function GenerativeMol() {
   const { gaState, setGAState } = useGAContext();
@@ -107,7 +95,6 @@ export default function GenerativeMol() {
     try {
       if (isRunning || !rdkit || seedSmiles.length === 0) return;
 
-      const { fingerprint, fpRadius, fpNBits } = readFpSettings();
 
       setGAState({
         isRunning: true,
@@ -117,7 +104,6 @@ export default function GenerativeMol() {
         population: [],
         scores: [],
       });
-
       rdkit.postMessage({
         id: Date.now(),
         function: "run_ga",
@@ -126,9 +112,7 @@ export default function GenerativeMol() {
         offspringSize: seedSmiles.length,
         maxGenerations: settings.maxGenerations,
         modelKind: settings.modelKind,
-        fingerprint,
-        fpRadius,
-        fpNBits,
+        ...readFpSettings(),
       });
     } catch (e) {
       console.error("Error starting GA:", e);
@@ -175,10 +159,10 @@ export default function GenerativeMol() {
 
   const topResults = hasResults
     ? gaState.population.slice(0, 10).map((smi, idx) => ({
-        rank: idx + 1,
-        smiles: smi,
-        score: gaState.scores[idx]?.toFixed(4) ?? "N/A",
-      }))
+      rank: idx + 1,
+      smiles: smi,
+      score: gaState.scores[idx]?.toFixed(4) ?? "N/A",
+    }))
     : [];
 
   const bestScore = hasResults && gaState.scores.length > 0

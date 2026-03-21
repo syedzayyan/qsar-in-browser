@@ -13,6 +13,99 @@ const pyodideCallbacks = new Map();
 let gaCancelled = false;
 
 // ============================
+// Fingerprint registry
+// ============================
+//
+// Every fingerprint available in RDKit MinimalLib (minilib.h) is declared here.
+// Keys are the stable string IDs used throughout this file and by callers.
+//
+// method      – mol method name (bitstring variant, returned by get_*_fp())
+// defaultParams – parameters accepted by the JSON details argument, with defaults.
+//                 Pass only the keys you want to override; omit to use defaults.
+// paramKeys   – which of defaultParams are forwarded in the JSON details string
+//               (some FPs ignore certain keys, so we only send what the C++ reads).
+//
+// Notes:
+//  • get_maccs_fp() accepts NO details argument – always called with no args.
+//  • get_morgan_fp(details) reads: radius, nBits, useChirality, useBondTypes,
+//    useFeatures, useCounts, includeRedundantEnvironments
+//  • get_rdkit_fp(details) reads: minPath, maxPath, nBits, useHs, branchedPaths,
+//    useBondOrder, countSimulation
+//  • get_atom_pair_fp(details) reads: nBits, minDistance, maxDistance,
+//    includeChirality, use2D, countSimulation
+//  • get_topological_torsion_fp(details) reads: nBits, includeChirality,
+//    countSimulation
+//  • get_pattern_fp(details) reads: nBits, tautomerFingerprints
+//
+const FP_REGISTRY = {
+  maccs: {
+    label: 'MACCS (166-bit)',
+    method: 'get_maccs_fp',
+    fixedLength: 167,          // always 167 bits – nBits has no effect
+    defaultParams: {},
+    paramKeys: [],             // no JSON details argument
+  },
+  morgan: {
+    label: 'Morgan (ECFP-like)',
+    method: 'get_morgan_fp',
+    defaultParams: { radius: 2, nBits: 2048, useChirality: false, useBondTypes: true, useFeatures: false },
+    paramKeys: ['radius', 'nBits', 'useChirality', 'useBondTypes', 'useFeatures'],
+  },
+  rdkit_fp: {
+    label: 'RDKit (Daylight-like)',
+    method: 'get_rdkit_fp',
+    defaultParams: { minPath: 1, maxPath: 7, nBits: 2048, useHs: true, branchedPaths: true, useBondOrder: true },
+    paramKeys: ['minPath', 'maxPath', 'nBits', 'useHs', 'branchedPaths', 'useBondOrder'],
+  },
+  atom_pair: {
+    label: 'Atom Pair',
+    method: 'get_atom_pair_fp',
+    defaultParams: { nBits: 2048, minDistance: 1, maxDistance: 30, includeChirality: false, use2D: true },
+    paramKeys: ['nBits', 'minDistance', 'maxDistance', 'includeChirality', 'use2D'],
+  },
+  topological_torsion: {
+    label: 'Topological Torsion',
+    method: 'get_topological_torsion_fp',
+    defaultParams: { nBits: 2048, includeChirality: false },
+    paramKeys: ['nBits', 'includeChirality'],
+  },
+  pattern: {
+    label: 'Pattern (substructure screening)',
+    method: 'get_pattern_fp',
+    defaultParams: { nBits: 2048, tautomerFingerprints: false },
+    paramKeys: ['nBits', 'tautomerFingerprints'],
+  },
+};
+
+// Convenience: resolve an fpType string to its registry entry; throw on unknown.
+function getFpDef(fpType) {
+  const def = FP_REGISTRY[fpType];
+  if (!def) {
+    throw new Error(
+      `Unknown fingerprint type "${fpType}". Valid types: ${Object.keys(FP_REGISTRY).join(', ')}`
+    );
+  }
+  return def;
+}
+
+// Build the JSON details string for a fingerprint given user-supplied settings.
+// Falls back to registry defaults for every key not present in settings.
+function buildFpDetails(def, settings = {}) {
+  if (!def.paramKeys.length) return null; // MACCS – no argument
+  const params = {};
+  for (const key of def.paramKeys) {
+    params[key] = key in settings ? settings[key] : def.defaultParams[key];
+  }
+  return JSON.stringify(params);
+}
+
+// Call mol.get_*_fp() with the right arguments for this FP type.
+function computeFpBitString(mol, def, settings = {}) {
+  const details = buildFpDetails(def, settings);
+  return details === null ? mol[def.method]() : mol[def.method](details);
+}
+
+// ============================
 // Notify helpers
 // ============================
 function notify(message) {
@@ -40,13 +133,9 @@ function isEmpty(value) {
   return false;
 }
 
-// ============================
-// Safe delete helper
-// Centralises null-checks so call sites stay clean.
-// ============================
 function safeDelete(...objs) {
   for (const obj of objs) {
-    try { obj?.delete(); } catch (_) { /* swallow – object may already be freed */ }
+    try { obj?.delete(); } catch (_) { /* swallow */ }
   }
 }
 
@@ -64,7 +153,7 @@ async function loadRDKit() {
             resolve(mod);
           })
           .catch(err => {
-            RDKitInstancePromise = null; // allow retry
+            RDKitInstancePromise = null;
             reject(new Error(`RDKit WASM failed to load: ${err?.message || err}`));
           });
       } catch (err) {
@@ -85,7 +174,7 @@ function initPyodideWorker() {
     pyodideWorker.onmessage = (event) => {
       const { id, ok, result, error } = event.data;
       const cb = pyodideCallbacks.get(id);
-      pyodideCallbacks.delete(id); // always delete first
+      pyodideCallbacks.delete(id);
       if (!cb) return;
       if (ok) cb.resolve(result);
       else cb.reject(new Error(error || 'Pyodide worker error'));
@@ -101,17 +190,14 @@ function callPyodide(msg, timeoutMs = 30000) {
   initPyodideWorker();
   return new Promise((resolve, reject) => {
     const id = ++pyodideJobId;
-
     const timer = setTimeout(() => {
-      pyodideCallbacks.delete(id); // release the closure
+      pyodideCallbacks.delete(id);
       reject(new Error(`Pyodide timeout after ${timeoutMs}ms`));
     }, timeoutMs);
-
     pyodideCallbacks.set(id, {
       resolve: (v) => { clearTimeout(timer); resolve(v); },
       reject: (e) => { clearTimeout(timer); reject(e); }
     });
-
     pyodideWorker.postMessage({ id, ...msg });
   });
 }
@@ -196,7 +282,6 @@ function addRingTemplate() {
   return weightedChoice(choices, [0.05, 0.05, 0.45, 0.45]);
 }
 
-// FIX: mol was not deleted when changeAtomTemplate returned early or threw.
 function changeAtomTemplate(smiles, RDKitInstance) {
   const choices = ["#6", "#7", "#8", "#9", "#16", "#17", "#35"];
   const p = [0.15, 0.15, 0.14, 0.14, 0.14, 0.14, 0.14];
@@ -238,24 +323,41 @@ function generateMutationSmarts(smiles, RDKitInstance) {
 // ============================
 // Fingerprint helpers
 // ============================
+
+/**
+ * Generate fingerprints for an array of ligand objects.
+ *
+ * settings shape (all optional, fall back to registry defaults):
+ *   fingerprint          – FP_REGISTRY key, e.g. 'morgan'  (default: 'maccs')
+ *   radius / minPath     – path length / radius param
+ *   nBits                – fingerprint length
+ *   useChirality         – Morgan: include chirality
+ *   useBondTypes         – Morgan: use bond types
+ *   useFeatures          – Morgan: use feature invariants (FCFP-like)
+ *   maxPath              – RDKit FP: max path length
+ *   useHs / branchedPaths / useBondOrder – RDKit FP options
+ *   minDistance / maxDistance – AtomPair options
+ *   includeChirality     – AtomPair / TopologicalTorsion
+ *   use2D                – AtomPair
+ *   tautomerFingerprints – Pattern FP
+ */
 async function generateFingerprints(ligandData, settings, RDKitInstance, requestId) {
-  const fpTypeMap = { maccs: 'MACCS', morgan: 'Morgan', rdkit_fp: 'RDK' };
-  const fpType = fpTypeMap[settings.fingerprint];
-  const { radius: path, nBits } = settings;
+  const fpType = settings.fingerprint ?? 'maccs';
+  const def = getFpDef(fpType);
   const results = [];
+
+  // Build FP-specific settings object once (avoids re-building per molecule).
+  // Morgan historically used 'radius'; rdkit_fp used 'minPath' for path length.
+  // We normalise here so callers can use either name.
+  const fpSettings = buildNormalisedFpSettings(fpType, settings);
 
   for (let idx = 0; idx < ligandData.length; idx++) {
     const x = ligandData[idx];
     let mol;
     try {
       mol = RDKitInstance.get_mol(x.canonical_smiles);
-      if (fpType === 'MACCS') {
-        x.fingerprint = bitStringToBitVector(mol.get_maccs_fp());
-      } else if (fpType === 'Morgan') {
-        x.fingerprint = bitStringToBitVector(mol.get_morgan_fp(JSON.stringify({ radius: path, nBits })));
-      } else if (fpType === 'RDK') {
-        x.fingerprint = bitStringToBitVector(mol.get_rdkit_fp(JSON.stringify({ minPath: path, nBits })));
-      }
+      const bitString = computeFpBitString(mol, def, fpSettings);
+      x.fingerprint = bitStringToBitVector(bitString);
       results.push(x);
       notify({ id: requestId, message: `Progress: ${Math.round((idx / ligandData.length) * 100)}%` });
     } catch (e) {
@@ -267,8 +369,33 @@ async function generateFingerprints(ligandData, settings, RDKitInstance, request
   return results;
 }
 
-// FIX: Each individual mol must be freed after MolList.append() — the MolList
-// holds its own copy. The returned molList is the caller's responsibility.
+/**
+ * Normalise user-supplied settings into the canonical parameter names each FP
+ * definition expects, filling in registry defaults for anything missing.
+ *
+ * Legacy callers used 'radius' for Morgan and 'minPath'/'nBits' for rdkit_fp.
+ * This function maps those transparently so existing call sites continue to work.
+ */
+function buildNormalisedFpSettings(fpType, settings = {}) {
+  const def = getFpDef(fpType);
+  const out = { ...def.defaultParams };
+
+  // Overlay whatever the caller provided
+  for (const key of def.paramKeys) {
+    if (key in settings) out[key] = settings[key];
+  }
+
+  // Legacy aliases
+  if (fpType === 'morgan' && 'radius' in settings) out.radius = settings.radius;
+  if (fpType === 'rdkit_fp') {
+    if ('minPath' in settings) out.minPath = settings.minPath;
+    // Older code passed 'radius' as the path parameter for rdkit_fp
+    if ('radius' in settings && !('minPath' in settings)) out.minPath = settings.radius;
+  }
+
+  return out;
+}
+
 function molListFromSmiArray(smiArray, rdkit) {
   const molList = new rdkit.MolList();
   for (const smiName of smiArray) {
@@ -333,12 +460,6 @@ async function makeFingerprints(params, requestId) {
   notify({ id: requestId, message: 'Processing Done' });
 }
 
-// FIX: The original code leaked every RDKit object created inside the MMA
-// fragment loop. Rewrite ensures:
-//  • mol_frags.cores / .sidechains are always deleted (even on throw).
-//  • Each fragment mol produced by molList iteration is deleted after use.
-//  • The inner MolList returned by get_frags() is deleted after iteration.
-//  • The outer mol is deleted in the outer finally.
 function scaffoldArrayGetter(row_list_s, activity_columns, requestId) {
   const curr_activity_column = row_list_s.map(obj => obj[activity_columns[0]]);
   const massive_array = [];
@@ -353,6 +474,11 @@ function scaffoldArrayGetter(row_list_s, activity_columns, requestId) {
         try {
           const sidechains_smiles_list = [];
           const cores_smiles_list = [];
+
+          if (!mol_frags.sidechains || !mol_frags.cores) {
+            console.warn(`Skipping molecule ${i}: null sidechains/cores`);
+            continue; // ← skip to next iteration, still hits the finally below
+          }
 
           while (!mol_frags.sidechains.at_end()) {
             let sidechain;
@@ -447,43 +573,44 @@ function ksTest(obsOne, obsTwo) {
   return ksSignificance(en + 0.12 + 0.11 / en);
 }
 
-// FIX: mol was only deleted inside the catch block — leaked on the success path.
-// Moved safeDelete(mol) into a finally so it always runs.
 async function tanimoto_gen(params, requestId) {
   self.importScripts('https://unpkg.com/mathjs@15.1.0/lib/browser/math.js');
   const RDKitInstance = await loadRDKit();
+
+  const { fp_dets, anchorMol, mol_data } = params;
+  const fpType = fp_dets.type;
+  const def = getFpDef(fpType);
+
+  // Build fp-specific settings from fp_dets fields
+  // Legacy: fp_dets.path → radius (Morgan) or minPath (rdkit_fp)
+  const fpSettings = buildNormalisedFpSettings(fpType, {
+    radius: fp_dets.path,   // Morgan alias
+    minPath: fp_dets.path,   // rdkit_fp alias
+    nBits: fp_dets.nBits,
+    ...fp_dets,               // pass through any extra fields (includeChirality etc.)
+  });
+
   let mol;
   try {
-    mol = RDKitInstance.get_mol(params.anchorMol);
+    mol = RDKitInstance.get_mol(anchorMol);
   } catch (e) {
     notify({ id: requestId, function: 'tanimoto', error: `Invalid anchor molecule: ${e?.message || e}` });
     return;
   }
 
   let molFP;
-  const { fp_dets } = params;
   try {
-    if (fp_dets.type === 'maccs') {
-      molFP = mol.get_maccs_fp();
-    } else if (fp_dets.type === 'morgan') {
-      molFP = mol.get_morgan_fp(JSON.stringify({ radius: fp_dets.path, nBits: fp_dets.nBits }));
-    } else if (fp_dets.type === 'rdkit_fp') {
-      molFP = mol.get_rdkit_fp(JSON.stringify({ minPath: fp_dets.path, nBits: fp_dets.nBits }));
-    } else {
-      throw new Error(`Invalid fingerprint type: ${fp_dets.type}`);
-    }
+    const bitString = computeFpBitString(mol, def, fpSettings);
+    molFP = bitStringToBitVector(bitString);
   } catch (e) {
     notify({ id: requestId, function: 'tanimoto', error: e?.message || e });
     return;
   } finally {
-    // FIX: previously only deleted inside the catch — leaked on success path.
     safeDelete(mol);
   }
 
-  const mol_fp_bit = bitStringToBitVector(molFP);
-  const { mol_data } = params;
   for (let i = 0; i < mol_data.length; i++) {
-    mol_data[i][`${params.anchorMol}_tanimoto`] = TanimotoSimilarity(mol_fp_bit, mol_data[i].fingerprint);
+    mol_data[i][`${anchorMol}_tanimoto`] = TanimotoSimilarity(molFP, mol_data[i].fingerprint);
     notify({ message: `Progress: ${Math.round((i / mol_data.length) * 100)}%`, id: requestId });
   }
   notify({ id: requestId, function: 'tanimoto', data: mol_data });
@@ -497,8 +624,6 @@ function TanimotoSimilarity(v1, v2) {
   return denom === 0 ? 0 : numer / denom;
 }
 
-// FIX: query mol was not deleted when an error was thrown mid-loop — wrapped
-// the loop body in try/finally so query is always freed after the loop.
 async function substructure_search(params, requestId) {
   const { ligand, searchSmi } = params;
   const RDKitInstance = await loadRDKit();
@@ -547,9 +672,6 @@ function colorOfEdge(edge) {
   return colors[edge] ?? '#cccc66';
 }
 
-// FIX: smiles_mol_list was only deleted inside the catch — leaked on every
-// successful chunk. scaffold_net_ins was never deleted at all. Both are now
-// freed in finally blocks.
 function scaffold_net_chunking_method(array, chunkSize, rdkit, params) {
   const scaffold_net_ins = new rdkit.ScaffoldNetwork();
   scaffold_net_ins.set_scaffold_params(JSON.stringify(params));
@@ -599,7 +721,6 @@ function scaffold_net_chunking_method(array, chunkSize, rdkit, params) {
   return { nodes, edges };
 }
 
-// FIX: mol was not deleted when get_svg threw — now always freed in finally.
 function graph_molecule_image_generator(rdkit, graphData, svgSize = 120) {
   for (const node of graphData.nodes) {
     let mol;
@@ -619,8 +740,19 @@ function graph_molecule_image_generator(rdkit, graphData, svgSize = 120) {
 // ============================
 // GA functions
 // ============================
+
+/**
+ * scoreSmilesBatch
+ *
+ * fpSettings shape (all optional):
+ *   fingerprint          – FP_REGISTRY key            (default: 'maccs')
+ *   + any FP-specific params (radius, nBits, etc.)
+ */
 async function scoreSmilesBatch(smilesArray, modelKind = 'regression', fpSettings = {}) {
-  const { fingerprint = 'maccs', fpRadius = 2, fpNBits = 1024 } = fpSettings;
+  const fpType = fpSettings.fingerprint ?? 'maccs';
+  const def = getFpDef(fpType);
+  const normSettings = buildNormalisedFpSettings(fpType, fpSettings);
+
   const RDKitInstance = await loadRDKit();
   const fps = [];
 
@@ -629,14 +761,8 @@ async function scoreSmilesBatch(smilesArray, modelKind = 'regression', fpSetting
     try {
       mol = RDKitInstance.get_mol(smi);
       if (!mol?.is_valid()) throw new Error('Invalid molecule');
-
-      let fpBitString;
-      if (fingerprint === 'maccs') fpBitString = mol.get_maccs_fp();
-      else if (fingerprint === 'morgan') fpBitString = mol.get_morgan_fp(JSON.stringify({ radius: fpRadius, nBits: fpNBits }));
-      else if (fingerprint === 'rdkit_fp') fpBitString = mol.get_rdkit_fp(JSON.stringify({ minPath: fpRadius, nBits: fpNBits }));
-      else throw new Error(`Unknown fingerprint type: ${fingerprint}`);
-
-      fps.push(bitStringToBitVector(fpBitString));
+      const bitString = computeFpBitString(mol, def, normSettings);
+      fps.push(bitStringToBitVector(bitString));
     } catch (e) {
       console.warn(`scoreSmilesBatch: skipping "${smi}": ${e?.message || e}`);
       fps.push(null);
@@ -645,9 +771,7 @@ async function scoreSmilesBatch(smilesArray, modelKind = 'regression', fpSetting
     }
   }
 
-  const validFps = fps
-    .filter(Boolean)
-    .map(fp => new Float32Array(fp));
+  const validFps = fps.filter(Boolean).map(fp => new Float32Array(fp));
   if (validFps.length === 0) throw new Error('No valid fingerprints generated for scoring');
 
   try {
@@ -697,7 +821,6 @@ async function mutateBatch(smilesArray) {
             } catch (e) {
               console.warn(`Product processing failed: ${e?.message || e}`);
             } finally {
-              // Always drain every prodList — never break early
               safeDelete(newMol, prodMol, prodList);
             }
           }
@@ -725,7 +848,9 @@ async function runGA(params) {
     const {
       zincSmiles, populationSize = 5, offspringSize = 5,
       maxGenerations = 50, modelKind = 'regression',
-      fingerprint = 'maccs', fpRadius = 2, fpNBits = 1024, id,
+      fingerprint = 'maccs', id,
+      // Accept any extra FP-specific params forwarded by the caller
+      ...rest
     } = params;
 
     if (!zincSmiles || zincSmiles.length < populationSize) {
@@ -733,7 +858,17 @@ async function runGA(params) {
     }
 
     gaCancelled = false;
-    const fpSettings = { fingerprint, fpRadius, fpNBits };
+
+    // Build a single fpSettings object from all FP-related fields in params.
+    // Legacy keys (fpRadius, fpNBits) are mapped to canonical names.
+    const fpSettings = {
+      fingerprint,
+      radius: rest.fpRadius ?? rest.radius,
+      minPath: rest.fpRadius ?? rest.minPath,
+      nBits: rest.fpNBits ?? rest.nBits,
+      ...rest,
+    };
+
     let population = zincSmiles.slice(0, populationSize);
 
     let scores;
@@ -755,7 +890,10 @@ async function runGA(params) {
           .sort((a, b) => b.score - a.score);
 
         const topK = Math.max(1, Math.min(Math.floor(populationSize * 0.2), ranked.length));
-        const parents = Array.from({ length: offspringSize }, () => ranked[Math.floor(Math.random() * topK)].smi);
+        const parents = Array.from(
+          { length: offspringSize },
+          () => ranked[Math.floor(Math.random() * topK)].smi
+        );
 
         let offspring, offspringScores;
         try {
@@ -799,10 +937,25 @@ async function runGA(params) {
 self.onmessage = async (event) => {
   const { function: funcName, id, ...params } = event.data;
 
-  // Cancellation — no async needed
   if (funcName === 'cancel_ga') {
     gaCancelled = true;
     notify({ id, ok: true, type: 'ga_cancelled' });
+    return;
+  }
+
+  // Expose the FP registry so UI code can enumerate available fingerprints
+  // without needing a separate import.
+  if (funcName === 'get_fp_registry') {
+    notify({
+      id, ok: true, function: 'get_fp_registry',
+      data: Object.fromEntries(
+        Object.entries(FP_REGISTRY).map(([k, v]) => [k, {
+          label: v.label,
+          defaultParams: v.defaultParams,
+          fixedLength: v.fixedLength ?? null,
+        }])
+      ),
+    });
     return;
   }
 
@@ -839,7 +992,7 @@ self.onmessage = async (event) => {
       }
 
       case 'score_batch': {
-        const scores = await scoreSmilesBatch(params.smiles, params.modelKind);
+        const scores = await scoreSmilesBatch(params.smiles, params.modelKind, params.fpSettings ?? {});
         notify({ id, ok: true, result: scores });
         break;
       }
