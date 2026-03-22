@@ -124,6 +124,38 @@ function postErr(id, func, error) {
 }
 
 // ============================
+// Memory cleanup helper
+// ============================
+async function runPythonCleanup(pyodide, extraVars = []) {
+  const varList = ['X', 'y', 'model', 'proba', 'metrics', 'per_fold_preds', 'model_b64', ...extraVars];
+  const varListStr = JSON.stringify(varList);
+  await pyodide.runPythonAsync(`
+import gc, json
+_to_delete = json.loads('${varListStr}')
+for _var in _to_delete:
+    try:
+        del globals()[_var]
+    except KeyError:
+        pass
+gc.collect()
+  `);
+}
+
+function clearGlobalThis(...keys) {
+  for (const key of keys) {
+    try { globalThis[key] = null; } catch (_) {}
+  }
+}
+
+function unlinkModelIfExists(pyodide) {
+  try {
+    if (pyodide.FS.analyzePath('./model.pkl').exists) {
+      pyodide.FS.unlink('./model.pkl');
+    }
+  } catch (_) {}
+}
+
+// ============================
 // Message handler
 // ============================
 self.onmessage = async (event) => {
@@ -152,12 +184,19 @@ self.onmessage = async (event) => {
           const py_result = pyodide.globals.get("pca_result");
           const py_explained = pyodide.globals.get("explained_variance");
 
-          postOk(id, {
-            func,
-            opts,
-            result: py_result?.toJs() ?? null,
-            explained_variance: py_explained ?? null,
-          });
+          const result = py_result?.toJs() ?? null;
+          const explained_variance = py_explained ?? null;
+
+          // Cleanup
+          pyodide.globals.delete("js_fp");
+          pyodide.globals.delete("js_opts");
+          pyodide.globals.delete("js_params");
+          pyodide.globals.delete("pca_result");
+          pyodide.globals.delete("explained_variance");
+          await runPythonCleanup(pyodide, ['pca_result', 'explained_variance', 'reducer']);
+          clearGlobalThis('js_fp', 'js_opts', 'js_params');
+
+          postOk(id, { func, opts, result, explained_variance });
         } catch (e) {
           throw e;
         }
@@ -194,6 +233,11 @@ self.onmessage = async (event) => {
           await saveModel('model', modelBytes);
           const modelName = `model_${params.model ?? globalThis.opts}_${Date.now()}`;
 
+          // Cleanup before posting — we've already extracted everything we need
+          clearGlobalThis('neg_log_activity_column', 'fp', 'model_parameters', 'opts', 'metrics', 'perFoldPreds');
+          await runPythonCleanup(pyodide, ['model_b64', 'clf', 'pipeline', 'scaler', 'fold_preds']);
+          // Don't unlink model.pkl here — screening may need it immediately after training
+
           postOk(id, {
             func,
             opts,
@@ -210,11 +254,12 @@ self.onmessage = async (event) => {
       case 'ml_screen':
       case 'score_batch': {
         try {
-          if (!pyodide.FS.analyzePath('./model.pkl').exists) {
-            const modelBytes = await loadModel('model');
-            if (!modelBytes) throw new Error('No trained model found in IndexedDB — train a model first');
-            pyodide.FS.writeFile('./model.pkl', modelBytes);
-          }
+          // Always reload model from IndexedDB fresh — avoids stale FS state
+          unlinkModelIfExists(pyodide);
+          const modelBytes = await loadModel('model');
+          if (!modelBytes) throw new Error('No trained model found in IndexedDB — train a model first');
+          pyodide.FS.writeFile('./model.pkl', modelBytes);
+
           globalThis.one_off_mol_fp = fp;
           globalThis.opts = params.model;
 
@@ -223,10 +268,34 @@ self.onmessage = async (event) => {
           const prediction = globalThis.one_off_y;
           if (prediction == null) throw new Error('pyodide_ml_screen.py did not set one_off_y');
 
-          postOk(id, { func, result: prediction.toJs(), _aligned: event.data._aligned });
+          // Extract result BEFORE cleanup
+          const resultJs = prediction.toJs();
+
+          // Cleanup — this is the main source of memory bloat on reruns
+          clearGlobalThis('one_off_mol_fp', 'one_off_y', 'opts');
+          await runPythonCleanup(pyodide, ['X', 'model', 'proba', 'preds']);
+          unlinkModelIfExists(pyodide); // free the pkl from virtual FS
+
+          postOk(id, { func, result: resultJs, _aligned: event.data._aligned });
         } catch (e) {
+          // Cleanup even on failure
+          clearGlobalThis('one_off_mol_fp', 'one_off_y', 'opts');
+          unlinkModelIfExists(pyodide);
           throw e;
         }
+        break;
+      }
+
+      // ── Manual cleanup (call after screening from layout) ─────────────────
+      case 'cleanup': {
+        clearGlobalThis('one_off_mol_fp', 'one_off_y', 'opts', 'fp',
+          'neg_log_activity_column', 'model_parameters', 'metrics', 'perFoldPreds');
+        unlinkModelIfExists(pyodide);
+        await runPythonCleanup(pyodide, [
+          'X', 'y', 'model', 'proba', 'preds', 'model_b64',
+          'clf', 'pipeline', 'scaler', 'fold_preds', 'reducer',
+        ]);
+        postOk(id, { func: 'cleanup' });
         break;
       }
 

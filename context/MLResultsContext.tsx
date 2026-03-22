@@ -1,5 +1,6 @@
+// MLResultsContext.tsx
 "use client";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useMemo } from "react";
 
 interface ScreenMol {
   canonical_smiles: string;
@@ -15,6 +16,8 @@ interface MLResultsContextType {
   setSortedScreenData: React.Dispatch<React.SetStateAction<ScreenMol[]>>;
   preds: number[];
   setPreds: React.Dispatch<React.SetStateAction<number[]>>;
+  screenThreshold: number;
+  setScreenThreshold: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const MLResultsContext = createContext<MLResultsContextType>({
@@ -24,15 +27,23 @@ const MLResultsContext = createContext<MLResultsContextType>({
   setSortedScreenData: () => {},
   preds: [],
   setPreds: () => {},
+  screenThreshold: 0.5,
+  setScreenThreshold: () => {},
 });
 
 export function MLResultsContextProvider({ children }: { children: React.ReactNode }) {
   const [screenData, setScreenData] = useState<ScreenMol[]>([]);
   const [sortedScreenData, setSortedScreenData] = useState<ScreenMol[]>([]);
   const [preds, setPreds] = useState<number[]>([]);
+  const [screenThreshold, setScreenThreshold] = useState<number>(0.5);
 
   return (
-    <MLResultsContext.Provider value={{ screenData, setScreenData, sortedScreenData, setSortedScreenData, preds, setPreds }}>
+    <MLResultsContext.Provider value={{
+      screenData, setScreenData,
+      sortedScreenData, setSortedScreenData,
+      preds, setPreds,
+      screenThreshold, setScreenThreshold,
+    }}>
       {children}
     </MLResultsContext.Provider>
   );

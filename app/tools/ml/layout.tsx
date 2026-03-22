@@ -12,11 +12,13 @@ import DiscreteScatterplot from "../../../components/tools/toolViz/DiscreteScatt
 import { round } from "mathjs";
 import NotificationContext from "../../../context/NotificationContext";
 import { readFpSettingsAsFormStuff } from "../../../components/utils/get_fp_settings";
+import LigandContext from "../../../context/LigandContext";
 
 export default function MLLayout({ children }) {
 
   const [oneOffSMILES, setOneOffSmiles] = useState("CCO");
   const [oneOffSMILESResult, setOneOffSmilesResult] = useState<number>();
+  const { setLigand } = useContext(LigandContext);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -60,11 +62,11 @@ export default function MLLayout({ children }) {
     });
 
     rdkit.postMessage({
-      function:         "only_fingerprint",
-      id:               requestId,
-      mol_data:         [{ canonical_smiles: oneOffSMILES }],
+      function: "only_fingerprint",
+      id: requestId,
+      mol_data: [{ canonical_smiles: oneOffSMILES }],
       activity_columns: target.activity_columns,
-      formStuff:        readFpSettingsAsFormStuff(),
+      formStuff: readFpSettingsAsFormStuff(),
     });
 
     rdkit.onmessage = async (event) => {
@@ -134,106 +136,110 @@ export default function MLLayout({ children }) {
   // -----------------------------
   return (
     <div className="tools-container">
-        {/* ---------------- Task Type Selector ---------------- */}
-        {/* Task Type Selector + Clear Button */}
-        <Group>
-          <h3>ML Task Type</h3>
-          <Select
-            value={target.machine_learning_inference_type}
-            onChange={(v) => setTarget({ ...target, machine_learning_inference_type: v })}
-            data={[
-              { value: "regression", label: "Regression" },
-              { value: "classification", label: "Classification" },
-            ]}
-            style={{ flex: 1 }}
-            disabled={hasResults}  // Still lock after results
-          />
+      {/* ---------------- Task Type Selector ---------------- */}
+      {/* Task Type Selector + Clear Button */}
+      <Group>
+        <h3>ML Task Type</h3>
+        <Select
+          value={target.machine_learning_inference_type}
+          onChange={(v) => setTarget({ ...target, machine_learning_inference_type: v })}
+          data={[
+            { value: "regression", label: "Regression" },
+            { value: "classification", label: "Classification" },
+          ]}
+          style={{ flex: 1 }}
+          disabled={hasResults}  // Still lock after results
+        />
 
-          {hasResults && (
-            <Button
-              variant="light"
-              color="gray"
-              onClick={() => {
-                setTarget({
-                  ...target,
-                  machine_learning: [],
-                  machine_learning_inference_type: "regression"  // Reset to allow re-selection
-                });
-                setOneOffSmilesResult(undefined);
-              }}
-            >
-              Clear Results
-            </Button>
-          )}
-        </Group>
-
-
-        {/* ---------------- Children get taskType prop ---------------- */}
-        <details open={!hasResults}>
-          <summary>{hasResults && <>Reveal ML Forms</>}</summary>
-          {children}
-        </details>
-
-        {/* ---------------- Scatterplot or barplot ---------------- */}
         {hasResults && (
-          <>
-            {/* ---------------- Single molecule prediction ---------------- */}
-            <Group>
-              <h2>Predict the activity of a single molecule</h2>
-
-              <Input
-                ref={inputRef}
-                style={{ width: "20%" }}
-                onChange={(e) => setOneOffSmiles(e.target.value)}
-                placeholder="Input your SMILES string"
-              />
-
-              <Dropdown buttonText="Draw the molecule">
-                <JSME
-                  width="300px"
-                  height="300px"
-                  onChange={(smiles) => setOneOffSmiles(smiles)}
-                />
-              </Dropdown>
-
-              <Button onClick={oneOffPred}>Predict Activity</Button>
-
-              {oneOffSMILESResult !== undefined && (
-                <span>
-                  <b>{target.machine_learning_inference_type === "regression" && <>
-                    Predicted {target.activity_columns[0]}: {round(oneOffSMILESResult, 2)}
-                  </>}
-                  </b>
-                  <b>{target.machine_learning_inference_type === "classification" &&
-                    <Group style={{ marginLeft: "10px" }}>
-                      <span>Active Probability: {oneOffSMILESResult[0]}</span>
-                      <span>Inactive Probability: {oneOffSMILESResult[1]}</span>
-                    </Group>
-                  }
-                  </b>
-                </span>
-              )}
-            </Group>
-            {target.machine_learning_inference_type === "regression" && (
-              <>
-                <DiscreteScatterplot
-                  data={mergedData}
-                  discreteColor={true}
-                  colorLabels={foldColorProperty}
-                  xAxisTitle="Experimental Activity"
-                  yAxisTitle="Predicted Activity"
-                />
-                <FoldMetricBarplot metricName="Mean Absolute Error" data={metric1} color="#3b82f6" />
-              </>
-            )}
-            {target.machine_learning_inference_type === "classification" && (
-              <Group align="flex-start">
-                <FoldMetricBarplot metricName="Accuracy" data={metric1} color="#3b82f6" />
-                <FoldMetricBarplot metricName="ROC-AUC Score" data={metric2} color="#f59e0b" />
-              </Group>
-            )}
-          </>
+          <Button
+            variant="light"
+            color="gray"
+            onClick={() => {
+              setTarget({
+                ...target,
+                machine_learning: [],
+                machine_learning_inference_type: "regression"  // Reset to allow re-selection
+              });
+              setOneOffSmilesResult(undefined);
+              setLigand(prev => prev.map(lig => {
+                const { predictions, ...rest } = lig;
+                return rest;
+              }));
+            }}
+          >
+            Clear Results
+          </Button>
         )}
+      </Group>
+
+
+      {/* ---------------- Children get taskType prop ---------------- */}
+      <details open={!hasResults}>
+        <summary>{hasResults && <>Reveal ML Forms</>}</summary>
+        {children}
+      </details>
+
+      {/* ---------------- Scatterplot or barplot ---------------- */}
+      {hasResults && (
+        <>
+          {/* ---------------- Single molecule prediction ---------------- */}
+          <Group>
+            <h2>Predict the activity of a single molecule</h2>
+
+            <Input
+              ref={inputRef}
+              style={{ width: "20%" }}
+              onChange={(e) => setOneOffSmiles(e.target.value)}
+              placeholder="Input your SMILES string"
+            />
+
+            <Dropdown buttonText="Draw the molecule">
+              <JSME
+                width="300px"
+                height="300px"
+                onChange={(smiles) => setOneOffSmiles(smiles)}
+              />
+            </Dropdown>
+
+            <Button onClick={oneOffPred}>Predict Activity</Button>
+
+            {oneOffSMILESResult !== undefined && (
+              <span>
+                <b>{target.machine_learning_inference_type === "regression" && <>
+                  Predicted {target.activity_columns[0]}: {round(oneOffSMILESResult, 2)}
+                </>}
+                </b>
+                <b>{target.machine_learning_inference_type === "classification" &&
+                  <Group style={{ marginLeft: "10px" }}>
+                    <span>Active Probability: {oneOffSMILESResult[0]}</span>
+                    <span>Inactive Probability: {oneOffSMILESResult[1]}</span>
+                  </Group>
+                }
+                </b>
+              </span>
+            )}
+          </Group>
+          {target.machine_learning_inference_type === "regression" && (
+            <>
+              <DiscreteScatterplot
+                data={mergedData}
+                discreteColor={true}
+                colorLabels={foldColorProperty}
+                xAxisTitle="Experimental Activity"
+                yAxisTitle="Predicted Activity"
+              />
+              <FoldMetricBarplot metricName="Mean Absolute Error" data={metric1} color="#3b82f6" />
+            </>
+          )}
+          {target.machine_learning_inference_type === "classification" && (
+            <Group align="flex-start">
+              <FoldMetricBarplot metricName="Accuracy" data={metric1} color="#3b82f6" />
+              <FoldMetricBarplot metricName="ROC-AUC Score" data={metric2} color="#f59e0b" />
+            </Group>
+          )}
+        </>
+      )}
     </div>
   );
 }

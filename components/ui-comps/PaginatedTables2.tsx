@@ -108,12 +108,17 @@ const DataTable2 = ({
                     <MoleculeStructure structure={el.canonical_smiles} id={i.toString()} />
                   </Group>
                 </Table.Td>
-
-                {act_column.map((pl, j) => (
-                  <Table.Td key={`${i}-${j}`}>
-                    <Text ta="right">{Number.isFinite(el[pl]) ? round(el[pl], 2) : "—"}</Text>
-                  </Table.Td>
-                ))}
+                {act_column.map((pl, j) => {
+                  const val = el[pl];
+                  const num = typeof val === 'string' ? parseFloat(val) : val;
+                  return (
+                    <Table.Td key={`${i}-${j}`}>
+                      <Text ta="right">
+                        {Number.isFinite(num) ? round(num, 2) : val ?? "—"}
+                      </Text>
+                    </Table.Td>
+                  );
+                })}
               </Table.Tr>
             ))}
           </tbody>

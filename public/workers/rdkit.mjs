@@ -777,7 +777,12 @@ async function scoreSmilesBatch(smilesArray, modelKind = 'regression', fpSetting
   try {
     const optsMap = { regression: 1, classification: 2 };
     const optsNum = optsMap[modelKind] ?? 1;
-    return await callPyodide({ func: 'score_batch', fp: validFps, params: { model: optsNum } });
+    const raw = await callPyodide({ func: 'score_batch', fp: validFps, params: { model: optsNum } });
+    // For classification, predict_proba returns [[p0, p1], ...] — extract prob_active (index 0)
+    if (modelKind === 'classification') {
+      return raw.map((r) => (Array.isArray(r) ? r[0] : r));
+    }
+    return raw;
   } catch (e) {
     throw new Error(`Pyodide scoring failed: ${e?.message || e}`);
   }
@@ -988,12 +993,25 @@ self.onmessage = async (event) => {
       case 'run_ga': {
         const result = await runGA({ ...params, id });
         if (result) notify({ id, ok: true, type: 'ga_complete', result });
+
+        // Terminate pyodide worker after GA — it'll reinit on next scoring call
+        if (pyodideWorker) {
+          pyodideWorker.terminate();
+          pyodideWorker = null;
+          pyodideCallbacks.clear();
+        }
         break;
       }
-
       case 'score_batch': {
         const scores = await scoreSmilesBatch(params.smiles, params.modelKind, params.fpSettings ?? {});
         notify({ id, ok: true, result: scores });
+
+        // Cleanup after standalone scoring
+        if (pyodideWorker) {
+          pyodideWorker.terminate();
+          pyodideWorker = null;
+          pyodideCallbacks.clear();
+        }
         break;
       }
 

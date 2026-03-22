@@ -11,6 +11,8 @@ import { useGAContext } from "../../../context/GAContext";
 import RDKitContext from "../../../context/RDKitContext";
 import MoleculeStructure from "../../../components/tools/toolComp/MoleculeStructure";
 import { readFpSettings } from "../../../components/utils/get_fp_settings";
+import TargetContext from "../../../context/TargetContext";
+
 
 const DEFAULT_SMILES = ["CCO", "CC(=O)C", "Nc1ccccc1", "CC1=CC=CC=C1", "c1ccncc1"];
 const ZINC_URL = "https://raw.githubusercontent.com/AustinT/mol_ga/refs/heads/main/mol_ga/data/zinc250k.smiles";
@@ -20,10 +22,11 @@ export default function GenerativeMol() {
   const { gaState, setGAState } = useGAContext();
   const { rdkit } = useContext(RDKitContext);
 
-  const [settings, setSettings] = useState({
-    maxGenerations: 5,
-    modelKind: "regression" as "regression" | "classification",
-  });
+  const { target } = useContext(TargetContext);
+
+const [settings, setSettings] = useState({
+  maxGenerations: 5,
+});
 
   const [seedSmiles, setSeedSmiles] = useState<string[]>(DEFAULT_SMILES);
   const [editingSeeds, setEditingSeeds] = useState(false);
@@ -104,16 +107,16 @@ export default function GenerativeMol() {
         population: [],
         scores: [],
       });
-      rdkit.postMessage({
-        id: Date.now(),
-        function: "run_ga",
-        zincSmiles: seedSmiles,
-        populationSize: seedSmiles.length,
-        offspringSize: seedSmiles.length,
-        maxGenerations: settings.maxGenerations,
-        modelKind: settings.modelKind,
-        ...readFpSettings(),
-      });
+rdkit.postMessage({
+  id: Date.now(),
+  function: "run_ga",
+  zincSmiles: seedSmiles,
+  populationSize: seedSmiles.length,
+  offspringSize: seedSmiles.length,
+  maxGenerations: settings.maxGenerations,
+  modelKind: target.machine_learning_inference_type, // ← from context
+  ...readFpSettings(),
+});
     } catch (e) {
       console.error("Error starting GA:", e);
       setGAState({
@@ -213,19 +216,10 @@ export default function GenerativeMol() {
                 value={settings.maxGenerations}
                 onChange={(val) => setSettings((s) => ({ ...s, maxGenerations: Number(val) || 5 }))}
                 min={1}
-                max={100}
+                max={1000}
                 disabled={isRunning}
               />
-              <Select
-                label="Model"
-                value={settings.modelKind}
-                onChange={(val) => setSettings((s) => ({ ...s, modelKind: val as any }))}
-                data={[
-                  { value: "regression", label: "Regression" },
-                  { value: "classification", label: "Classification" },
-                ]}
-                disabled={isRunning}
-              />
+
             </Group>
           </Paper>
         </Stack>
