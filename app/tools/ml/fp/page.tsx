@@ -79,6 +79,8 @@ export default function RandomForest() {
         activity_columns: y,
         task_type: target.machine_learning_inference_type,
         threshold: effectiveThreshold,
+        smiles: ligand.map(mol => mol.canonical_smiles),  // ← add
+        ids: ligand.map(mol => mol.id ?? mol.canonical_smiles), // ← add
       },
     });
 

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import Screenshotter from '../../utils/d3toPNG';
-import { Button, Group, Text, Slider, Select } from '@mantine/core';
+import { Button, Group, Text, Slider, Select, Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-
+import { Modal, Table, Badge } from '@mantine/core';
+import MoleculeStructure from '../toolComp/MoleculeStructure';
 
 interface ScatterplotProps {
   data: { x: number; y: number }[];
@@ -23,11 +24,12 @@ interface Details {
 }
 
 interface ModalDets {
-  activity: string;
-  canonical_smiles: string;
-  id: string;
+  actual: number;
+  predicted: number;
+  smiles: string;
+  compoundId: string;
+  fold: string;
 }
-
 interface RegressionResult {
   slope: number;
   intercept: number;
@@ -281,9 +283,11 @@ export default function DiscreteScatterplot({
         event.stopPropagation();
         const idx = data.indexOf(d);
         setModalDets({
-          activity: colorLabels.length ? colorLabels[idx] : '—',
-          canonical_smiles: hoverProp[idx] || '',
-          id: id[idx] || ''
+          actual: d.x,
+          predicted: d.y,
+          smiles: hoverProp[idx] || '',
+          compoundId: id[idx] || `Compound ${idx + 1}`,
+          fold: colorLabels[idx] || '',
         });
         open();
       });
@@ -477,6 +481,69 @@ export default function DiscreteScatterplot({
           )}
         </div>
       </details>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={
+          <Group gap="xs">
+            <Text fw={600}>Compound Detail</Text>
+            {modalDets?.fold && <Badge variant="light">{modalDets.fold}</Badge>}
+          </Group>
+        }
+        size="md"
+      >
+        {modalDets && (
+          <Stack gap="sm">
+            <Table withTableBorder withColumnBorders>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Metric</Table.Th>
+                  <Table.Th>Value</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                <Table.Tr>
+                  <Table.Td fw={500}>{xAxisTitle || 'Actual'}</Table.Td>
+                  <Table.Td>{modalDets.actual.toFixed(3)}</Table.Td>
+                </Table.Tr>
+                <Table.Tr>
+                  <Table.Td fw={500}>{yAxisTitle || 'Predicted'}</Table.Td>
+                  <Table.Td>{modalDets.predicted.toFixed(3)}</Table.Td>
+                </Table.Tr>
+                <Table.Tr>
+                  <Table.Td fw={500}>Error</Table.Td>
+                  <Table.Td>
+                    <Text c={Math.abs(modalDets.actual - modalDets.predicted) > 1 ? 'red' : 'green'}>
+                      {(modalDets.predicted - modalDets.actual).toFixed(3)}
+                    </Text>
+                  </Table.Td>
+                </Table.Tr>
+                {modalDets.compoundId && (
+                  <Table.Tr>
+                    <Table.Td fw={500}>ID</Table.Td>
+                    <Table.Td>{modalDets.compoundId}</Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+
+            {modalDets.smiles && (
+              <>
+                <Text size="sm" fw={500}>SMILES</Text>
+                <MoleculeStructure
+                  structure={modalDets.smiles} id={modalDets.compoundId} />
+                <Text
+                  size="xs"
+                  c="dimmed"
+                  style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}
+                >
+                  {modalDets.smiles}
+                </Text>
+              </>
+            )}
+          </Stack>
+        )}
+      </Modal>
     </div>
   );
 }

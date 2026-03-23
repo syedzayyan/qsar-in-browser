@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import PyodideContext from "../../../context/PyodideContext";
 import TargetContext from "../../../context/TargetContext";
@@ -96,6 +96,8 @@ export default function MLLayout({ children }) {
         },
       });
 
+
+
       pyodide.onmessage = (event) => {
         const { id: pEvtId, ok, result, error } = event.data;
         if (pEvtId !== requestId) return;
@@ -121,15 +123,23 @@ export default function MLLayout({ children }) {
   // -----------------------------
   // Merge fold scatter data
   // -----------------------------
-  const mergedData: { x: number; y: number }[] = [];
-  const foldColorProperty: string[] = [];
+  const { mergedData, foldColorProperty, hoverSmiles, compoundIds } = useMemo(() => {
+    const mergedData: { x: number; y: number }[] = [];
+    const foldColorProperty: string[] = [];
+    const hoverSmiles: string[] = [];
+    const compoundIds: string[] = [];
 
-  perFoldPreds.forEach((fold, foldIndex) => {
-    fold.forEach((point) => {
-      mergedData.push({ x: point.x, y: point.y });
-      foldColorProperty.push(`Fold ${foldIndex + 1}`);
+    perFoldPreds.forEach((fold, foldIndex) => {
+      fold.forEach((point) => {
+        mergedData.push({ x: point.x, y: point.y });
+        foldColorProperty.push(`Fold ${foldIndex + 1}`);
+        hoverSmiles.push(point.smiles ?? '');
+        compoundIds.push(point.id ?? '');
+      });
     });
-  });
+
+    return { mergedData, foldColorProperty, hoverSmiles, compoundIds };
+  }, [perFoldPreds]);
 
   // -----------------------------
   // Render
@@ -228,6 +238,8 @@ export default function MLLayout({ children }) {
                 colorLabels={foldColorProperty}
                 xAxisTitle="Experimental Activity"
                 yAxisTitle="Predicted Activity"
+                hoverProp={hoverSmiles}
+                id={compoundIds}
               />
               <FoldMetricBarplot metricName="Mean Absolute Error" data={metric1} color="#3b82f6" />
             </>

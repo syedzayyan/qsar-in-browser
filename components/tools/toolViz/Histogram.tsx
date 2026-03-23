@@ -30,6 +30,7 @@ export default function Histogram({
   onRemove,
   children,
 }: HistogramProps) {
+  console.log(toolTipData)
   const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
   const [opened, { open, close }] = useDisclosure(false);
   const [modalDets, setModalDets] = useState<any[]>([]);
@@ -54,13 +55,13 @@ export default function Histogram({
       mq.addEventListener?.("change", handler);
       // @ts-ignore fallback
       if (!mq.addEventListener) mq.addListener(handler);
-    } catch {}
+    } catch { }
     return () => {
       try {
         mq.removeEventListener?.("change", handler);
         // @ts-ignore fallback
         if (!mq.removeEventListener) mq.removeListener(handler);
-      } catch {}
+      } catch { }
     };
   }, []);
 
@@ -344,8 +345,15 @@ export default function Histogram({
                 <MoleculeStructure structure={x.canonical_smiles} id={i.toString()} />
                 <div style={{ marginTop: 8 }}>
                   <span>
-                    {target.activity_columns[0]}: {round(x[target.activity_columns[0]], 2)}
+                    {target.activity_columns[0] && x[target.activity_columns[0]] != null
+                      ? `${target.activity_columns[0]}: ${round(Number(x[target.activity_columns[0]]), 2)}`
+                      : x.predictions != null
+                        ? `Predicted: ${round(Number(x.predictions), 2)}`
+                        : null
+                    }
                   </span>
+                  <br />
+                  <span>SMILES: {x.canonical_smiles}</span>
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12 }}>
                   <span>

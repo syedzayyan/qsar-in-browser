@@ -106,7 +106,16 @@ for train, test in kf.split(X, y):
 
     print(metric)
     metrics.append(metric)
-    per_fold_preds.append([testY, pred])
+    smiles_list = list(js.globalThis.smiles_list.to_py())
+    ids_list    = list(js.globalThis.ids_list.to_py())
+
+    # Inside the fold loop, replace per_fold_preds.append:
+    per_fold_preds.append([
+        testY.tolist(),
+        pred.tolist(),
+        [smiles_list[i] for i in test],
+        [ids_list[i]    for i in test],
+    ])
 
 js.metrics = metrics
 js.perFoldPreds = per_fold_preds

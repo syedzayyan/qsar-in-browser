@@ -143,7 +143,7 @@ gc.collect()
 
 function clearGlobalThis(...keys) {
   for (const key of keys) {
-    try { globalThis[key] = null; } catch (_) {}
+    try { globalThis[key] = null; } catch (_) { }
   }
 }
 
@@ -152,7 +152,7 @@ function unlinkModelIfExists(pyodide) {
     if (pyodide.FS.analyzePath('./model.pkl').exists) {
       pyodide.FS.unlink('./model.pkl');
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 // ============================
@@ -210,6 +210,8 @@ self.onmessage = async (event) => {
           globalThis.fp = fp;
           globalThis.model_parameters = params;
           globalThis.opts = params.model;
+          globalThis.smiles_list = params.smiles;   // ← add
+          globalThis.ids_list = params.ids;          // ← add
 
           await pyodide.runPythonAsync(await fetchPy("/python/pyodide_ml.py"));
 
@@ -217,11 +219,20 @@ self.onmessage = async (event) => {
           const metric1 = results.map(arr => arr[0]);
           const metric2 = results.map(arr => arr[1]);
 
+          const rawFolds = globalThis.perFoldPreds?.toJs({ depth: 4 });
+          console.log('rawFolds', rawFolds); // ← check this too
+
           const flatData = [];
-          globalThis.perFoldPreds?.toJs()?.forEach?.((subArray) => {
+          rawFolds?.forEach((subArray) => {
+            const [testY, pred, smiles, ids] = subArray;
             const anArray = [];
-            subArray[0]?.forEach?.((_, index) => {
-              anArray.push({ x: subArray[0][index], y: subArray[1][index] });
+            Array.from(testY ?? []).forEach((_, index) => {
+              anArray.push({
+                x: Array.from(testY)[index],
+                y: Array.from(pred)[index],
+                smiles: Array.from(smiles ?? [])[index] ?? '',
+                id: Array.from(ids ?? [])[index] ?? '',
+              });
             });
             flatData.push(anArray);
           });
@@ -234,7 +245,8 @@ self.onmessage = async (event) => {
           const modelName = `model_${params.model ?? globalThis.opts}_${Date.now()}`;
 
           // Cleanup before posting — we've already extracted everything we need
-          clearGlobalThis('neg_log_activity_column', 'fp', 'model_parameters', 'opts', 'metrics', 'perFoldPreds');
+          clearGlobalThis('neg_log_activity_column', 'fp', 'model_parameters', 'opts',
+            'metrics', 'perFoldPreds', 'smiles_list', 'ids_list');
           await runPythonCleanup(pyodide, ['model_b64', 'clf', 'pipeline', 'scaler', 'fold_preds']);
           // Don't unlink model.pkl here — screening may need it immediately after training
 

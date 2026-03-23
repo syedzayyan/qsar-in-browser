@@ -202,7 +202,10 @@ export default function Screen() {
                             )}
 
                             {!isClassification && preds.length > 0 && (
-                                <Histogram data={preds} />
+                                <Histogram data={preds} toolTipData={sortedScreenData.map(row => ({
+                                    ...row,
+                                    id: row.id ?? row.drugbank_id ?? row.broad_id ?? row.name ?? '—',
+                                }))} />
                             )}
                         </Group>
                     </Paper>
