@@ -30,7 +30,6 @@ export default function Histogram({
   onRemove,
   children,
 }: HistogramProps) {
-  console.log(toolTipData)
   const [dimensions, setDimensions] = useState({ width: 300, height: 300 });
   const [opened, { open, close }] = useDisclosure(false);
   const [modalDets, setModalDets] = useState<any[]>([]);

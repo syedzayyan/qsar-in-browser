@@ -942,6 +942,8 @@ async function runGA(params) {
 self.onmessage = async (event) => {
   const { function: funcName, id, ...params } = event.data;
 
+  notify({ message: "RDKit worker started" });
+
   if (funcName === 'cancel_ga') {
     gaCancelled = true;
     notify({ id, ok: true, type: 'ga_cancelled' });

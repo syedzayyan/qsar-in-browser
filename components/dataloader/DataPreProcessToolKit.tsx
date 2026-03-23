@@ -135,6 +135,7 @@ const FORM_DEFAULTS: FingerPrintSettings = {
 // ─── Component ────────────────────────────────────────────────────────────────
 const DataPreProcessToolKit = () => {
   const [loaded]    = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [stage,     setStage]     = useState<"choose" | "advanced">("choose");
   const [selection, setSelection] = useState<"express" | "advanced">("express");
 
@@ -160,6 +161,7 @@ const DataPreProcessToolKit = () => {
       .substr(2, 9)}`;
 
     try {
+      setProcessing(true);
       rdkit.postMessage({
         function:         "fingerprint",
         id:               requestId,
@@ -278,7 +280,7 @@ const DataPreProcessToolKit = () => {
                   <p>Allows you to specify parameters.</p>
                 </Stack>
               </Radio.Group>
-              <Button type="submit" disabled={!selection}>
+              <Button type="submit" disabled={!selection || processing}>
                 Submit
               </Button>
             </Stack>
@@ -333,7 +335,7 @@ const DataPreProcessToolKit = () => {
                 {...register("log10")}
               />
 
-              <Button type="submit">Process Molecules</Button>
+              <Button type="submit" disabled={processing}>Process Molecules</Button>
             </Stack>
           </form>
         </Paper>
