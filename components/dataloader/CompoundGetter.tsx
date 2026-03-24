@@ -2,7 +2,6 @@ import { useContext, useState, useEffect } from "react";
 import TargetContext from "../../context/TargetContext";
 import LigandContext from "../../context/LigandContext";
 import Link from "next/link";
-import FAQComp from "../ui-comps/FAQComp";
 import { Button, Progress, Select, Grid, Paper } from "@mantine/core";
 
 export default function CompoundGetter() {
@@ -11,46 +10,57 @@ export default function CompoundGetter() {
   const [totalCount, setTotalCount] = useState<number | null>(null);
 
   const { target, setTarget } = useContext(TargetContext);
-  const { ligand, setLigand } = useContext(LigandContext);
+  const { setLigand } = useContext(LigandContext);
 
-  const [ligandSearch, setLigandSearch] = useState(false);
+  // Local state — never touches global context until user clicks "Process Molecules"
+  const [localLigands, setLocalLigands] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [fetchComplete, setFetchComplete] = useState(false);
+
+  // Reset local results whenever the user changes filters
+  useEffect(() => {
+    setLocalLigands([]);
+    setFetchComplete(false);
+    setProgress(0);
+  }, [unit, binding, target?.target_id]);
 
   // -----------------------------
   // Fetch count for selected combo
   // -----------------------------
-useEffect(() => {
-  if (!target?.target_id) return;
+  useEffect(() => {
+    if (!target?.target_id) return;
 
-  async function fetchCount() {
-    try {
-      setTotalCount(null);
-      const response = await fetch(
-        `https://www.ebi.ac.uk/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`
-      );
+    async function fetchCount() {
+      try {
+        setTotalCount(null);
+        const response = await fetch(
+          `https://www.ebi.ac.uk/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`,
+        );
 
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const json = await response.json();
+        setTotalCount(json?.page_meta?.total_count ?? null);
+      } catch (err) {
+        console.error("Count fetch failed:", err);
+        setTotalCount(null);
       }
-
-      const json = await response.json();
-      const totalCount = json?.page_meta?.total_count ?? null;
-      setTotalCount(totalCount);
-    } catch (err) {
-      console.error("Count fetch failed:", err);
-      setTotalCount(null);
     }
-  }
 
-  fetchCount();
-}, [target?.target_id, unit, binding]);
+    fetchCount();
+  }, [target?.target_id, unit, binding]);
+
   // -----------------------------
-  // Fetch full activity data
+  // Fetch full activity data into LOCAL state only
   // -----------------------------
   async function getFullActivityData(url: string) {
-    setLigandSearch(false);
     setLoading(true);
+    setFetchComplete(false);
+    setLocalLigands([]);
+    setProgress(0);
 
     const chembl_url = "https://www.ebi.ac.uk";
     const results: any[] = [];
@@ -63,33 +73,42 @@ useEffect(() => {
       results.push(...data.activities);
       nextUrl = chembl_url + data.page_meta.next;
 
-      const newProgress =
-        (results.length / data.page_meta.total_count) * 100;
-      setProgress(newProgress);
+      setProgress((results.length / data.page_meta.total_count) * 100);
     }
 
-    setLigandSearch(true);
+    // Normalise fields locally
+    const normalised = results.map((x: any) => ({
+      ...x,
+      [unit]: x.standard_value,
+      id: x.molecule_chembl_id,
+      standard_value: undefined,
+    }));
+
+    setLocalLigands(normalised);
     setLoading(false);
-    return results;
+    setFetchComplete(true);
   }
 
   function fetchData() {
-    getFullActivityData(
-      `/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`
-    ).then((data) => {
-      data.forEach((x: any) => {
-        x[unit] = x.standard_value;
-        x.id = x.molecule_chembl_id;
-        delete x.standard_value;
-      });
-      setLigand(data);
-    });
+    fetchFullActivityData(
+      `/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`,
+    );
+  }
 
+  // Alias so the inner async fn name matches the call above
+  const fetchFullActivityData = getFullActivityData;
+
+  // -----------------------------
+  // Transfer local → global and navigate
+  // -----------------------------
+  function handleProcessMolecules() {
+    setLigand(localLigands);
     setTarget({
       ...target,
       activity_columns: [unit],
       data_source: "chembl",
     });
+    // Navigation is handled by the Link wrapper
   }
 
   // -----------------------------
@@ -103,12 +122,11 @@ useEffect(() => {
 
       <Paper shadow="sm" p="md">
         <p>
-          Select Assay Type and Unit Type 
-          to extract all small molecules listed 
-          on ChEMBL for 
-          your selected protein target of interest. {/* SZM please could we have this line replaced with the name of the selected target? */}
-          Please note, some Assay Type-Unit Type combinations ('activities')
-          do not have any small molecule data.
+          Select Assay Type and Unit Type to extract all small molecules listed
+          on ChEMBL for{" "}
+          <strong>{target?.pref_name ?? "your selected protein target"}</strong>
+          . Please note, some Assay Type–Unit Type combinations do not have any
+          small molecule data.
         </p>
 
         <Select
@@ -152,28 +170,35 @@ useEffect(() => {
           )}
         </div>
 
-        <Button fullWidth onClick={fetchData}>
+        <Button
+          fullWidth
+          onClick={fetchData}
+          loading={loading}
+          disabled={loading}
+        >
           Fetch Full Dataset
         </Button>
 
+        {/* Progress bar — only visible while loading */}
         {loading && (
           <>
-            <Progress value={progress} mt="md" />
+            <Progress value={progress} mt="md" animated />
             <div style={{ textAlign: "center", marginTop: 8 }}>
               {Math.min(progress, 100).toFixed(1)}%
             </div>
           </>
         )}
 
-        {ligand.length > 0 && (
+        {/* Process button — only visible after a successful local fetch */}
+        {fetchComplete && localLigands.length > 0 && (
           <Link href="/tools/preprocess/" passHref>
-            <Button fullWidth mt="md">
-              Process Molecules
+            <Button fullWidth mt="md" onClick={handleProcessMolecules}>
+              Process Molecules ({localLigands.length.toLocaleString()})
             </Button>
           </Link>
         )}
 
-        {ligandSearch && ligand.length === 0 && (
+        {fetchComplete && localLigands.length === 0 && (
           <p style={{ textAlign: "center", marginTop: 20 }}>
             No compounds found.
           </p>

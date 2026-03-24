@@ -5,3 +5,38 @@ out
 *storybook.log
 
 .DS_Store
+
+# Rust
+/dmpnn/target/
+Cargo.lock
+
+# WASM build output
+/dmpnn/pkg/
+/dmpnn/dist/
+
+# Checkpoints and weights
+/dmpnn/checkpoints/
+*.safetensors
+*.npz
+*.pt
+*.onnx
+
+# Data files
+*.sdf
+*.csv
+*.tsv
+*.gz
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
