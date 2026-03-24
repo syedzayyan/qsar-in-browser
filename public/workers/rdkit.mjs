@@ -1715,7 +1715,7 @@ self.onmessage = async (event) => {
         self._dmpnnHandle = handle;
         self._dmpnnDMPNN = DMPNN;
         self._dmpnnConfig = config;
-        notify({ "Weights loaded" });
+        notify({ message: "Weights loaded" });
         break;
       }
 
