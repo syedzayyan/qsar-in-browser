@@ -1,6 +1,6 @@
 {
   "name": "qitb",
-  "version": "0.9.5_alpha",
+  "version": "0.9.8_alpha",
   "private": true,
   "scripts": {
     "dev": "next dev",

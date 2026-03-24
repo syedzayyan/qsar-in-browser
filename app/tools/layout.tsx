@@ -246,6 +246,13 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      if (payload.function === "dmpnn_get_weights") {
+        pushNotification({
+          message: payload.message,
+        });
+        return;
+      }
+
       // ── GA progress ──────────────────────────────────────────────────────
       if (payload.type === "ga_progress") {
         setGAState((prev) => ({

@@ -99,9 +99,13 @@ export default function CornerMenu() {
               <NavLink
                 component={Link}
                 href="/tools/ml/fp"
-                label="Train a Model"
+                label="Classical Models"
               />
-              <NavLink component={Link} href="/tools/ml/dmpnn" label="DMPNN" />
+              <NavLink
+                component={Link}
+                href="/tools/ml/dmpnn"
+                label="Graph Machine Learning (Chemprop)"
+              />
             </NavLink>
 
             <NavLink label="Model Predictions">

@@ -47,6 +47,17 @@ export default function Screen() {
   const { rdkit } = useContext(RDKitContext);
   const { target } = useContext(TargetContext);
 
+  // Derive a single "ready to screen" flag
+  const canScreen =
+    screenModel === "classical" ? classicalModelReady : dmpnnWeightsReady;
+
+  // Add a reset that clears results and re-enables Broad
+  const resetScreening = () => {
+    setScreenData([]);
+    setSortedScreenData([]);
+    setPreds([]);
+  };
+
   const isClassification =
     target.machine_learning_inference_type === "classification";
 
@@ -267,7 +278,7 @@ export default function Screen() {
                 leftSection={<IconCpu2 size={20} />}
                 onClick={loadBroadDataset}
                 loading={broadLoading}
-                disabled={screenData.length > 0}
+                disabled={broadLoading} // ← was: screenData.length > 0
                 fullWidth
               >
                 {broadLoading ? "Loading..." : "Load Broad Dataset"}
@@ -283,6 +294,19 @@ export default function Screen() {
       {/* ── Results ── */}
       {hasPredictions && preds.length > 0 && (
         <>
+          <Group justify="space-between" px="md" mb="xs">
+            <Text size="sm" c="dimmed">
+              {sortedScreenData.length} molecules screened
+            </Text>
+            <Button
+              size="xs"
+              variant="subtle"
+              color="gray"
+              onClick={resetScreening}
+            >
+              Clear & screen again
+            </Button>
+          </Group>
           <Paper withBorder p="md" radius="md" mb="md" mx="md">
             <Group align="flex-start" gap="xl" wrap="wrap">
               {isClassification && pieData.length > 0 && (

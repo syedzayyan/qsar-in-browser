@@ -166,7 +166,24 @@ export default function DMPNNPage() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const bytes = new Uint8Array(ev.target?.result as ArrayBuffer);
-      rdkit.postMessage({ function: "dmpnn_load_weights", bytes });
+      // In DMPNNPage, wherever you handle weight file upload:
+      rdkit.postMessage({
+        function: "dmpnn_load_weights",
+        bytes: new Uint8Array(bytes),
+        config: {
+          // ← send the same config used during training
+          atom_dim: 9,
+          bond_dim: 3,
+          hidden_dim: config.hidden_dim,
+          depth: config.depth,
+          dropout: config.dropout,
+          ffn_hidden_dim: config.ffn_hidden_dim,
+          ffn_num_layers: config.ffn_num_layers,
+          num_tasks: 1,
+          task_type: target.machine_learning_inference_type,
+          lr: config.lr,
+        },
+      });
     };
     reader.readAsArrayBuffer(file);
   }

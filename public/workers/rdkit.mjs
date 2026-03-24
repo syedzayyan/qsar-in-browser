@@ -1513,18 +1513,19 @@ function computeMetrics(test_preds, test_labels, is_cls) {
   return [mae];
 }
 
-function storeFinalHandle(DMPNN, handle) {
-  if (self._dmpnnHandle != null) DMPNN.model_free(self._dmpnnHandle);
-  self._dmpnnHandle = handle;
-  self._dmpnnDMPNN = DMPNN;
-}
-
 function approxAUROC(labels, scores) {
   const pos = scores.filter((_, i) => labels[i] >= 0.5);
   const neg = scores.filter((_, i) => labels[i] < 0.5);
   if (!pos.length || !neg.length) return 0.5;
   const u = pos.reduce((s, p) => s + neg.filter((n) => p > n).length, 0);
   return u / (pos.length * neg.length);
+}
+
+function storeFinalHandle(DMPNN, handle, config) {
+  if (self._dmpnnHandle != null) DMPNN.model_free(self._dmpnnHandle);
+  self._dmpnnHandle = handle;
+  self._dmpnnDMPNN = DMPNN;
+  self._dmpnnConfig = config; // ← persist so load_weights can reuse it
 }
 
 // ============================
@@ -1624,7 +1625,11 @@ self.onmessage = async (event) => {
         const { smiles, labels, config, epochs } = params;
         const all_indices = Array.from({ length: smiles.length }, (_, i) => i);
 
-        storeFinalHandle(DMPNN, DMPNN.model_new(JSON.stringify(config)));
+        storeFinalHandle(
+          DMPNN,
+          DMPNN.model_new(JSON.stringify(config)),
+          config,
+        );
 
         for (let epoch = 0; epoch < epochs; epoch++) {
           const { loss_sum, count } = runEpoch(
@@ -1673,8 +1678,44 @@ self.onmessage = async (event) => {
 
       case "dmpnn_load_weights": {
         const DMPNN = await getDMPNN();
-        DMPNN.model_load_weights(self._dmpnnHandle, params.bytes);
-        notify({ id, ok: true, message: "Weights loaded" });
+
+        // Use the config from the last training run if available,
+        // otherwise fall back to the architecture constants baked into molToGraph
+        const config = self._dmpnnConfig ?? {
+          atom_dim: 9, // ATOM_DIM in molToGraph
+          bond_dim: 3, // BOND_DIM in molToGraph
+          hidden_dim: 300,
+          depth: 3,
+          dropout: 0.0,
+          ffn_hidden_dim: 300,
+          ffn_num_layers: 2,
+          num_tasks: 1,
+          task_type: "regression",
+          lr: 0.001,
+        };
+
+        if (self._dmpnnHandle != null) {
+          DMPNN.model_free(self._dmpnnHandle);
+          self._dmpnnHandle = null;
+        }
+
+        const handle = DMPNN.model_new(JSON.stringify(config));
+        try {
+          DMPNN.model_load_weights(handle, params.bytes);
+        } catch (e) {
+          DMPNN.model_free(handle);
+          notify({
+            id,
+            ok: false,
+            error: `model_load_weights failed: ${e?.message || e}`,
+          });
+          break;
+        }
+
+        self._dmpnnHandle = handle;
+        self._dmpnnDMPNN = DMPNN;
+        self._dmpnnConfig = config;
+        notify({ "Weights loaded" });
         break;
       }
 
@@ -1806,7 +1847,7 @@ self.onmessage = async (event) => {
             count > 0 ? loss_sum / count : 0,
           );
         }
-        storeFinalHandle(DMPNN, finalHandle);
+        storeFinalHandle(DMPNN, finalHandle, config);
 
         self.postMessage({
           function: "dmpnn_kfold_complete",
