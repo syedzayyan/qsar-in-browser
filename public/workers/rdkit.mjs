@@ -1051,18 +1051,33 @@ async function scoreSmilesBatch(
   smilesArray,
   modelKind = "regression",
   fpSettings = {},
+  scoringModel = "classical",
 ) {
+  const RDKit = await loadRDKit();
+
+  if (scoringModel === "dmpnn") {
+    if (!self._dmpnnHandle || !self._dmpnnDMPNN) {
+      throw new Error("No DMPNN model loaded — train or load weights first");
+    }
+    const DMPNN = self._dmpnnDMPNN;
+    return smilesArray.map((smi) => {
+      const graph = molToGraphSafe(RDKit, smi);
+      if (!graph) return 0; // invalid mol → neutral score, don't break GA
+      const pred = dmpnnInfer(DMPNN, self._dmpnnHandle, graph);
+      return pred[0] ?? 0;
+    });
+  }
+
+  // ── Classical: fingerprint → Pyodide ─────────────────────────────────────
   const fpType = fpSettings.fingerprint ?? "maccs";
   const def = getFpDef(fpType);
   const normSettings = buildNormalisedFpSettings(fpType, fpSettings);
-
-  const RDKitInstance = await loadRDKit();
   const fps = [];
 
   for (const smi of smilesArray) {
     let mol;
     try {
-      mol = RDKitInstance.get_mol(smi);
+      mol = RDKit.get_mol(smi);
       if (!mol?.is_valid()) throw new Error("Invalid molecule");
       const bitString = computeFpBitString(mol, def, normSettings);
       fps.push(bitStringToBitVector(bitString));
@@ -1076,24 +1091,17 @@ async function scoreSmilesBatch(
 
   const validFps = fps.filter(Boolean).map((fp) => new Float32Array(fp));
   if (validFps.length === 0)
-    throw new Error("No valid fingerprints generated for scoring");
+    throw new Error("No valid fingerprints for scoring");
 
-  try {
-    const optsMap = { regression: 1, classification: 2 };
-    const optsNum = optsMap[modelKind] ?? 1;
-    const raw = await callPyodide({
-      func: "score_batch",
-      fp: validFps,
-      params: { model: optsNum },
-    });
-    // For classification, predict_proba returns [[p0, p1], ...] — extract prob_active (index 0)
-    if (modelKind === "classification") {
-      return raw.map((r) => (Array.isArray(r) ? r[0] : r));
-    }
-    return raw;
-  } catch (e) {
-    throw new Error(`Pyodide scoring failed: ${e?.message || e}`);
-  }
+  const optsNum = modelKind === "classification" ? 2 : 1;
+  const raw = await callPyodide({
+    func: "score_batch",
+    fp: validFps,
+    params: { model: optsNum },
+  });
+  return modelKind === "classification"
+    ? raw.map((r) => (Array.isArray(r) ? r[0] : r))
+    : raw;
 }
 
 async function mutateBatch(smilesArray) {
@@ -1164,6 +1172,7 @@ async function mutateBatch(smilesArray) {
   return offspring;
 }
 
+// ── runGA — add scoringModel param ────────────────────────────────────────────
 async function runGA(params) {
   try {
     const {
@@ -1173,8 +1182,8 @@ async function runGA(params) {
       maxGenerations = 50,
       modelKind = "regression",
       fingerprint = "maccs",
+      scoringModel = "classical", // ← "classical" | "dmpnn"
       id,
-      // Accept any extra FP-specific params forwarded by the caller
       ...rest
     } = params;
 
@@ -1184,10 +1193,13 @@ async function runGA(params) {
       );
     }
 
+    // Validate DMPNN readiness upfront — fail fast before any generation
+    if (scoringModel === "dmpnn" && (!self._dmpnnHandle || !self._dmpnnDMPNN)) {
+      throw new Error("scoringModel=dmpnn but no DMPNN model is loaded");
+    }
+
     gaCancelled = false;
 
-    // Build a single fpSettings object from all FP-related fields in params.
-    // Legacy keys (fpRadius, fpNBits) are mapped to canonical names.
     const fpSettings = {
       fingerprint,
       radius: rest.fpRadius ?? rest.radius,
@@ -1197,75 +1209,55 @@ async function runGA(params) {
     };
 
     let population = zincSmiles.slice(0, populationSize);
-
-    let scores;
-    try {
-      scores = await scoreSmilesBatch(population, modelKind, fpSettings);
-    } catch (e) {
-      throw new Error(`GA init scoring failed: ${e?.message || e}`);
-    }
+    let scores = await scoreSmilesBatch(
+      population,
+      modelKind,
+      fpSettings,
+      scoringModel,
+    );
 
     for (let gen = 0; gen < maxGenerations; gen++) {
-      try {
-        if (gaCancelled) {
-          notify({ id, type: "ga_cancelled", gen });
-          return null;
-        }
-
-        const ranked = population
-          .map((smi, i) => ({ smi, score: scores[i] }))
-          .sort((a, b) => b.score - a.score);
-
-        const topK = Math.max(
-          1,
-          Math.min(Math.floor(populationSize * 0.2), ranked.length),
-        );
-        const parents = Array.from(
-          { length: offspringSize },
-          () => ranked[Math.floor(Math.random() * topK)].smi,
-        );
-
-        let offspring, offspringScores;
-        try {
-          offspring = await mutateBatch(parents);
-        } catch (e) {
-          throw new Error(
-            `Generation ${gen} mutation failed: ${e?.message || e}`,
-          );
-        }
-
-        try {
-          offspringScores = await scoreSmilesBatch(
-            offspring,
-            modelKind,
-            fpSettings,
-          );
-        } catch (e) {
-          throw new Error(
-            `Generation ${gen} scoring failed: ${e?.message || e}`,
-          );
-        }
-
-        const allScores = [...scores, ...offspringScores];
-        const poolRanked = [...population, ...offspring]
-          .map((smi, i) => ({ smi, score: allScores[i] }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, populationSize);
-
-        population = poolRanked.map((x) => x.smi);
-        scores = poolRanked.map((x) => x.score);
-
-        notify({
-          type: "ga_progress",
-          gen,
-          best: scores[0],
-          bestSmiles: population[0],
-          id,
-        });
-      } catch (e) {
-        console.error(`Generation ${gen} error: ${e?.message || e}`);
-        throw e;
+      if (gaCancelled) {
+        notify({ id, type: "ga_cancelled", gen });
+        return null;
       }
+
+      const ranked = population
+        .map((smi, i) => ({ smi, score: scores[i] }))
+        .sort((a, b) => b.score - a.score);
+
+      const topK = Math.max(
+        1,
+        Math.min(Math.floor(populationSize * 0.2), ranked.length),
+      );
+      const parents = Array.from(
+        { length: offspringSize },
+        () => ranked[Math.floor(Math.random() * topK)].smi,
+      );
+
+      const offspring = await mutateBatch(parents);
+      const offspringScores = await scoreSmilesBatch(
+        offspring,
+        modelKind,
+        fpSettings,
+        scoringModel,
+      );
+
+      const poolRanked = [...population, ...offspring]
+        .map((smi, i) => ({ smi, score: [...scores, ...offspringScores][i] }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, populationSize);
+
+      population = poolRanked.map((x) => x.smi);
+      scores = poolRanked.map((x) => x.score);
+
+      notify({
+        type: "ga_progress",
+        gen,
+        best: scores[0],
+        bestSmiles: population[0],
+        id,
+      });
     }
 
     return { population, scores };
@@ -1600,14 +1592,15 @@ self.onmessage = async (event) => {
         const result = await runGA({ ...params, id });
         if (result) notify({ id, ok: true, type: "ga_complete", result });
 
-        // Terminate pyodide worker after GA — it'll reinit on next scoring call
-        if (pyodideWorker) {
+        // Only tear down Pyodide if classical scoring was used
+        if (params.scoringModel !== "dmpnn" && pyodideWorker) {
           pyodideWorker.terminate();
           pyodideWorker = null;
           pyodideCallbacks.clear();
         }
         break;
       }
+
       case "score_batch": {
         const scores = await scoreSmilesBatch(
           params.smiles,
