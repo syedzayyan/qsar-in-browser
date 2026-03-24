@@ -1,52 +1,61 @@
-import { createContext, useState, ReactNode } from 'react';
+import { createContext, useState, ReactNode } from "react";
 
 export type targetType = {
-    target_id: string,
-    target_name: string,
-    target_organism: string,
-    pre_processed: boolean,
-    data_source: string,
-    activity_columns?: string[],
-    scaffold_network: any,
-    scaffCores: any,
-    machine_learning?: any,
-    machine_learning_inference_type?: string,
-    pca_explained_variance?: number[],
-    tsne_explained_variance?: number[],
-}
+  target_id: string;
+  target_name: string;
+  target_organism: string;
+  pre_processed: boolean;
+  data_source: string;
+  activity_columns?: string[];
+  scaffold_network: any;
+  scaffCores: any;
+  machine_learning?: any;
+  machine_learning_inference_type?: string;
+  pca_explained_variance?: number[];
+  tsne_explained_variance?: number[];
+  pref_name?: string;
+};
 
 interface TargetContextProps {
-    target: targetType;
-    setTarget: React.Dispatch<React.SetStateAction<targetType>>;
+  target: targetType;
+  setTarget: React.Dispatch<React.SetStateAction<targetType>>;
 }
 
 const TargetContext = createContext<TargetContextProps>({
-    target: { target_id: "", target_name: "", target_organism: "", data_source: "", pre_processed: false, scaffold_network: "", scaffCores: [] },
-    setTarget: () => {},
+  target: {
+    target_id: "",
+    target_name: "",
+    target_organism: "",
+    data_source: "",
+    pre_processed: false,
+    scaffold_network: "",
+    scaffCores: [],
+  },
+  setTarget: () => {},
 });
 
 interface TargetProviderProps {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 export function TargetProvider({ children }: TargetProviderProps) {
-    const [target, setTarget] = useState<targetType>({
-        target_id: "",
-        target_name: "",
-        target_organism: "",
-        data_source: "",
-        pre_processed: false,
-        scaffold_network: undefined,
-        scaffCores: [],
-        machine_learning: [],
-        machine_learning_inference_type: "regression"
-    });
+  const [target, setTarget] = useState<targetType>({
+    target_id: "",
+    target_name: "",
+    target_organism: "",
+    data_source: "",
+    pre_processed: false,
+    scaffold_network: undefined,
+    scaffCores: [],
+    machine_learning: [],
+    machine_learning_inference_type: "regression",
+  });
 
-    return (
-        <TargetContext.Provider value={{ target, setTarget }}>
-            {children}
-        </TargetContext.Provider>
-    );
+  return (
+    <TargetContext.Provider value={{ target, setTarget }}>
+      {children}
+    </TargetContext.Provider>
+  );
 }
 
 export default TargetContext;

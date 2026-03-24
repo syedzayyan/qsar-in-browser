@@ -192,7 +192,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
       // ── DMPNN weights download ───────────────────────────────────────────
       if (payload.function === "dmpnn_get_weights") {
-        const bytes: Uint8Array = payload.bytes;
+        const bytes = payload.bytes;
         const blob = new Blob([bytes], { type: "application/octet-stream" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
