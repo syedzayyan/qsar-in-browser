@@ -1734,7 +1734,7 @@ self.onmessage = async (event) => {
           notify({ id, ok: false, error: "No trained model — train first" });
           break;
         }
-        const bytes = DMPNN.model_get_weights(self._dmpnnHandle);
+        const bytes = await DMPNN.model_get_weights(self._dmpnnHandle);
         self.postMessage({ function: "dmpnn_get_weights", bytes }, [
           bytes.buffer,
         ]);
@@ -1777,15 +1777,15 @@ self.onmessage = async (event) => {
           };
 
         if (self._dmpnnHandle != null) {
-          DMPNN.model_free(self._dmpnnHandle);
+          await DMPNN.model_free(self._dmpnnHandle);
           self._dmpnnHandle = null;
         }
 
-        const handle = DMPNN.model_new(JSON.stringify(config));
+        const handle = await DMPNN.model_new(JSON.stringify(config));
         try {
-          DMPNN.model_load_weights(handle, params.bytes);
+          await DMPNN.model_load_weights(handle, params.bytes);
         } catch (e) {
-          DMPNN.model_free(handle);
+          await DMPNN.model_free(handle);
           notify({
             id,
             ok: false,
@@ -1859,7 +1859,7 @@ self.onmessage = async (event) => {
             (_, i) => i + test_start,
           );
 
-          const foldHandle = DMPNN.model_new(configJson);
+          const foldHandle = await DMPNN.model_new(configJson);
 
           // Train
           for (let epoch = 0; epoch < epochs; epoch++) {
@@ -1908,7 +1908,7 @@ self.onmessage = async (event) => {
               is_cls,
             ),
           );
-          DMPNN.model_free(foldHandle);
+          await DMPNN.model_free(foldHandle);
         }
 
         // Final model on all data
@@ -1923,6 +1923,7 @@ self.onmessage = async (event) => {
             labels,
             all_idx,
             config.lr,
+            config,
           );
           emitEpoch(
             n_splits,
