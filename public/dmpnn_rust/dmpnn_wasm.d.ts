@@ -17,6 +17,8 @@ export function model_train_kfold(handle: bigint, mol_atom_features: Float32Arra
 
 export function model_train_step(handle: bigint, atom_features: Float32Array, n_atoms: number, edge_index: BigInt64Array, n_dir_edges: number, edge_attr: Float32Array, labels: Float32Array, lr: number): number;
 
+export function model_train_step_batch(handle: bigint, mol_atom_features: Float32Array, mol_n_atoms: Uint32Array, mol_edge_index: BigInt64Array, mol_n_dir_edges: Uint32Array, mol_edge_attr: Float32Array, labels: Float32Array, lr: number): number;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -24,6 +26,7 @@ export interface InitOutput {
     readonly model_new: (a: number, b: number) => bigint;
     readonly model_free: (a: bigint) => void;
     readonly model_train_step: (a: bigint, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => number;
+    readonly model_train_step_batch: (a: bigint, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => number;
     readonly model_infer: (a: bigint, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number];
     readonly model_get_weights: (a: bigint) => [number, number];
     readonly model_load_weights: (a: bigint, b: number, c: number) => void;

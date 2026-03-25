@@ -1,19 +1,22 @@
-"use client"
+"use client";
 
-import '@mantine/core/styles.css';
+import "@mantine/core/styles.css";
 import { RDKitProvider } from "../context/RDKitContext";
 import { PyodideProvider } from "../context/PyodideContext";
-import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
+import {
+  ColorSchemeScript,
+  MantineProvider,
+  mantineHtmlProps,
+} from "@mantine/core";
 import { TargetProvider } from "../context/TargetContext";
 import { LigandProvider } from "../context/LigandContext";
-import { NotificationContextProvider } from '../context/NotificationContext';
+import { NotificationContextProvider } from "../context/NotificationContext";
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-
   return (
     <html lang="en" {...mantineHtmlProps}>
       <head>
@@ -28,7 +31,7 @@ export default function RootLayout({
               <TargetProvider>
                 <LigandProvider>
                   <NotificationContextProvider>
-                  {children}
+                    {children}
                   </NotificationContextProvider>
                 </LigandProvider>
               </TargetProvider>
@@ -37,5 +40,5 @@ export default function RootLayout({
         </MantineProvider>
       </body>
     </html>
-  )
+  );
 }

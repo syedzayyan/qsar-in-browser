@@ -132,6 +132,34 @@ export function model_train_step(handle, atom_features, n_atoms, edge_index, n_d
     return ret;
 }
 
+/**
+ * @param {bigint} handle
+ * @param {Float32Array} mol_atom_features
+ * @param {Uint32Array} mol_n_atoms
+ * @param {BigInt64Array} mol_edge_index
+ * @param {Uint32Array} mol_n_dir_edges
+ * @param {Float32Array} mol_edge_attr
+ * @param {Float32Array} labels
+ * @param {number} lr
+ * @returns {number}
+ */
+export function model_train_step_batch(handle, mol_atom_features, mol_n_atoms, mol_edge_index, mol_n_dir_edges, mol_edge_attr, labels, lr) {
+    const ptr0 = passArrayF32ToWasm0(mol_atom_features, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(mol_n_atoms, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArray64ToWasm0(mol_edge_index, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passArray32ToWasm0(mol_n_dir_edges, wasm.__wbindgen_malloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ptr4 = passArrayF32ToWasm0(mol_edge_attr, wasm.__wbindgen_malloc);
+    const len4 = WASM_VECTOR_LEN;
+    const ptr5 = passArrayF32ToWasm0(labels, wasm.__wbindgen_malloc);
+    const len5 = WASM_VECTOR_LEN;
+    const ret = wasm.model_train_step_batch(handle, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, lr);
+    return ret;
+}
+
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
@@ -185,11 +213,6 @@ function __wbg_get_imports() {
         __wbindgen_cast_0000000000000002: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
-            return ret;
-        },
-        __wbindgen_cast_0000000000000003: function(arg0) {
-            // Cast intrinsic for `U64 -> Externref`.
-            const ret = BigInt.asUintN(64, arg0);
             return ret;
         },
         __wbindgen_init_externref_table: function() {

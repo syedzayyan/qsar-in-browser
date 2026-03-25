@@ -98,9 +98,12 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         const pyodideWorker = new Worker("/workers/pyodide.mjs", {
           type: "module",
         });
-
+        const mlScreenId = useRef<string>("");
+        if (!mlScreenId.current) {
+          mlScreenId.current = `ml_screen_${Math.random().toString(36).slice(2)}`;
+        }
         pyodideWorker.postMessage({
-          id: `ml_screen_${Date.now()}`,
+          id: mlScreenId.current,
           func: "ml_screen",
           fp: validMols.map((x: any) => x.fingerprint),
           opts:
@@ -155,6 +158,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
           setScreenData(updated);
           setSortedScreenData(sorted);
           setPreds(computedPreds);
+          setClassicalModelReady(true);
           pushNotification({
             message: `ML complete — ${updated.length} molecules scored`,
             type: "success",
@@ -247,9 +251,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
       }
 
       if (payload.function === "dmpnn_get_weights") {
-        pushNotification({
-          message: payload.message,
-        });
+        pushNotification({ message: payload.message });
         return;
       }
 

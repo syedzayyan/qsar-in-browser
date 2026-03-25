@@ -1,10 +1,9 @@
 "use client";
 
-import { useContext, useState, useMemo } from "react";
+import React, { useContext, useState } from "react";
 import {
   NumberInput,
   Text,
-  Alert,
   Badge,
   Group,
   Paper,
@@ -12,11 +11,10 @@ import {
   Button,
   Input,
   Switch,
+  Checkbox,
 } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
 import LigandContext from "../../../../context/LigandContext";
 import TargetContext from "../../../../context/TargetContext";
-import PieChart from "../../../../components/tools/toolViz/PieChart";
 import JSME from "../../../../components/tools/toolViz/JSMEComp";
 import Dropdown from "../../../../components/tools/toolViz/DropDown";
 import { round } from "mathjs";
@@ -25,8 +23,8 @@ import {
   DmpnnLossEntry,
   useMLResults,
 } from "../../../../context/MLResultsContext";
+import { ThresholdContext } from "../layout"; // ← shared threshold from MLLayout
 
-// ── Types ──────────────────────────────────────────────────────────────────────
 interface DMPNNConfig {
   atom_dim: number;
   bond_dim: number;
@@ -41,8 +39,8 @@ interface DMPNNConfig {
 }
 
 const DEFAULT_CONFIG: DMPNNConfig = {
-  atom_dim: 9,
-  bond_dim: 3,
+  atom_dim: 72,
+  bond_dim: 14,
   hidden_dim: 300,
   depth: 3,
   dropout: 0.0,
@@ -53,24 +51,14 @@ const DEFAULT_CONFIG: DMPNNConfig = {
   lr: 0.0001,
 };
 
-function computeRecommendedThreshold(values: number[]): number {
-  const sorted = [...values]
-    .filter((v) => v != null && !isNaN(v))
-    .sort((a, b) => a - b);
-  if (sorted.length === 0) return 0;
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0
-    ? parseFloat(sorted[mid].toFixed(2))
-    : parseFloat(((sorted[mid - 1] + sorted[mid]) / 2).toFixed(2));
-}
-
-// ── Component ──────────────────────────────────────────────────────────────────
 export default function DMPNNPage() {
   const { rdkit } = useContext(RDKitContext);
   const { ligand } = useContext(LigandContext);
   const { target } = useContext(TargetContext);
 
-  // All persistent/cross-navigation state lives in context
+  // ── Shared threshold lives in MLLayout, consumed here ──────────────────────
+  const { effectiveThreshold } = useContext(ThresholdContext);
+
   const {
     dmpnnLossHistory,
     setDmpnnLossHistory,
@@ -79,68 +67,57 @@ export default function DMPNNPage() {
     dmpnnOneOffResult,
     setDmpnnOneOffResult,
     dmpnnWeightsReady,
-    classicalModelReady,
   } = useMLResults();
 
-  // Ephemeral form state — fine to stay local, doesn't need to survive navigation
   const [config, setConfig] = useState<DMPNNConfig>(DEFAULT_CONFIG);
   const [epochs, setEpochs] = useState(20);
-  const [threshold, setThreshold] = useState<number | null>(null);
   const [oneOffSMILES, setOneOffSMILES] = useState("CCO");
-
+  const [batchSize, setBatchSize] = useState(16);
+  const [useBatch, setUseBatch] = useState(true);
   const [useCV, setUseCV] = useState(false);
   const [nSplits, setNSplits] = useState(5);
 
-  // ── Activity values + threshold ──────────────────────────────────────────────
-  const activityValues = useMemo<number[]>(() => {
-    if (!target?.activity_columns?.[0]) return [];
-    return ligand
-      .map((obj) => Number(obj[target.activity_columns[0]]))
-      .filter((v) => !isNaN(v));
-  }, [ligand, target]);
+  // ── Derived display values ──────────────────────────────────────────────────
+  const hasResults = dmpnnLossHistory.length > 0;
+  const lastEntry = dmpnnLossHistory.at(-1);
+  const lossValues = dmpnnLossHistory.map((e) => e.avg_loss);
+  const maxLoss = Math.max(...lossValues, 0);
+  const minLoss = Math.min(...lossValues, 0);
+  const lossRange = maxLoss - minLoss || 1;
+  const W = dmpnnLossHistory.length;
 
-  const recommendedThreshold = useMemo(
-    () => computeRecommendedThreshold(activityValues),
-    [activityValues],
-  );
-  const effectiveThreshold = threshold ?? recommendedThreshold;
+  function phaseLabel(entry: DmpnnLossEntry | undefined) {
+    if (!entry) return "";
+    if (entry.fold === null) return `Epoch ${entry.epoch}`;
+    if (entry.fold === nSplits) return `Final model — epoch ${entry.epoch}`;
+    return `Fold ${entry.fold + 1} — epoch ${entry.epoch}`;
+  }
 
-  const pieData = useMemo(() => {
-    if (activityValues.length === 0 || config.task_type !== "classification")
-      return [];
-    const active = activityValues.filter((v) => v >= effectiveThreshold).length;
-    const inactive = activityValues.length - active;
-    return [
-      { key: `Active (≥ ${effectiveThreshold})`, value: active },
-      { key: `Inactive (< ${effectiveThreshold})`, value: inactive },
-    ];
-  }, [activityValues, effectiveThreshold, config.task_type]);
-
-  const activeCount = pieData[0]?.value ?? 0;
-  const inactiveCount = pieData[1]?.value ?? 0;
-  const total = activityValues.length;
-  const activePct = total > 0 ? ((activeCount / total) * 100).toFixed(1) : "0";
-  const inactivePct =
-    total > 0 ? ((inactiveCount / total) * 100).toFixed(1) : "0";
-
-  // ── Actions — post to shared RDKit worker, DashboardInner handles responses ──
-  // Replace onTrain:
+  // ── Train ───────────────────────────────────────────────────────────────────
   function onTrain() {
     if (!rdkit) return;
     setDmpnnTraining(true);
     setDmpnnLossHistory([]);
 
-    let y = ligand.map((obj) => Number(obj[target.activity_columns[0]]));
-    if (config.task_type === "classification") {
-      y = y.map((v) => (v >= effectiveThreshold ? 1 : 0));
-    }
+    const rawY = ligand.map((obj) => Number(obj[target.activity_columns[0]]));
+
+    // effectiveThreshold comes from MLLayout — no local threshold state needed
+    const y =
+      target.machine_learning_inference_type === "classification"
+        ? rawY.map((v) => (v >= effectiveThreshold ? 1.0 : 0.0))
+        : rawY;
 
     const base = {
       smiles: ligand.map((mol) => mol.canonical_smiles),
       labels: y,
-      config: { ...config, task_type: target.machine_learning_inference_type },
       epochs,
       ids: ligand.map((mol) => mol.id ?? mol.name ?? ""),
+      config: {
+        ...config,
+        task_type: target.machine_learning_inference_type,
+        batching: useBatch,
+        batch_size: batchSize,
+      },
     };
 
     rdkit.postMessage(
@@ -166,14 +143,12 @@ export default function DMPNNPage() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const bytes = new Uint8Array(ev.target?.result as ArrayBuffer);
-      // In DMPNNPage, wherever you handle weight file upload:
       rdkit.postMessage({
         function: "dmpnn_load_weights",
-        bytes: new Uint8Array(bytes),
+        bytes,
         config: {
-          // ← send the same config used during training
-          atom_dim: 9,
-          bond_dim: 3,
+          atom_dim: 72,
+          bond_dim: 14,
           hidden_dim: config.hidden_dim,
           depth: config.depth,
           dropout: config.dropout,
@@ -188,26 +163,9 @@ export default function DMPNNPage() {
     reader.readAsArrayBuffer(file);
   }
 
-  const hasResults = dmpnnLossHistory.length > 0;
-  const lastEntry = dmpnnLossHistory[dmpnnLossHistory.length - 1];
-  const lossValues = dmpnnLossHistory.map((e) => e.avg_loss);
-  const maxLoss = Math.max(...lossValues);
-  const minLoss = Math.min(...lossValues);
-  const lossRange = maxLoss - minLoss || 1;
-  const W = dmpnnLossHistory.length;
-  const lastLoss = dmpnnLossHistory[dmpnnLossHistory.length - 1];
-
-  function phaseLabel(entry: DmpnnLossEntry | undefined) {
-    if (!entry) return "";
-    if (entry.fold === null) return `Epoch ${entry.epoch}`;
-    if (entry.fold === nSplits) return `Final model — epoch ${entry.epoch}`;
-    return `Fold ${entry.fold + 1} — epoch ${entry.epoch}`;
-  }
-
-  // ── Render ───────────────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="tools-container">
-      {/* ── Header ── */}
       <Group>
         <h3>D-MPNN (Chemprop-style)</h3>
         <Badge color="grape" variant="light">
@@ -227,215 +185,154 @@ export default function DMPNNPage() {
         )}
       </Group>
 
-      <details open={!hasResults}>
-        <summary>{hasResults && <>Reveal Training Forms</>}</summary>
+      {/* ── Architecture ── */}
+      <Paper withBorder p="md" radius="md" mt="md">
+        <Text fw={600} mb="sm">
+          Model Architecture
+        </Text>
+        <Group grow>
+          <NumberInput
+            label="Hidden dim"
+            description="Message-passing hidden size"
+            value={config.hidden_dim}
+            min={32}
+            max={1024}
+            step={32}
+            onChange={(v) =>
+              setConfig((c) => ({ ...c, hidden_dim: Number(v) }))
+            }
+          />
+          <NumberInput
+            label="Depth (T)"
+            description="Message-passing steps"
+            value={config.depth}
+            min={1}
+            max={8}
+            onChange={(v) => setConfig((c) => ({ ...c, depth: Number(v) }))}
+          />
+          <NumberInput
+            label="FFN hidden dim"
+            description="FFN layer width"
+            value={config.ffn_hidden_dim}
+            min={32}
+            max={1024}
+            step={32}
+            onChange={(v) =>
+              setConfig((c) => ({ ...c, ffn_hidden_dim: Number(v) }))
+            }
+          />
+          <NumberInput
+            label="FFN layers"
+            description="Depth of FFN"
+            value={config.ffn_num_layers}
+            min={1}
+            max={6}
+            onChange={(v) =>
+              setConfig((c) => ({ ...c, ffn_num_layers: Number(v) }))
+            }
+          />
+        </Group>
+      </Paper>
 
-        <Stack gap="md" mt="md">
-          {/* ── Classification threshold ── */}
-          {config.task_type === "classification" && (
-            <Stack gap="sm">
-              <Alert
-                icon={<IconInfoCircle size={16} />}
-                title="Activity threshold"
-                color="blue"
-                variant="light"
-              >
-                <Text size="sm">
-                  Values <strong>≥ threshold</strong> →{" "}
-                  <Badge color="green" size="sm">
-                    Active (1)
-                  </Badge>{" "}
-                  Values <strong>{"<"} threshold</strong> →{" "}
-                  <Badge color="red" size="sm">
-                    Inactive (0)
-                  </Badge>
-                </Text>
-              </Alert>
-              <Group align="flex-end" gap="sm">
-                <NumberInput
-                  label="Activity threshold"
-                  description={`Recommended (median): ${recommendedThreshold}`}
-                  placeholder={String(recommendedThreshold)}
-                  value={threshold ?? ""}
-                  onChange={(v) =>
-                    setThreshold(v === "" || v === null ? null : Number(v))
-                  }
-                  style={{ width: 260 }}
-                />
-                {threshold === null && (
-                  <Badge color="blue" variant="light" mb={4}>
-                    Using recommended: {recommendedThreshold}
-                  </Badge>
-                )}
-              </Group>
-              {pieData.length > 0 && (
-                <Paper withBorder p="sm" radius="md" style={{ maxWidth: 480 }}>
-                  <Group align="center" gap="xl">
-                    <PieChart data={pieData} width={220} height={220} />
-                    <Stack gap={6}>
-                      <Group gap={6}>
-                        <Badge color="green" variant="filled">
-                          {activeCount}
-                        </Badge>
-                        <Text size="sm">Active ({activePct}%)</Text>
-                      </Group>
-                      <Group gap={6}>
-                        <Badge color="red" variant="filled">
-                          {inactiveCount}
-                        </Badge>
-                        <Text size="sm">Inactive ({inactivePct}%)</Text>
-                      </Group>
-                      <Text size="xs" c="dimmed">
-                        Total: {total} compounds
-                      </Text>
-                      {Math.abs(activeCount - inactiveCount) / total > 0.3 && (
-                        <Text size="xs" c="orange">
-                          ⚠ Imbalanced — adjust threshold
-                        </Text>
-                      )}
-                    </Stack>
-                  </Group>
-                </Paper>
-              )}
-            </Stack>
-          )}
-
-          {/* ── Architecture ── */}
-          <Paper withBorder p="md" radius="md">
-            <Text fw={600} mb="sm">
-              Model Architecture
-            </Text>
-            <Group grow>
-              <NumberInput
-                label="Hidden dim"
-                description="Message-passing hidden size"
-                value={config.hidden_dim}
-                onChange={(v) =>
-                  setConfig((c) => ({ ...c, hidden_dim: Number(v) }))
-                }
-                min={32}
-                max={1024}
-                step={32}
-              />
-              <NumberInput
-                label="Depth (T)"
-                description="Message-passing steps"
-                value={config.depth}
-                onChange={(v) => setConfig((c) => ({ ...c, depth: Number(v) }))}
-                min={1}
-                max={8}
-              />
-              <NumberInput
-                label="FFN hidden dim"
-                description="FFN layer width"
-                value={config.ffn_hidden_dim}
-                onChange={(v) =>
-                  setConfig((c) => ({ ...c, ffn_hidden_dim: Number(v) }))
-                }
-                min={32}
-                max={1024}
-                step={32}
-              />
-              <NumberInput
-                label="FFN layers"
-                description="Depth of FFN"
-                value={config.ffn_num_layers}
-                onChange={(v) =>
-                  setConfig((c) => ({ ...c, ffn_num_layers: Number(v) }))
-                }
-                min={1}
-                max={6}
-              />
-            </Group>
-          </Paper>
-
-          {/* ── Training ── */}
-          <Paper withBorder p="md" radius="md">
-            <Text fw={600} mb="sm">
-              Training
-            </Text>
-            <Group grow>
-              <NumberInput
-                label="Epochs"
-                value={epochs}
-                onChange={(v) => setEpochs(Number(v))}
-                min={1}
-                max={500}
-              />
-              <NumberInput
-                label="Learning rate"
-                value={config.lr}
-                onChange={(v) => setConfig((c) => ({ ...c, lr: Number(v) }))}
-                decimalScale={6}
-                step={0.0001}
-                min={0.000001}
-                max={0.1}
-              />
-            </Group>
-            <Group mt="sm" align="flex-end" gap="sm">
-              <Switch
-                label="K-Fold Cross Validation"
-                description="Slower but gives generalisation metrics"
-                checked={useCV}
-                onChange={(e) => setUseCV(e.currentTarget.checked)}
-                color="grape"
-              />
-              {useCV && (
-                <NumberInput
-                  label="Folds"
-                  value={nSplits}
-                  onChange={(v) => setNSplits(Number(v))}
-                  min={2}
-                  max={10}
-                  style={{ width: 100 }}
-                />
-              )}
-            </Group>
-          </Paper>
-
-          {/* ── Weights I/O ── */}
-          <Paper withBorder p="md" radius="md">
-            <Text fw={600} mb="sm">
-              Weights
-            </Text>
-            <Group>
-              <Button
-                variant="light"
-                onClick={onSaveWeights}
-                disabled={!dmpnnWeightsReady}
-              >
-                Download weights (.safetensors)
-              </Button>
-              <label>
-                <Button variant="light" component="span">
-                  Load pretrained weights
-                </Button>
-                <input
-                  type="file"
-                  accept=".safetensors"
-                  style={{ display: "none" }}
-                  onChange={onLoadWeights}
-                />
-              </label>
-            </Group>
-          </Paper>
-
-          {/* ── Train button ── */}
-          <Button
-            onClick={onTrain}
-            loading={dmpnnTraining}
-            disabled={dmpnnTraining || ligand.length === 0}
+      {/* ── Training ── */}
+      <Paper withBorder p="md" radius="md" mt="md">
+        <Text fw={600} mb="sm">
+          Training
+        </Text>
+        <Group grow>
+          <NumberInput
+            label="Epochs"
+            value={epochs}
+            min={1}
+            max={500}
+            onChange={(v) => setEpochs(Number(v))}
+          />
+          <NumberInput
+            label="Learning rate"
+            value={config.lr}
+            decimalScale={6}
+            step={0.0001}
+            min={0.000001}
+            max={0.1}
+            onChange={(v) => setConfig((c) => ({ ...c, lr: Number(v) }))}
+          />
+        </Group>
+        <Group mt="sm" align="flex-end" gap="sm">
+          <Switch
+            label="K-Fold Cross Validation"
+            description="Slower but gives generalisation metrics"
+            checked={useCV}
             color="grape"
-            size="md"
+            onChange={(e) => setUseCV(e.currentTarget.checked)}
+          />
+          {useCV && (
+            <NumberInput
+              label="Folds"
+              value={nSplits}
+              min={2}
+              max={10}
+              style={{ width: 100 }}
+              onChange={(v) => setNSplits(Number(v))}
+            />
+          )}
+          <Checkbox
+            label="Use batch training"
+            checked={useBatch}
+            onChange={(e) => setUseBatch(e.currentTarget.checked)}
+          />
+          <NumberInput
+            label="Batch size"
+            value={batchSize}
+            min={1}
+            max={128}
+            step={16}
+            style={{ width: 100 }}
+            onChange={(v) => setBatchSize(Number(v))}
+          />
+        </Group>
+      </Paper>
+
+      {/* ── Weights I/O ── */}
+      <Paper withBorder p="md" radius="md" mt="md">
+        <Text fw={600} mb="sm">
+          Weights
+        </Text>
+        <Group>
+          <Button
+            variant="light"
+            onClick={onSaveWeights}
+            disabled={!dmpnnWeightsReady}
           >
-            {dmpnnTraining
-              ? `Training... (epoch ${dmpnnLossHistory.length}/${
-                  useCV ? `${epochs} × ${nSplits} folds + final` : epochs
-                })`
-              : `Train D-MPNN${useCV ? ` (${nSplits}-fold CV)` : ""}`}
+            Download weights (.safetensors)
           </Button>
-        </Stack>
-      </details>
+          <label>
+            <Button variant="light" component="span">
+              Load pretrained weights
+            </Button>
+            <input
+              type="file"
+              accept=".safetensors"
+              style={{ display: "none" }}
+              onChange={onLoadWeights}
+            />
+          </label>
+        </Group>
+      </Paper>
+
+      {/* ── Train button ── */}
+      <Button
+        mt="md"
+        onClick={onTrain}
+        loading={dmpnnTraining}
+        disabled={dmpnnTraining || ligand.length === 0}
+        color="grape"
+        size="md"
+        fullWidth
+      >
+        {dmpnnTraining
+          ? `Training... (epoch ${dmpnnLossHistory.length}/${useCV ? `${epochs} × ${nSplits} folds + final` : epochs})`
+          : `Train D-MPNN${useCV ? ` (${nSplits}-fold CV)` : ""}`}
+      </Button>
 
       {/* ── Loss curve ── */}
       {hasResults && (
@@ -447,7 +344,6 @@ export default function DMPNNPage() {
                 latest: {lastEntry?.avg_loss.toFixed(4)}
               </Text>
             </Group>
-
             <svg
               width="100%"
               height={140}
@@ -455,12 +351,9 @@ export default function DMPNNPage() {
               preserveAspectRatio="none"
               style={{ display: "block" }}
             >
-              {/* ── Fold boundary markers ── */}
               {dmpnnLossHistory.map((entry, i) => {
-                // Draw a vertical rule at the first step of each new fold/phase
                 const prev = dmpnnLossHistory[i - 1];
-                const isNewPhase = i > 0 && entry.fold !== prev?.fold;
-                if (!isNewPhase) return null;
+                if (i === 0 || entry.fold === prev?.fold) return null;
                 return (
                   <line
                     key={i}
@@ -475,8 +368,6 @@ export default function DMPNNPage() {
                   />
                 );
               })}
-
-              {/* ── Loss curve ── */}
               <polyline
                 fill="none"
                 stroke="#8b5cf6"
@@ -486,8 +377,6 @@ export default function DMPNNPage() {
                   .join(" ")}
               />
             </svg>
-
-            {/* ── Phase legend (only shown during/after CV) ── */}
             {useCV && dmpnnLossHistory.some((e) => e.fold !== null) && (
               <Group gap="lg" mt="xs">
                 {Array.from(
@@ -512,9 +401,11 @@ export default function DMPNNPage() {
             )}
           </Paper>
 
-          {/* ── One-off prediction ── */}
-          <Stack gap="sm">
-            <h2>Predict single molecule</h2>
+          {/* ── DMPNN-specific one-off predict (uses WASM, not classical FP) ── */}
+          <Paper withBorder p="md" radius="md">
+            <Text fw={600} mb="sm">
+              Predict single molecule
+            </Text>
             <Group>
               <Input
                 style={{ width: "20%" }}
@@ -533,15 +424,14 @@ export default function DMPNNPage() {
                 Predict Activity
               </Button>
             </Group>
-
             {dmpnnOneOffResult !== null && (
-              <Text fw={600}>
-                {config.task_type === "regression"
+              <Text fw={600} mt="sm">
+                {target.machine_learning_inference_type === "regression"
                   ? `Predicted ${target.activity_columns?.[0]}: ${round(dmpnnOneOffResult, 4)}`
                   : `Active probability: ${round(dmpnnOneOffResult, 4)}`}
               </Text>
             )}
-          </Stack>
+          </Paper>
         </Stack>
       )}
     </div>

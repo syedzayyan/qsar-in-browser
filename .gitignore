@@ -24,6 +24,7 @@ Cargo.lock
 # Data files
 *.sdf
 *.csv
+*.smiles
 *.tsv
 *.gz
 *.zip
@@ -40,3 +41,6 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+/dmpnn/lightning_logs/
+*.venv*

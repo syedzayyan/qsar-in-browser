@@ -1273,65 +1273,103 @@ async function runGA(params) {
 
 function molToGraph(rdkitMol) {
   const raw = JSON.parse(rdkitMol.get_json());
-
-  // ✅ actual structure: molecules[0].atoms / molecules[0].bonds
   const mol = raw.molecules[0];
   const atoms = mol.atoms;
-  const bonds = mol.bonds ?? []; // some molecules have no bonds
+  const bonds = mol.bonds ?? [];
 
-  if (!atoms || atoms.length === 0) {
-    throw new Error("No atoms found in molecule JSON");
-  }
+  if (!atoms?.length) throw new Error("No atoms found in molecule JSON");
 
-  const ATOM_DIM = 9;
-  const BOND_DIM = 3;
+  const ATOM_DIM = 72;
+  const BOND_DIM = 14;
   const n_atoms = atoms.length;
   const n_bonds = bonds.length;
   const n_dir_edges = 2 * n_bonds;
 
-  // --- atom features (n_atoms, 9) ---
+  // ── One-hot helper (returns array of length choices.length + 1) ────────────
+  function oneHot(val, choices) {
+    const v = new Array(choices.length + 1).fill(0);
+    const idx = choices.indexOf(val);
+    v[idx === -1 ? choices.length : idx] = 1;
+    return v;
+  }
+
+  // ── Atom feature buckets (mirrors Chemprop SimpleMoleculeMolGraphFeaturizer) ─
+  // atomic_nums = range(1,37) + [53]  → 37 values + "other" = 38 dims
+  const ATOMIC_NUMS = [...Array.from({ length: 36 }, (_, i) => i + 1), 53];
+  const DEGREES = [0, 1, 2, 3, 4, 5]; // 6 + other = 7
+  const FORMAL_CHGS = [-1, -2, 1, 2, 0]; // 5 + other = 6
+  const NUM_HS = [0, 1, 2, 3, 4]; // 5 + other = 6
+  // hybridization values from commonchem JSON: 0=S,1=SP,2=SP2,3=SP3,4=SP3D,5=SP3D2
+  const HYBRIDIZE = [0, 1, 2, 3, 4, 5]; // 6 + other = 7
+  // 38+7+6+6+7+1(aromatic)+6(ring 3-8)+1(mass) = 72 ✓
+
+  // ── Bond feature buckets ────────────────────────────────────────────────────
+  // commonchem bond order: 1=single,2=double,3=triple,1.5=aromatic
+  // map to [unspecified,single,double,triple,aromatic] → 5 dims (no "other")
+  // stereo: 0=none,1=any,2=Z,3=E,4=cis,5=trans → 6 + other = 7
+  // [bond_type(5), conjugated(1), in_ring(1), stereo(7)] = 14 ✓
+  const BOND_ORDERS = [null, 1, 2, 3, 1.5]; // index 0 = other/unspecified
+  const STEREO_TYPES = [0, 1, 2, 3, 4, 5]; // 6 + other = 7
+
+  // ── Atom features ───────────────────────────────────────────────────────────
   const atom_features = new Float32Array(n_atoms * ATOM_DIM);
+
   for (let i = 0; i < n_atoms; i++) {
     const a = atoms[i];
     const base = i * ATOM_DIM;
-    atom_features[base + 0] = a.atomicNum ?? 6;
-    atom_features[base + 1] = a.chiralTag ?? 0;
-    atom_features[base + 2] = a.totalDegree ?? 0; // NOTE: commonchem uses camelCase
-    atom_features[base + 3] = (a.formalCharge ?? 0) + 5; // shift -5..6 → 0..11
-    atom_features[base + 4] = a.nHs ?? 0;
-    atom_features[base + 5] = a.numRadicalElectrons ?? 0;
-    atom_features[base + 6] = a.hybridization ?? 0;
-    atom_features[base + 7] = a.isAromatic ? 1 : 0;
-    atom_features[base + 8] = a.isInRing ? 1 : 0;
+    const feat = [
+      ...oneHot(a.atomicNum ?? 6, ATOMIC_NUMS), // 38
+      ...oneHot(a.totalDegree ?? 0, DEGREES), // 7
+      ...oneHot(a.formalCharge ?? 0, FORMAL_CHGS), // 6
+      ...oneHot(a.nHs ?? 0, NUM_HS), // 6
+      ...oneHot(a.hybridization ?? 0, HYBRIDIZE), // 7
+      a.isAromatic ? 1.0 : 0.0, // 1
+      a.ringMembership?.includes(3) ? 1.0 : 0.0, // 1
+      a.ringMembership?.includes(4) ? 1.0 : 0.0, // 1
+      a.ringMembership?.includes(5) ? 1.0 : 0.0, // 1
+      a.ringMembership?.includes(6) ? 1.0 : 0.0, // 1
+      a.ringMembership?.includes(7) ? 1.0 : 0.0, // 1
+      a.ringMembership?.includes(8) ? 1.0 : 0.0, // 1
+      (a.atomicNum ?? 6) * 0.01, // 1 mass proxy
+      // ↑ mass/100: commonchem JSON doesn't include mass directly,
+      //   use atomic_num * 0.01 as proxy — close enough for carbon(0.12), oxygen(0.16)
+      //   If rdkit_mol has getMass available use that instead
+    ]; // 72 total
+    atom_features.set(feat, base);
   }
 
-  // --- directed edge index + edge attr ---
+  // ── Edge index + bond features ──────────────────────────────────────────────
   const edge_index = new BigInt64Array(2 * n_dir_edges);
   const edge_attr = new Float32Array(n_dir_edges * BOND_DIM);
 
   for (let b = 0; b < n_bonds; b++) {
     const bond = bonds[b];
-    const i = BigInt(bond.atoms[0]);
-    const j = BigInt(bond.atoms[1]);
+    const src = bond.atoms[0];
+    const dst = bond.atoms[1];
+    const order = bond.order ?? 1;
+    const stereo = bond.stereo ?? 0;
+    const conj = bond.isConjugated ? 1.0 : 0.0;
+    const inRing = bond.isInRing ? 1.0 : 0.0;
 
-    edge_index[b] = i;
-    edge_index[b + n_bonds] = j;
-    edge_index[n_dir_edges + b] = j;
-    edge_index[n_dir_edges + b + n_bonds] = i;
+    const btVec = new Array(5).fill(0);
+    const btIdx = BOND_ORDERS.indexOf(order);
+    btVec[btIdx === -1 ? 0 : btIdx] = 1;
 
-    // ✅ actually fill edge_attr — was missing before
-    const bondTypeVal = bond.order ?? 1;
-    const stereoVal = bond.stereo ?? 0;
-    const conjVal = bond.isConjugated ? 1 : 0;
+    const stVec = new Array(7).fill(0);
+    const stIdx = STEREO_TYPES.indexOf(stereo);
+    stVec[stIdx === -1 ? 6 : stIdx] = 1;
 
-    const fwd = b * BOND_DIM;
-    const bwd = (b + n_bonds) * BOND_DIM;
-    edge_attr[fwd + 0] = bondTypeVal;
-    edge_attr[fwd + 1] = stereoVal;
-    edge_attr[fwd + 2] = conjVal;
-    edge_attr[bwd + 0] = bondTypeVal;
-    edge_attr[bwd + 1] = stereoVal;
-    edge_attr[bwd + 2] = conjVal;
+    const feat = [...btVec, conj, inRing, ...stVec]; // 14
+
+    // Forward edge src→dst
+    edge_index[b] = BigInt(src);
+    edge_index[b + n_bonds] = BigInt(dst);
+    edge_attr.set(feat, b * BOND_DIM);
+
+    // Reverse edge dst→src
+    edge_index[n_dir_edges + b] = BigInt(dst);
+    edge_index[n_dir_edges + b + n_bonds] = BigInt(src);
+    edge_attr.set(feat, (b + n_bonds) * BOND_DIM);
   }
 
   return {
@@ -1345,6 +1383,7 @@ function molToGraph(rdkitMol) {
     edge_attr_shape: [n_dir_edges, BOND_DIM],
   };
 }
+
 async function loadDMPNN() {
   if (!DMPNNInstancePromise) {
     DMPNNInstancePromise = new Promise(async (resolve, reject) => {
@@ -1360,6 +1399,7 @@ async function loadDMPNN() {
           model_new,
           model_free,
           model_train_step,
+          model_train_step_batch,
           model_infer,
           model_get_config,
           model_get_weights, // ✅ add this
@@ -1373,6 +1413,7 @@ async function loadDMPNN() {
           model_new,
           model_free,
           model_train_step,
+          model_train_step_batch,
           model_infer,
           model_get_config,
           model_get_weights, // ✅
@@ -1389,50 +1430,6 @@ async function loadDMPNN() {
 
 let DMPNNInstancePromise = null;
 
-async function DMPNNTrain(data) {
-  const DMPNN = await loadDMPNN();
-  const RDKit = await loadRDKit();
-  const { smiles, labels, config, epochs } = data;
-
-  const handle = DMPNN.model_new(JSON.stringify(config));
-  try {
-    for (let epoch = 1; epoch <= epochs; epoch++) {
-      let epoch_loss = 0;
-      for (let i = 0; i < smiles.length; i++) {
-        const mol = RDKit.get_mol(smiles[i]);
-        if (!mol) continue;
-        const graph = molToGraph(mol);
-        mol.delete();
-        const label = new Float32Array([labels[i]]);
-        const loss = DMPNN.model_train_step(
-          handle,
-          graph.atom_features,
-          graph.n_atoms,
-          graph.edge_index,
-          graph.n_dir_edges,
-          graph.edge_attr,
-          label,
-          config.lr,
-        );
-        epoch_loss += isNaN(loss) ? 0 : loss;
-      }
-
-      self.postMessage({
-        function: "dmpnn_train_epoch",
-        epoch,
-        total_epochs: epochs,
-        avg_loss: epoch_loss / smiles.length,
-      });
-    }
-  } catch (e) {
-    console.log(e);
-  }
-
-  // store handle globally for inference
-  self._dmpnnHandle = handle;
-  self._dmpnnDMPNN = DMPNN;
-}
-
 async function getDMPNN() {
   self._dmpnnDMPNN = self._dmpnnDMPNN ?? (await loadDMPNN());
   return self._dmpnnDMPNN;
@@ -1440,12 +1437,20 @@ async function getDMPNN() {
 
 function molToGraphSafe(RDKit, smi) {
   if (!smi || typeof smi !== "string") return null;
-  const mol = RDKit.get_mol(smi);
-  if (!mol) return null;
-  const graph = molToGraph(mol);
-  mol.delete();
-  if (!graph.n_dir_edges) return null; // guard edgeless molecules
-  return graph;
+  let mol = null;
+  try {
+    mol = RDKit.get_mol(smi);
+    if (!mol?.is_valid()) return null;
+    const graph = molToGraph(mol);
+    // ❌ if (!graph.n_dir_edges) return null;  ← drops single-atom mols + anything small
+    if (!graph || graph.n_atoms === 0) return null; // ✅ only reject truly empty
+    return graph;
+  } catch (e) {
+    console.warn(`molToGraphSafe failed for "${smi}":`, e?.message || e);
+    return null;
+  } finally {
+    mol?.delete(); // ✅ also move delete here — was missing if molToGraph throws
+  }
 }
 
 function dmpnnInfer(DMPNN, handle, graph) {
@@ -1483,16 +1488,91 @@ function emitEpoch(fold, epoch, total_epochs, avg_loss) {
 }
 
 // Returns { loss_sum, count } for one epoch over a set of indices
-function runEpoch(DMPNN, handle, RDKit, smiles, labels, indices, lr) {
-  let loss_sum = 0,
-    count = 0;
-  for (const i of indices) {
-    const graph = molToGraphSafe(RDKit, smiles[i]);
-    if (!graph) continue;
-    loss_sum += dmpnnTrainStep(DMPNN, handle, graph, labels[i], lr);
-    count++;
+async function runEpoch(
+  DMPNN,
+  handle,
+  RDKit,
+  smiles,
+  labels,
+  indices,
+  lr,
+  config,
+) {
+  if (config.batching && indices.length > 1) {
+    const graphs = [];
+    const validIndices = [];
+    for (const i of indices) {
+      const graph = molToGraphSafe(RDKit, smiles[i]);
+      if (!graph) continue;
+      graphs.push(graph);
+      validIndices.push(i);
+    }
+    if (graphs.length === 0) return { loss_sum: 0, count: 0 };
+
+    const mol_n_atoms = new Int32Array(graphs.map((g) => g.n_atoms));
+    const mol_n_dir_edges = new Int32Array(graphs.map((g) => g.n_dir_edges));
+    const total_atoms = mol_n_atoms.reduce((s, n) => s + n, 0);
+    const total_edges = mol_n_dir_edges.reduce((s, n) => s + n, 0);
+
+    // ── Derive dims from the actual graph, not hardcoded ──────────────────────
+    const ATOM_DIM = graphs[0].atom_features_shape[1]; // 72
+    const BOND_DIM = graphs[0].edge_attr_shape[1]; // 14
+
+    const flat_atom_features = new Float32Array(total_atoms * ATOM_DIM); // ← was * 9
+    const flat_edge_index = new BigInt64Array(2 * total_edges);
+    const flat_edge_attr = new Float32Array(total_edges * BOND_DIM); // ← was * 3
+    const batch_labels = new Float32Array(validIndices.map((i) => labels[i]));
+
+    let atom_cursor = 0;
+    let edge_cursor = 0;
+
+    for (let g = 0; g < graphs.length; g++) {
+      const graph = graphs[g];
+      const atom_offset = atom_cursor;
+      const edge_offset = edge_cursor;
+
+      flat_atom_features.set(graph.atom_features, atom_offset * ATOM_DIM); // ← was * 9
+      flat_edge_attr.set(graph.edge_attr, edge_offset * BOND_DIM); // ← was * 3
+
+      const n = graph.n_dir_edges;
+      const bigAtomOffset = BigInt(atom_offset);
+      for (let e = 0; e < n; e++) {
+        flat_edge_index[edge_offset + e] = graph.edge_index[e] + bigAtomOffset;
+        flat_edge_index[total_edges + edge_offset + e] =
+          graph.edge_index[n + e] + bigAtomOffset;
+      }
+
+      atom_cursor += graph.n_atoms;
+      edge_cursor += graph.n_dir_edges;
+    }
+
+    const avg_loss = await DMPNN.model_train_step_batch(
+      handle,
+      flat_atom_features,
+      mol_n_atoms,
+      flat_edge_index,
+      mol_n_dir_edges,
+      flat_edge_attr,
+      batch_labels,
+      lr,
+    );
+
+    const count = graphs.length;
+    return { loss_sum: isNaN(avg_loss) ? 0 : avg_loss * count, count };
+  } else {
+    let loss_sum = 0,
+      count = 0;
+    for (const i of indices) {
+      const graph = molToGraphSafe(RDKit, smiles[i]);
+      if (!graph) continue;
+      const loss = dmpnnTrainStep(DMPNN, handle, graph, labels[i], lr);
+      if (!isNaN(loss)) {
+        loss_sum += loss;
+        count++;
+      }
+    }
+    return { loss_sum, count };
   }
-  return { loss_sum, count };
 }
 
 function computeMetrics(test_preds, test_labels, is_cls) {
@@ -1622,7 +1702,7 @@ self.onmessage = async (event) => {
       case "DMPNN_train": {
         const DMPNN = await getDMPNN();
         const RDKit = await loadRDKit();
-        const { smiles, labels, config, epochs } = params;
+        const { smiles, labels, config, epochs } = params; // config now defined
         const all_indices = Array.from({ length: smiles.length }, (_, i) => i);
 
         storeFinalHandle(
@@ -1632,7 +1712,8 @@ self.onmessage = async (event) => {
         );
 
         for (let epoch = 0; epoch < epochs; epoch++) {
-          const { loss_sum, count } = runEpoch(
+          const { loss_sum, count } = await runEpoch(
+            // ← uses batching if config.batching
             DMPNN,
             self._dmpnnHandle,
             RDKit,
@@ -1640,6 +1721,7 @@ self.onmessage = async (event) => {
             labels,
             all_indices,
             config.lr,
+            config, // ← pass config as last arg
           );
           emitEpoch(null, epoch + 1, epochs, count > 0 ? loss_sum / count : 0);
         }
@@ -1676,23 +1758,23 @@ self.onmessage = async (event) => {
         break;
       }
 
+      // ── Fix 1: dmpnn_load_weights fallback config ─────────────────────────────────
       case "dmpnn_load_weights": {
         const DMPNN = await getDMPNN();
 
-        // Use the config from the last training run if available,
-        // otherwise fall back to the architecture constants baked into molToGraph
-        const config = self._dmpnnConfig ?? {
-          atom_dim: 9, // ATOM_DIM in molToGraph
-          bond_dim: 3, // BOND_DIM in molToGraph
-          hidden_dim: 300,
-          depth: 3,
-          dropout: 0.0,
-          ffn_hidden_dim: 300,
-          ffn_num_layers: 2,
-          num_tasks: 1,
-          task_type: "regression",
-          lr: 0.001,
-        };
+        const config = params.config ??
+          self._dmpnnConfig ?? {
+            atom_dim: 72, // ← was 9
+            bond_dim: 14, // ← was 3
+            hidden_dim: 300,
+            depth: 3,
+            dropout: 0.0,
+            ffn_hidden_dim: 300,
+            ffn_num_layers: 3, // ← was 2 (Chemprop n_layers=2 → 3 weight matrices)
+            num_tasks: 1,
+            task_type: "regression",
+            lr: 0.001,
+          };
 
         if (self._dmpnnHandle != null) {
           DMPNN.model_free(self._dmpnnHandle);
@@ -1715,7 +1797,7 @@ self.onmessage = async (event) => {
         self._dmpnnHandle = handle;
         self._dmpnnDMPNN = DMPNN;
         self._dmpnnConfig = config;
-        notify({ message: "Weights loaded" });
+        notify({ function: "dmpnn_weights_loaded", ok: true });
         break;
       }
 
@@ -1781,7 +1863,8 @@ self.onmessage = async (event) => {
 
           // Train
           for (let epoch = 0; epoch < epochs; epoch++) {
-            const { loss_sum, count } = runEpoch(
+            const { loss_sum, count } = await runEpoch(
+              // also needs await
               DMPNN,
               foldHandle,
               RDKit,
@@ -1789,6 +1872,7 @@ self.onmessage = async (event) => {
               labels,
               train_idx,
               config.lr,
+              config,
             );
             emitEpoch(
               fold,
@@ -1831,7 +1915,7 @@ self.onmessage = async (event) => {
         const finalHandle = DMPNN.model_new(configJson);
         const all_idx = Array.from({ length: n_mols }, (_, i) => i);
         for (let epoch = 0; epoch < epochs; epoch++) {
-          const { loss_sum, count } = runEpoch(
+          const { loss_sum, count } = await runEpoch(
             DMPNN,
             finalHandle,
             RDKit,

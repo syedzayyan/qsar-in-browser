@@ -7,15 +7,21 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-candle-core  = { version = "0.9" }
-candle-nn    = { version = "0.9" }
+candle-core  = { version = "0.9", default-features = false }
+candle-nn    = { version = "0.9", default-features = false }
 wasm-bindgen = "0.2"
 serde        = { version = "1", features = ["derive"] }
 serde_json   = "1"
-getrandom    = { version = "0.3", features = ["wasm_js"] }
-safetensors = "0.4"
+safetensors  = "0.4"
 console_error_panic_hook = "0.1"
 serde-wasm-bindgen = "0.6.5"
+
+# getrandom 0.3: feature is "wasm_js" not "js"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+# rand 0.9 uses getrandom 0.3 (matching); rand 0.8 uses 0.2 (conflicts)
+# But you don't actually need rand at all — your kaiming_init uses LCG.
+# Remove it. Same for tokio/clap/csv/anyhow — those are for main.rs not the wasm lib.
 
 [profile.release]
 opt-level = 3
