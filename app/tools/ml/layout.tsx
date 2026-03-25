@@ -25,6 +25,7 @@ import { round } from "mathjs";
 import NotificationContext from "../../../context/NotificationContext";
 import { readFpSettingsAsFormStuff } from "../../../components/utils/get_fp_settings";
 import LigandContext from "../../../context/LigandContext";
+import RDKitContext from "../../../context/RDKitContext";
 
 function computeRecommendedThreshold(values: number[]): number {
   const sorted = [...values].filter((v) => !isNaN(v)).sort((a, b) => a - b);
@@ -45,6 +46,7 @@ export default function MLLayout({ children }) {
   const [oneOffSMILES, setOneOffSmiles] = useState("CCO");
   const [oneOffSMILESResult, setOneOffSmilesResult] = useState<number>();
   const [threshold, setThreshold] = useState<number | null>(null);
+  const { rdkit } = useContext(RDKitContext);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { pyodide } = useContext(PyodideContext);
