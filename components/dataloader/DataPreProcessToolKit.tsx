@@ -143,6 +143,13 @@ const DataPreProcessToolKit = () => {
           <form onSubmit={handleSubmit((values) => processData(values))}>
             <Stack gap="md">
               {/* fingerprint select via Controller */}
+              <FAQComp>
+                <p><strong>MACCS Fingerprints</strong> fingerprints are essentially standardised checklists of 166 established chemical features. Because of this simplicity MACCS fingerprints are relatively interpretable compared to other fingerprints. As MACCS only checks for 166 features it is a fixed length of only 166 bits. However, molecular information not covered in these 166 features will be lost.</p>
+
+                <p><strong>Morgan Fingerprints,</strong> also known as 'Circular Fingerprints’ consider each atom and each atom’s neighbours within a certain radius (usually 2 or 3). This allows Morgan fingerprints to capture more information about the local environment of each atom, but is less interpretable than the MACCS fingerprint.</p>
+
+                <p><strong>RDKit Fingerprints</strong> encode linear paths of atoms into binary bits - this approach is referred to as Topological or Path-based. RDKit fingerprints length can change but is usually 2048 bits in length. Because of this approach, RDKit is good at identifying molecules sharing a similar core scaffold/skeleton structure.</p>
+              </FAQComp>
               <Controller
                 name="fingerprint"
                 control={control}

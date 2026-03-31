@@ -67,7 +67,7 @@ export default function Screen() {
     <>
       {sortedScreenData.length > 0 && sortedScreenData[0].predictions !== undefined && (
         <>
-          <Histogram data={preds} />
+          <Histogram data={preds} toolTipData={screenData}/>
           <br />
           <button className="button" onClick={downloadCsv}>
             Download Predictions in CSV Format

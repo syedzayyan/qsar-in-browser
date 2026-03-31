@@ -139,6 +139,7 @@ export default function TSNE() {
               setIndicesToDelete(indices);
               setOpened(true);
             }}
+            colorBarTitle={target?.activity_columns?.[0]}
           />
         </>
       )}

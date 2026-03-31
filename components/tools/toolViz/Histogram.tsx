@@ -308,9 +308,12 @@ export default function Histogram({
               <Card key={i} shadow="sm" padding="lg" radius="md" withBorder>
                 <MoleculeStructure structure={x.canonical_smiles} id={i.toString()} />
                 <div style={{ marginTop: 8 }}>
-                  <span>
-                    {target.activity_columns[0]}: {round(x[target.activity_columns[0]], 2)}
-                  </span>
+                  {(() => {
+                    const activityCol = target.activity_columns?.[0];
+                    const label = activityCol || "predictions";
+                    const value = x[activityCol] !== undefined ? round(x[activityCol], 4) : x.predictions !== undefined ? round(x.predictions, 4) : "N/A";
+                    return <span>{label}: {value}</span>;
+                  })()}
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12 }}>
                   <span>

@@ -94,6 +94,7 @@ export default function PCA() {
                             setIndicesToDelete(indices);
                             setOpened(true);
                         }}
+                        colorBarTitle={target?.activity_columns?.[0]}
                     />
                 </>
             )}

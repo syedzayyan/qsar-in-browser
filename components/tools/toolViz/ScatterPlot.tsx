@@ -13,6 +13,7 @@ interface ScatterplotProps {
   yAxisTitle?: string;
   id?: string[];
   onSelectIndices?: (indices: number[]) => void;
+  colorBarTitle?: string;
 }
 
 interface Details {
@@ -34,7 +35,8 @@ export default function Scatterplot({
   xAxisTitle = '',
   yAxisTitle = '',
   id = [],
-  onSelectIndices
+  onSelectIndices,
+  colorBarTitle = 'Activity'
 }: ScatterplotProps) {
   const margin = { top: 60, right: 120, bottom: 120, left: 120 };
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -457,6 +459,14 @@ export default function Scatterplot({
         .call(g => g.select('.domain').remove())
         .selectAll('text')
         .style('font-size', '0.85rem');
+
+      g.append('text')
+        .attr('x', width / 2)
+        .attr('y', legendMarginTop + legendHeight + 60) // adjust spacing
+        .attr('text-anchor', 'middle')
+        .style('fill', 'var(--mantine-color-text)')
+        .style('font-size', '0.95rem')
+        .text(colorBarTitle); // <-- change this
     }
   }, [
     data,
