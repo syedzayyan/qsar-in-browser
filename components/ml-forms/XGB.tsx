@@ -53,7 +53,7 @@ export default function XGB({
     });
   }, [taskType]);
 
-    const { notifications } = useContext(NotificationContext);
+  const { notifications } = useContext(NotificationContext);
   const isRunning = notifications.some((n) => n.message.startsWith("machine_learning") && !n.done);
 
   return (
@@ -76,33 +76,38 @@ export default function XGB({
         <Stack>
 
           <TextInput
-            label="Learning rate"
+            label="Learning Rate"
+            description="Controls how much the model adjusts itself after each round of learning. A smaller value (e.g. 0.05) means the model learns slowly and carefully — often more accurate but takes more rounds. A larger value (e.g. 0.3) learns faster but may miss the best answer. 0.1–0.2 is a good starting point."
             type="number"
             step="0.01"
             {...register("learning_rate", { required: true, valueAsNumber: true })}
           />
 
           <TextInput
-            label="Maximum depth"
+            label="Maximum Tree Depth"
+            description="How many levels deep each internal decision tree is allowed to grow. Deeper trees can capture more complex relationships between molecular features and activity, but risk memorising the training data (overfitting). Values between 4 and 10 are typical."
             type="number"
             {...register("max_depth", { required: true, valueAsNumber: true })}
           />
 
           <TextInput
-            label="Minimum child weight"
+            label="Minimum Child Weight"
+            description="The minimum number of molecules that must land in a branch for it to be kept. Higher values make the model more conservative and less likely to overfit on small groups of molecules. Increase this if your dataset is small."
             type="number"
             {...register("min_child_weight", { required: true, valueAsNumber: true })}
           />
 
           <TextInput
-            label="Subsample"
+            label="Subsample Ratio"
+            description="The fraction of molecules randomly selected to train each tree (between 0 and 1). Using less than all molecules (e.g. 0.8) introduces healthy variety between trees and can prevent overfitting. Set to 1 to use the full dataset every time."
             type="number"
             step="0.01"
             {...register("subsample", { required: true, valueAsNumber: true })}
           />
 
           <TextInput
-            label="colsample_bytree"
+            label="Feature Sample per Tree"
+            description="The fraction of molecular features (fingerprint bits) randomly chosen for each tree (between 0 and 1). Similar to subsample, using a subset (e.g. 0.8) encourages the trees to learn from different parts of the molecule, improving generalisation."
             type="number"
             step="0.01"
             {...register("colsample_bytree", { required: true, valueAsNumber: true })}
@@ -110,6 +115,7 @@ export default function XGB({
 
           <TextInput
             label="Number of CPUs"
+            description="How many processor cores your computer uses at once during training. A higher number speeds things up. Set to -1 to automatically use all available cores."
             type="number"
             {...register("n_jobs", { required: true, valueAsNumber: true })}
           />

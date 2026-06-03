@@ -41,9 +41,7 @@ export default function RF({
       model: taskType === "classification" ? 2 : 1,
     });
   }, [taskType]);
-  // -----------------------
-  // Criterion options
-  // -----------------------
+
   const regressionCriteria = [
     "squared_error",
     "absolute_error",
@@ -88,21 +86,28 @@ export default function RF({
       <form onSubmit={form.onSubmit(onSubmit)}>
         <Stack>
           <TextInput
-            label="Number of Estimators"
+            label="Number of Trees"
+            description="Think of each tree as a separate expert giving its opinion on a molecule. The final answer is a majority vote across all trees — more trees means a more reliable prediction, but training takes longer. 100–200 is a safe starting point."
             placeholder="e.g. 120"
             type="number"
             {...form.getInputProps("n_estimators")}
           />
 
           <Select
-            label="Criterion"
+            label="Split Criterion"
+            description={
+              isClassification
+                ? "The scoring rule each tree uses to decide which molecular property best separates active from inactive compounds. Gini is the most common default and works well in practice."
+                : "The scoring rule each tree uses to decide which molecular property best explains the activity values. Squared error is the standard choice and works well for most datasets."
+            }
             placeholder="Select criterion"
             data={isClassification ? classificationCriteria : regressionCriteria}
             {...form.getInputProps("criterion")}
           />
 
           <Select
-            label="Maximum Features"
+            label="Max Features per Split"
+            description="At each decision point, a tree only looks at a random subset of molecular features rather than all of them. This forces trees to be different from each other, which makes the overall model more robust. 'sqrt' (square root of total features) is the recommended default."
             placeholder="Select feature limit"
             data={["sqrt", "log2", "None"]}
             {...form.getInputProps("max_features")}
@@ -110,6 +115,7 @@ export default function RF({
 
           <TextInput
             label="Number of CPUs"
+            description="How many processor cores your computer uses at once during training. A higher number speeds things up. Set to -1 to automatically use all available cores."
             placeholder="e.g. 2"
             type="number"
             {...form.getInputProps("n_jobs")}

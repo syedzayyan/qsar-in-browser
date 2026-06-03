@@ -43,6 +43,9 @@ self.onmessage = async (event) => {
       case 'scaffold_network':
         await scaffold_network(params, id);
         break;
+      case 'physchem_descriptors':
+        await calcPhysChemDescriptors(params, id);
+        break;
       default:
         throw new Error(`Unknown function: ${funcName}`);
     }
@@ -514,4 +517,37 @@ function graph_molecule_image_generator(rdkit, graphData, svgSize = 120) {
     console.error(e);
   }
   return graphData;
+}
+
+async function calcPhysChemDescriptors(params, requestId) {
+  const RDKitInstance = await loadRDKit();
+  const ligand = params.ligand;
+  const results = [];
+
+  for (let i = 0; i < ligand.length; i++) {
+    const lig = ligand[i];
+    try {
+      const mol = RDKitInstance.get_mol(lig.canonical_smiles);
+      const raw = JSON.parse(mol.get_descriptors());
+      mol.delete();
+      results.push({
+        id: lig.id,
+        MW: raw.amw != null ? parseFloat(raw.amw.toFixed(2)) : null,
+        LogP: raw.CrippenClogP != null ? parseFloat(raw.CrippenClogP.toFixed(2)) : null,
+        HBA: raw.lipinskiHBA ?? null,
+        HBD: raw.lipinskiHBD ?? null,
+        TPSA: raw.tpsa != null ? parseFloat(raw.tpsa.toFixed(1)) : null,
+        RotBonds: raw.NumRotatableBonds ?? null,
+        Rings: raw.NumRings ?? null,
+        AromaticRings: raw.NumAromaticRings ?? null,
+        HeavyAtoms: raw.NumHeavyAtoms ?? null,
+        Fsp3: raw.FractionCSP3 != null ? parseFloat(raw.FractionCSP3.toFixed(3)) : null,
+      });
+    } catch (e) {
+      results.push({ id: lig.id });
+    }
+    notify({ id: requestId, message: `Progress: ${Math.round(((i + 1) / ligand.length) * 100)}%` });
+  }
+
+  notify({ id: requestId, function: 'physchem_descriptors', results });
 }
