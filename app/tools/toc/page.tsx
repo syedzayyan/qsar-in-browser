@@ -227,7 +227,7 @@ export default function TOC() {
           disabled={descLoading || ligand.length === 0}
           leftSection={descLoading ? <Loader size="xs" color="teal" /> : null}
         >
-          {descComputed ? "Recalculate Descriptors" : "Calculate Descriptors"}
+          {descComputed ? "Recalculate Descriptors" : "Click to Add Physicochemical Descriptors"}
         </Button>
       </Group>
 
