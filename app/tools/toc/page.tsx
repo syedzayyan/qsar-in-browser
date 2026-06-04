@@ -84,7 +84,7 @@ const ALL_DESC_COLS = [
   },
 ];
 
-const MINIMAL_KEYS = ["MW", "LogP", "HBA", "HBD", "TPSA"];
+const MINIMAL_KEYS = [];
 
 type DescMap = Record<string, Record<string, number | null>>;
 
@@ -238,13 +238,6 @@ export default function TOC() {
           <Stack gap="xs">
             <Group gap="xs" align="center">
               <Text size="sm" fw={600}>Visible Descriptors:</Text>
-              <Button
-                size="xs"
-                variant="subtle"
-                onClick={() => setVisibleDescCols(MINIMAL_KEYS)}
-              >
-                Minimal
-              </Button>
               <Button
                 size="xs"
                 variant="subtle"
