@@ -71,50 +71,54 @@ export default function ScreenLayout({ children }) {
         }
     };
 
-    // Existing ML pipeline (unchanged)
     async function callofScreenFunction(data) {
         pushNotification({ message: "Running ML Model on Ligands" });
 
-        newScreenData.forEach(obj => {
+        const workingData = [...newScreenData];
+        workingData.forEach(obj => {
             obj["canonical_smiles"] = obj[data.smi_column];
             delete obj[data.smi_column];
         });
 
+        const requestId = `ml_screen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const inferenceType = target.machine_learning_inference_type;
+
+        const rdkitHandler = (event) => {
+            if (event.data.id !== requestId) return;
+            if (event.data.function !== 'only_fingerprint') return;
+            rdkit.removeEventListener('message', rdkitHandler);
+
+            const mol_fp = event.data.results.map(x => x["fingerprint"]);
+
+            const pyodideHandler = (event) => {
+                if (event.data.success !== "ok") return;
+                pyodide.removeEventListener('message', pyodideHandler);
+                const fp_mols = event.data.results;
+                const updated = workingData.map((x, i) => ({ ...x, predictions: fp_mols[i] }));
+                setScreenData(updated);
+                pushNotification({ message: "ML Model run complete" });
+            };
+
+            pyodide.addEventListener('message', pyodideHandler);
+            pyodide.postMessage({
+                id: requestId,
+                opts: inferenceType === "regression" ? 1 : 2,
+                fp: mol_fp,
+                func: "ml-screen"
+            });
+        };
+
+        rdkit.addEventListener('message', rdkitHandler);
         rdkit.postMessage({
             function: 'only_fingerprint',
-            id: `ml_screen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            mol_data: newScreenData,
+            id: requestId,
+            mol_data: workingData,
             formStuff: {
                 fingerprint: localStorage.getItem("fingerprint"),
                 radius: parseInt(localStorage.getItem("path")),
                 nBits: parseInt(localStorage.getItem("nBits")),
             }
         });
-    }
-
-    // Existing rdkit/pyodide handlers (unchanged)
-    rdkit.onmessage = async (event) => {
-        if (event.data.function === "only_fingerprint") {
-            let mol_fp = event.data.results.map(x => x["fingerprint"]);
-            pyodide.postMessage({
-                id: "job-123",
-                opts: target.machine_learning_inference_type === "regression" ? 1 : 2,
-                fp: mol_fp,
-                func: "ml-screen"
-            })
-            pyodide.onmessage = async (event) => {
-                console.log("Received message from Pyodide:", event.data);
-                if (event.data.success == "ok") {
-                    let fp_mols = event.data.results;
-                    newScreenData = await newScreenData.map((x, i) => {
-                        x["predictions"] = fp_mols[i];
-                        return x
-                    });
-                    setScreenData(newScreenData);
-                    pushNotification({ message: "ML Model run complete" });
-                }
-            }
-        }
     }
 
     if (!loaded) {

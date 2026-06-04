@@ -17,7 +17,7 @@ import {
   Loader,
   Stack,
   SimpleGrid,
-  Box,
+  Paper,
 } from "@mantine/core";
 
 // All available physicochemical descriptor columns
@@ -118,36 +118,34 @@ export default function TOC() {
 
   function searchSubst() {
     const requestId = `substructure_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    rdkit.postMessage({
-      function: 'substructure_search',
-      id: requestId,
-      ligand,
-      searchSmi,
-    });
-    rdkit.onmessage = (event) => {
-      if (event.data.id === requestId) {
-        setSearchRes(event.data.results);
-      }
+    const handler = (event: MessageEvent) => {
+      if (event.data.id !== requestId) return;
+      if (event.data.function !== 'substructure_search') return;
+      rdkit.removeEventListener('message', handler);
+      setSearchRes(event.data.results);
     };
+    rdkit.addEventListener('message', handler);
+    rdkit.postMessage({ function: 'substructure_search', id: requestId, ligand, searchSmi });
   }
 
   function calcDescriptors() {
     if (!rdkit) return;
     setDescLoading(true);
     const requestId = `physchem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    rdkit.postMessage({ function: 'physchem_descriptors', id: requestId, ligand });
-    rdkit.onmessage = (event) => {
+    const handler = (event: MessageEvent) => {
       if (event.data.id !== requestId) return;
-      if (event.data.function === 'physchem_descriptors') {
-        const map: DescMap = {};
-        for (const row of event.data.results) {
-          const { id, ...rest } = row;
-          map[id] = rest;
-        }
-        setDescMap(map);
-        setDescLoading(false);
+      if (event.data.function !== 'physchem_descriptors') return;
+      rdkit.removeEventListener('message', handler);
+      const map: DescMap = {};
+      for (const row of event.data.results) {
+        const { id, ...rest } = row;
+        map[id] = rest;
       }
+      setDescMap(map);
+      setDescLoading(false);
     };
+    rdkit.addEventListener('message', handler);
+    rdkit.postMessage({ function: 'physchem_descriptors', id: requestId, ligand });
   }
 
   function deleteSelected() {
@@ -267,15 +265,7 @@ export default function TOC() {
 
             {/* Educational Glossary Area */}
             {visibleDescCols.length > 0 && (
-              <Box
-                mt="xs"
-                p="sm"
-                style={{
-                  borderRadius: "6px",
-                  backgroundColor: "var(--mantine-color-gray-0)",
-                  border: "1px solid var(--mantine-color-gray-2)",
-                }}
-              >
+              <Paper mt="xs" p="sm" withBorder radius="sm">
                 <Text
                   size="xs"
                   fw={700}
@@ -289,15 +279,15 @@ export default function TOC() {
                   {ALL_DESC_COLS.filter((col) =>
                     visibleDescCols.includes(col.key),
                   ).map((col) => (
-                    <Text key={col.key} size="xs" lh="1.4" c="gray.7">
-                      <Text span fw={700} c="teal.8">
+                    <Text key={col.key} size="xs" lh="1.4" c="dimmed">
+                      <Text span fw={700} c="teal">
                         {col.label}:{" "}
                       </Text>
                       {col.description}
                     </Text>
                   ))}
                 </SimpleGrid>
-              </Box>
+              </Paper>
             )}
           </Stack>
           <Divider my="sm" />

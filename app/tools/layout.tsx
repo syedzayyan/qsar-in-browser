@@ -1,5 +1,5 @@
 "use client";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import CornerMenu from "../../components/ui-comps/CornerMenu";
 import PyodideContext from "../../context/PyodideContext";
 import RDKitContext from "../../context/RDKitContext";
@@ -45,113 +45,115 @@ export default function DashboardLayout({
   }, [ligand]);
 
   useEffect(() => {
-    notifications.forEach((n) => {
-      if (n.autoClose === false) return;
-
-      const timeout = setTimeout(() => {
-        removeNotification(n.id);
-      }, n.duration ?? 5000);
-
-      return () => clearTimeout(timeout);
-    });
+    const timers = notifications
+      .filter(n => n.autoClose !== false)
+      .map(n => setTimeout(() => removeNotification(n.id), n.duration ?? 5000));
+    return () => timers.forEach(clearTimeout);
   }, [notifications]);
 
 
-  if (rdkit) {
-    rdkit.onmessage = (event) => {
-      const { message, id, error, ...data } = event.data;
+  // Keep a ref to the latest handler logic so the stable addEventListener closure always calls current values.
+  const rdkitHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  rdkitHandlerRef.current = (event: MessageEvent) => {
+    const { message, id, error, ...data } = event.data;
 
-      // Handle simple string messages (progress, etc.)
-      if (message && typeof message === 'string') {
-        pushNotification({ message, autoClose: true, duration: 2000, id: id || undefined, type: 'info' });
-        return;
-      }
+    if (message && typeof message === 'string') {
+      pushNotification({ message, autoClose: true, duration: 2000, id: id || undefined, type: 'info' });
+      return;
+    }
 
-      // Handle errors
-      if (error) {
-        pushNotification({ id, message: `Error: ${error}`, type: 'error' });
-        rdkit.terminate();
-        return;
-      }
-      // Handle function results
-      if (id && data.function) {
+    if (error) {
+      pushNotification({ id, message: `Error: ${error}`, type: 'error' });
+      rdkit.terminate?.();
+      return;
+    }
 
-        switch (data.function) {
-          case 'fingerprint':
-            if (data.settings) {
-              localStorage.setItem("fingerprint", data.settings.fingerprint);
-              localStorage.setItem("path", data.settings.radius.toString());
-              localStorage.setItem("nBits", data.settings.nBits.toString());
-            }
-            pushNotification({ id, message: "Molecule Pre-processing Done! Going to Activity Distribution Tool...", type: 'success' });
-            setTimeout(() => {
-              setLigand(data.data);
-              setTarget({ ...target, activity_columns: data.activity_columns, pre_processed: true });
-              router.push("/tools/activity");
-            }, 200);
-            break;
-
-          case 'mma':
-            pushNotification({ id, message: "Massive Molecular Analysis Done! Going to Scaffold Analysis Tool...", type: 'success', done: true });
-            setTarget({ ...target, scaffCores: data.data });
-            break;
-
-          case 'tanimoto':
-            pushNotification({ id, message: "Tanimoto Similarity Calculation Done!", type: 'success', done: true });
+    if (id && data.function) {
+      switch (data.function) {
+        case 'fingerprint':
+          if (data.settings) {
+            localStorage.setItem("fingerprint", data.settings.fingerprint);
+            localStorage.setItem("path", data.settings.radius.toString());
+            localStorage.setItem("nBits", data.settings.nBits.toString());
+          }
+          pushNotification({ id, message: "Molecule Pre-processing Done! Going to Activity Distribution Tool...", type: 'success' });
+          setTimeout(() => {
             setLigand(data.data);
-            break;
+            setTarget(prev => ({ ...prev, activity_columns: data.activity_columns, pre_processed: true }));
+            router.push("/tools/activity");
+          }, 200);
+          break;
 
-          case 'substructure_search':
-            setLigand(data.results);
-            pushNotification({ id, message: `Found ${data.results.length} matching substructures`, type: 'success', done: true });
-            break;
-          case 'scaffold_network':
-            pushNotification({ id, message: "Scaffold Network Generation Done!", type: 'success', done: true });
-            setTarget({ ...target, scaffold_network: data.data });
-            break;
-          default:
-            console.warn('Unknown function:', data.function);
-        }
-      }
-    };
-  }
+        case 'mma':
+          pushNotification({ id, message: "Massive Molecular Analysis Done! Going to Scaffold Analysis Tool...", type: 'success', done: true });
+          setTarget(prev => ({ ...prev, scaffCores: data.data }));
+          break;
 
+        case 'tanimoto':
+          pushNotification({ id, message: "Tanimoto Similarity Calculation Done!", type: 'success', done: true });
+          setLigand(data.data);
+          break;
 
-  if (pyodide) {
-    pyodide.onmessage = (event) => {
-      const message = event.data;
-      if (typeof message === 'string') {
-        pushNotification({ message: message });
-      }
-      if (message.func === "dim_red") {
-        console.log(message);
-        if (message.opts === 2 || message.opts === 3) {
-          setTarget({ ...target, tsne_explained_variance: message.explained_variance });
-          pushNotification({ id: message.id, message: "tSNE Processing Done!", type: 'success', done: true });
-          setLigand((prevLigands) => {
-            return prevLigands.map((ligand, index) => ({
-              ...ligand,
-              tsne: message.result[index],
-            }));
-          });
-        } else {
-          pushNotification({ id: message.id, message: "PCA Processing Done!", type: 'success', done: true });
-          setTarget({ ...target, pca_explained_variance: message.explained_variance });
-          setLigand((prevLigands) => {
-            return prevLigands.map((ligand, index) => ({
-              ...ligand,
-              pca: message.result[index],
-            }));
-          });
-        }
-      } else if (message.func === "ml") {
-        pushNotification({ id: message.id, message: "Model Training Done! Going to Results Page...", type: 'success', done: true });
-        setTarget({ ...target, machine_learning: message.results });
-      } else {
-        console.log(message);
+        case 'scaffold_network':
+          pushNotification({ id, message: "Scaffold Network Generation Done!", type: 'success', done: true });
+          setTarget(prev => ({ ...prev, scaffold_network: data.data }));
+          break;
+
+        case 'physchem_descriptors':
+        case 'only_fingerprint':
+          // handled locally by individual pages via addEventListener
+          break;
+
+        default:
+          console.warn('Unknown function:', data.function);
       }
     }
-  }
+  };
+
+  useEffect(() => {
+    if (!rdkit?.addEventListener) return;
+    const handler = (event: MessageEvent) => rdkitHandlerRef.current?.(event);
+    rdkit.addEventListener('message', handler);
+    return () => rdkit.removeEventListener('message', handler);
+  }, [rdkit]);
+
+
+  const pyodideHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  pyodideHandlerRef.current = (event: MessageEvent) => {
+    const message = event.data;
+    if (typeof message === 'string') {
+      pushNotification({ message });
+      return;
+    }
+    if (message.func === "dim_red") {
+      if (message.opts === 2 || message.opts === 3) {
+        setTarget(prev => ({ ...prev, tsne_explained_variance: message.explained_variance }));
+        pushNotification({ id: message.id, message: "tSNE Processing Done!", type: 'success', done: true });
+        setLigand(prevLigands => prevLigands.map((ligand, index) => ({
+          ...ligand,
+          tsne: message.result[index],
+        })));
+      } else {
+        pushNotification({ id: message.id, message: "PCA Processing Done!", type: 'success', done: true });
+        setTarget(prev => ({ ...prev, pca_explained_variance: message.explained_variance }));
+        setLigand(prevLigands => prevLigands.map((ligand, index) => ({
+          ...ligand,
+          pca: message.result[index],
+        })));
+      }
+    } else if (message.func === "ml") {
+      pushNotification({ id: message.id, message: "Model Training Done! Going to Results Page...", type: 'success', done: true });
+      setTarget(prev => ({ ...prev, machine_learning: message.results }));
+    }
+    // ml-screen and other local operations are handled by their respective pages
+  };
+
+  useEffect(() => {
+    if (!pyodide?.addEventListener) return;
+    const handler = (event: MessageEvent) => pyodideHandlerRef.current?.(event);
+    pyodide.addEventListener('message', handler);
+    return () => pyodide.removeEventListener('message', handler);
+  }, [pyodide]);
 
   return (
     <>

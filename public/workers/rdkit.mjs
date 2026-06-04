@@ -546,7 +546,6 @@ async function calcPhysChemDescriptors(params, requestId) {
     } catch (e) {
       results.push({ id: lig.id });
     }
-    notify({ id: requestId, message: `Progress: ${Math.round(((i + 1) / ligand.length) * 100)}%` });
   }
 
   notify({ id: requestId, function: 'physchem_descriptors', results });
