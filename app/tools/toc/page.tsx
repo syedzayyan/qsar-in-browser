@@ -16,23 +16,75 @@ import {
   Text,
   Loader,
   Stack,
+  SimpleGrid,
+  Box,
 } from "@mantine/core";
 
 // All available physicochemical descriptor columns
 const ALL_DESC_COLS = [
-  { key: "MW",          label: "MW (Da)" },
-  { key: "LogP",        label: "LogP" },
-  { key: "HBA",         label: "HBA" },
-  { key: "HBD",         label: "HBD" },
-  { key: "TPSA",        label: "TPSA (Å²)" },
-  { key: "RotBonds",    label: "Rot. Bonds" },
-  { key: "Rings",       label: "Rings" },
-  { key: "AromaticRings", label: "Arom. Rings" },
-  { key: "HeavyAtoms",  label: "Heavy Atoms" },
-  { key: "Fsp3",        label: "Fsp3" },
+  {
+    key: "MW",
+    label: "MW (Da)",
+    description:
+      "Molecular Weight: The sum of atomic masses, dictating overall molecular size and influencing membrane permeability.",
+  },
+  {
+    key: "LogP",
+    label: "LogP",
+    description:
+      "Partition Coefficient: Measures the molecule's lipophilicity, predicting how easily it crosses cell membranes.",
+  },
+  {
+    key: "HBA",
+    label: "HBA",
+    description:
+      "Hydrogen Bond Acceptors: The count of nitrogen and oxygen atoms capable of accepting hydrogen bonds.",
+  },
+  {
+    key: "HBD",
+    label: "HBD",
+    description:
+      "Hydrogen Bond Donors: The count of nitrogen and oxygen atoms with attached hydrogens capable of donating hydrogen bonds.",
+  },
+  {
+    key: "TPSA",
+    label: "TPSA (Å²)",
+    description:
+      "Topological Polar Surface Area: The surface sum over polar atoms, critical for predicting intestinal absorption and blood-brain barrier penetration.",
+  },
+  {
+    key: "RotBonds",
+    label: "Rot. Bonds",
+    description:
+      "Rotatable Bonds: Measures molecular flexibility; high conformational flexibility can reduce oral bioavailability.",
+  },
+  {
+    key: "Rings",
+    label: "Rings",
+    description:
+      "Total Rings: The total number of cyclic structures, which contribute to structural rigidity and shape complementarity.",
+  },
+  {
+    key: "AromaticRings",
+    label: "Arom. Rings",
+    description:
+      "Aromatic Rings: Planar, conjugated ring systems that frequently drive pi-pi stacking interactions with target proteins.",
+  },
+  {
+    key: "HeavyAtoms",
+    label: "Heavy Atoms",
+    description:
+      "Heavy Atoms: The total count of non-hydrogen atoms, serving as a fundamental proxy for molecular size and complexity.",
+  },
+  {
+    key: "Fsp3",
+    label: "Fsp3",
+    description:
+      "Fraction of sp3 Carbons: The ratio of sp3-hybridized carbons to total carbons, indicating three-dimensional complexity and shapeliness.",
+  },
 ];
 
-const MINIMAL_KEYS = ["MW", "LogP", "HBA", "HBD", "TPSA"];
+const MINIMAL_KEYS = [];
 
 type DescMap = Record<string, Record<string, number | null>>;
 
@@ -175,7 +227,7 @@ export default function TOC() {
           disabled={descLoading || ligand.length === 0}
           leftSection={descLoading ? <Loader size="xs" color="teal" /> : null}
         >
-          {descComputed ? "Recalculate Descriptors" : "Calculate Descriptors"}
+          {descComputed ? "Recalculate Descriptors" : "Click to Add Physicochemical Descriptors"}
         </Button>
       </Group>
 
@@ -186,13 +238,6 @@ export default function TOC() {
           <Stack gap="xs">
             <Group gap="xs" align="center">
               <Text size="sm" fw={600}>Visible Descriptors:</Text>
-              <Button
-                size="xs"
-                variant="subtle"
-                onClick={() => setVisibleDescCols(MINIMAL_KEYS)}
-              >
-                Minimal
-              </Button>
               <Button
                 size="xs"
                 variant="subtle"
@@ -219,6 +264,41 @@ export default function TOC() {
                 ))}
               </Group>
             </Chip.Group>
+
+            {/* Educational Glossary Area */}
+            {visibleDescCols.length > 0 && (
+              <Box
+                mt="xs"
+                p="sm"
+                style={{
+                  borderRadius: "6px",
+                  backgroundColor: "var(--mantine-color-gray-0)",
+                  border: "1px solid var(--mantine-color-gray-2)",
+                }}
+              >
+                <Text
+                  size="xs"
+                  fw={700}
+                  c="dimmed"
+                  mb="xs"
+                  style={{ textTransform: "uppercase", letterSpacing: "0.5px" }}
+                >
+                  Descriptor Guide
+                </Text>
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                  {ALL_DESC_COLS.filter((col) =>
+                    visibleDescCols.includes(col.key),
+                  ).map((col) => (
+                    <Text key={col.key} size="xs" lh="1.4" c="gray.7">
+                      <Text span fw={700} c="teal.8">
+                        {col.label}:{" "}
+                      </Text>
+                      {col.description}
+                    </Text>
+                  ))}
+                </SimpleGrid>
+              </Box>
+            )}
           </Stack>
           <Divider my="sm" />
         </>
