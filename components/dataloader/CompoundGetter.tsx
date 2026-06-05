@@ -51,22 +51,33 @@ useEffect(() => {
   async function getFullActivityData(url: string) {
     setLigandSearch(false);
     setLoading(true);
+    setProgress(0);
 
     const chembl_url = "https://www.ebi.ac.uk";
-    const results: any[] = [];
-    let nextUrl = chembl_url + url;
+    const limit = 1000;
 
-    while (nextUrl !== chembl_url + "null") {
-      const response = await fetch(nextUrl);
-      const data = await response.json();
+    const firstResponse = await fetch(`${chembl_url}${url}&limit=${limit}&offset=0`);
+    const firstData = await firstResponse.json();
+    const total: number = firstData.page_meta.total_count;
 
-      results.push(...data.activities);
-      nextUrl = chembl_url + data.page_meta.next;
+    const results: any[] = [...firstData.activities];
+    setProgress((results.length / total) * 100);
 
-      const newProgress =
-        (results.length / data.page_meta.total_count) * 100;
-      setProgress(newProgress);
+    const offsets: number[] = [];
+    for (let offset = limit; offset < total; offset += limit) {
+      offsets.push(offset);
     }
+
+    await Promise.all(
+      offsets.map((offset) =>
+        fetch(`${chembl_url}${url}&limit=${limit}&offset=${offset}`)
+          .then((r) => r.json())
+          .then((data) => {
+            results.push(...data.activities);
+            setProgress((results.length / total) * 100);
+          })
+      )
+    );
 
     setLigandSearch(true);
     setLoading(false);
