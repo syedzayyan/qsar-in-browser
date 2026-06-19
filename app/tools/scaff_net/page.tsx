@@ -29,7 +29,6 @@ export default function DisplayGraph() {
       <h1>Scaffold Tree</h1>
       <details open={false}>
         <summary>How to interpret these results</summary>
-          <p>
           After generating the initial tree structure, the 'Tree View' or the 'Node View' can be selected to 
           understand the core chemical structures (scaffolds) of the dataset. Scaffolds are displayed where 
           '*' represents any atom and '--' represents any bond type. 
@@ -45,7 +44,7 @@ export default function DisplayGraph() {
                 general scaffold can be selected to view it as a central node connecting to neighbouring nodes. The 
                 neighbouring nodes are the immediate, more specific substructures. 
               </li>
-            </ul>          </p>
+            </ul> 
       </details>
       <details open={false}>
         <summary>How is the scaffold tree generated?</summary>

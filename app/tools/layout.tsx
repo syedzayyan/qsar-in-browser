@@ -7,41 +7,53 @@ import LigandContext from "../../context/LigandContext";
 import { useRouter } from "next/navigation";
 import TargetContext from "../../context/TargetContext";
 import { ErrorContextProvider } from "../../context/ErrorContext";
-import Navbar from "../../components/ui-comps/Navbar"
-import { AppShell, Burger, Flex, Group } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { Notification } from '@mantine/core';
+import Navbar from "../../components/ui-comps/Navbar";
+import { AppShell, Burger, Flex, Group, Notification } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import NotificationContext from "../../context/NotificationContext";
+import { GAContextProvider, useGAContext } from "../../context/GAContext";
+import {
+  MLResultsContextProvider,
+  useMLResults,
+} from "../../context/MLResultsContext";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// ── Inner — has access to GAContext + MLResultsContext ────────────────────────
+function DashboardInner({ children }: { children: React.ReactNode }) {
   const { setLigand, ligand } = useContext(LigandContext);
   const { target, setTarget } = useContext(TargetContext);
-  const { pyodide, setPyodide } = useContext(PyodideContext);
-  const { rdkit, setRDKit } = useContext(RDKitContext);
+  const { pyodide } = useContext(PyodideContext);
+  const { rdkit } = useContext(RDKitContext);
   const { notifications, pushNotification, removeNotification } =
     useContext(NotificationContext);
+  const { setGAState } = useGAContext();
+  const {
+    setScreenData,
+    setSortedScreenData,
+    setPreds,
+    screenData,
+    setDmpnnLossHistory,
+    setDmpnnTraining,
+    setDmpnnOneOffResult,
+    setDmpnnWeightsReady,
+    classicalModelReady,
+    setClassicalModelReady,
+  } = useMLResults();
+
+  const screenDataRef = useRef<any[]>([]);
+  useEffect(() => {
+    screenDataRef.current = screenData;
+  }, [screenData]);
 
   const router = useRouter();
   const [opened, { toggle }] = useDisclosure();
 
+  const targetRef = useRef(target);
   useEffect(() => {
-    const pyodideWorker = new Worker("/workers/pyodide.mjs", { type: "module" });
-    const rdkitWorker = new Worker("/workers/rdkit.mjs");
-    setRDKit(rdkitWorker);
-    setPyodide(pyodideWorker);
-  }, []);
-
-
+    targetRef.current = target;
+  }, [target]);
 
   useEffect(() => {
-    if (ligand.length > 1) {
-      pushNotification({ "message": "Data Loading Done!" });
-    }
-
+    if (ligand.length > 1) pushNotification({ message: "Data Loading Done!" });
   }, [ligand]);
 
   useEffect(() => {
@@ -51,6 +63,9 @@ export default function DashboardLayout({
     return () => timers.forEach(clearTimeout);
   }, [notifications]);
 
+  // ── RDKit onmessage ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!rdkit) return;
 
   // Keep a ref to the latest handler logic so the stable addEventListener closure always calls current values.
   const rdkitHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
@@ -155,6 +170,58 @@ export default function DashboardLayout({
     return () => pyodide.removeEventListener('message', handler);
   }, [pyodide]);
 
+      if (typeof message === "string") {
+        pushNotification({ message });
+        return;
+      }
+
+      if (message.func === "dim_red") {
+        if (message.opts === 2 || message.opts === 3) {
+          setTarget({
+            ...targetRef.current,
+            tsne_explained_variance: message.explained_variance,
+          });
+          pushNotification({
+            id: message.id,
+            message: "tSNE Processing Done!",
+            type: "success",
+            done: true,
+          });
+          setLigand((prev) =>
+            prev.map((lig, i) => ({ ...lig, tsne: message.result[i] })),
+          );
+        } else {
+          pushNotification({
+            id: message.id,
+            message: "PCA Processing Done!",
+            type: "success",
+            done: true,
+          });
+          setTarget({
+            ...targetRef.current,
+            pca_explained_variance: message.explained_variance,
+          });
+          setLigand((prev) =>
+            prev.map((lig, i) => ({ ...lig, pca: message.result[i] })),
+          );
+        }
+        return;
+      }
+
+      if (message.func === "ml") {
+        pushNotification({
+          id: message.id,
+          message: "Model Training Done! Going to Results Page...",
+          type: "success",
+          done: true,
+        });
+        setTarget({ ...targetRef.current, machine_learning: message.results });
+        setClassicalModelReady(true); // ← add this
+      }
+    };
+  }, [pyodide]);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
       <AppShell
@@ -162,7 +229,7 @@ export default function DashboardLayout({
         header={{ height: 60 }}
         navbar={{
           width: 300,
-          breakpoint: 'sm',
+          breakpoint: "sm",
           collapsed: { mobile: !opened },
         }}
       >
@@ -183,11 +250,8 @@ export default function DashboardLayout({
           <AppShell.Navbar>
             <CornerMenu />
           </AppShell.Navbar>
-          <AppShell.Main>
-            {children}
-          </AppShell.Main>
+          <AppShell.Main>{children}</AppShell.Main>
         </ErrorContextProvider>
-
       </AppShell>
 
       <div
@@ -205,7 +269,7 @@ export default function DashboardLayout({
           <Notification
             key={n.id}
             radius="lg"
-            color={n.type === 'error' ? 'red' : n.type || 'blue'}  //
+            color={n.type === "error" ? "red" : (n.type ?? "blue")}
             withCloseButton
             onClose={() => removeNotification(n.id)}
           >
@@ -213,7 +277,39 @@ export default function DashboardLayout({
           </Notification>
         ))}
       </div>
-
     </>
+  );
+}
+
+// ── Outer — boots workers, owns GAContextProvider ─────────────────────────────
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { setPyodide } = useContext(PyodideContext);
+  const { setRDKit } = useContext(RDKitContext);
+
+  useEffect(() => {
+    const pyodideWorker = new Worker("/workers/pyodide.mjs", {
+      type: "module",
+    });
+    const rdkitWorker = new Worker("/workers/rdkit.mjs");
+
+    setRDKit(rdkitWorker);
+    setPyodide(pyodideWorker);
+
+    return () => {
+      pyodideWorker.terminate();
+      rdkitWorker.terminate();
+    };
+  }, []);
+
+  return (
+    <GAContextProvider>
+      <MLResultsContextProvider>
+        <DashboardInner>{children}</DashboardInner>
+      </MLResultsContextProvider>
+    </GAContextProvider>
   );
 }
