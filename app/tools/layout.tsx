@@ -64,13 +64,222 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   }, [notifications]);
 
   // ── RDKit onmessage ────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!rdkit) return;
-
   // Keep a ref to the latest handler logic so the stable addEventListener closure always calls current values.
   const rdkitHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
   rdkitHandlerRef.current = (event: MessageEvent) => {
-    const { message, id, error, ...data } = event.data;
+    const payload = event.data;
+    const { message, id, error, ...data } = payload;
+
+    // ── Classical ML screening ───────────────────────────────────────────
+    if (payload.function === "only_fingerprint") {
+      const validMols = (payload.results ?? []).filter(
+        (x: any) => x?.fingerprint != null,
+      );
+
+      if (validMols.length === 0) {
+        pushNotification({
+          message: "No valid fingerprints generated",
+          type: "error",
+        });
+        return;
+      }
+
+      const aligned = validMols.map(
+        (x: any) =>
+          (payload.mol_data ?? []).find(
+            (m: any) => m.canonical_smiles === x.canonical_smiles,
+          ) ?? x,
+      );
+
+      const pyodideWorker = new Worker("/workers/pyodide.mjs", {
+        type: "module",
+      });
+      const mlScreenId = `ml_screen_${Math.random().toString(36).slice(2)}`;
+      pyodideWorker.postMessage({
+        id: mlScreenId,
+        func: "ml_screen",
+        fp: validMols.map((x: any) => x.fingerprint),
+        opts:
+          targetRef.current.machine_learning_inference_type === "regression"
+            ? 1
+            : 2,
+        params: {
+          model:
+            targetRef.current.machine_learning_inference_type === "regression"
+              ? 1
+              : 2,
+        },
+        _aligned: aligned,
+      });
+
+      pyodideWorker.onmessage = (evt: MessageEvent) => {
+        const msg = evt.data;
+        if (!msg.id?.startsWith("ml_screen_")) return;
+
+        if (!msg.ok) {
+          pushNotification({
+            message: `ML error: ${msg.error}`,
+            type: "error",
+          });
+          pyodideWorker.terminate();
+          return;
+        }
+
+        const fp_mols: any[] = msg.result;
+        const alignedMols: any[] = msg._aligned ?? screenDataRef.current;
+
+        const updated = alignedMols.map((x: any, i: number) => ({
+          ...x,
+          predictions: fp_mols[i],
+        }));
+        const sorted = [...updated].sort(
+          (a, b) => Number(b.predictions) - Number(a.predictions),
+        );
+        const computedPreds = sorted
+          .map((x) => {
+            const p = x.predictions;
+            if (Array.isArray(p))
+              return p.length === 2
+                ? p[1] > 0.5
+                  ? 1.0
+                  : 0.0
+                : p.indexOf(Math.max(...p));
+            return p;
+          })
+          .filter((p) => p !== null);
+
+        setScreenData(updated);
+        setSortedScreenData(sorted);
+        setPreds(computedPreds);
+        setClassicalModelReady(true);
+        pushNotification({
+          message: `ML complete — ${updated.length} molecules scored`,
+          type: "success",
+        });
+        pyodideWorker.terminate();
+      };
+
+      return;
+    }
+
+    // ── DMPNN training epoch ─────────────────────────────────────────────
+    if (payload.function === "dmpnn_train_epoch") {
+      const { epoch, total_epochs, avg_loss, fold } = payload;
+      setDmpnnLossHistory((prev) => [...prev, { epoch, avg_loss, fold }]);
+
+      if (fold === null && epoch === total_epochs) {
+        setDmpnnTraining(false);
+        setDmpnnWeightsReady(true);
+        pushNotification({
+          message: `Training complete! Final loss: ${avg_loss.toFixed(4)}`,
+          type: "success",
+          id: "dmpnn_train",
+          done: true,
+          autoClose: true,
+        });
+      }
+      return;
+    }
+
+    // ── DMPNN one-off inference ──────────────────────────────────────────
+    if (payload.function === "dmpnn_infer_one") {
+      setDmpnnOneOffResult(payload.result);
+      return;
+    }
+
+    // ── DMPNN weights download ───────────────────────────────────────────
+    if (payload.function === "dmpnn_get_weights") {
+      if (payload.bytes) {
+        const bytes = payload.bytes;
+        const blob = new Blob([bytes], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "dmpnn_weights.safetensors";
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (payload.message) {
+        pushNotification({ message: payload.message });
+      }
+      return;
+    }
+
+    if (payload.function === "dmpnn_kfold_complete") {
+      const { metric1, metric2, per_fold_preds } = payload;
+      setDmpnnTraining(false);
+      setDmpnnWeightsReady(true);
+      // Shape matches target.machine_learning so MLLayout visualisations
+      // (DiscreteScatterplot, FoldMetricBarplot) work without any changes
+      setTarget(prev => ({
+        ...prev,
+        machine_learning: [metric1, metric2, per_fold_preds],
+      }));
+      pushNotification({
+        message: `K-fold CV complete! Mean loss: ${(metric1.reduce((a: number, b: number) => a + b, 0) / metric1.length).toFixed(4)}`,
+        type: "success",
+        id: "dmpnn_kfold",
+        done: true,
+        autoClose: true,
+      });
+      return;
+    }
+
+    if (payload.function === "dmpnn_infer_batch") {
+      const results: number[] = payload.results; // array of predictions
+      const aligned: any[] = payload.mol_data;
+
+      const updated = aligned.map((x, i) => ({
+        ...x,
+        predictions: results[i],
+      }));
+      const sorted = [...updated].sort(
+        (a, b) => Number(b.predictions) - Number(a.predictions),
+      );
+      const computedPreds = sorted
+        .map((x) => x.predictions)
+        .filter((p) => p !== null);
+
+      setScreenData(updated);
+      setSortedScreenData(sorted);
+      setPreds(computedPreds);
+      pushNotification({
+        message: `D-MPNN screening complete — ${updated.length} molecules scored`,
+        type: "success",
+      });
+      return;
+    }
+
+    // ── GA progress ──────────────────────────────────────────────────────
+    if (payload.type === "ga_progress") {
+      setGAState((prev) => ({
+        ...prev,
+        gen: payload.gen,
+        bestScore: payload.best,
+        bestSmiles: payload.bestSmiles ?? prev.bestSmiles,
+      }));
+      return;
+    }
+
+    // ── GA complete ──────────────────────────────────────────────────────
+    if (payload.ok === true) {
+      setGAState((prev) => ({
+        ...prev,
+        isRunning: false,
+        population: payload.result?.population ?? [],
+        scores: payload.result?.scores ?? [],
+      }));
+      return;
+    }
+
+    // ── GA error ─────────────────────────────────────────────────────────
+    if (payload.error && !data.function) {
+      setGAState((prev) => ({ ...prev, isRunning: false }));
+      pushNotification({
+        message: `GA Error: ${payload.error}`,
+        type: "error",
+      });
+      return;
+    }
 
     if (message && typeof message === 'string') {
       pushNotification({ message, autoClose: true, duration: 2000, id: id || undefined, type: 'info' });
@@ -92,6 +301,26 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
             localStorage.setItem("nBits", data.settings.nBits.toString());
           }
           pushNotification({ id, message: "Molecule Pre-processing Done! Going to Activity Distribution Tool...", type: 'success' });
+          if (data.report) {
+            const r = data.report;
+            const droppedTotal =
+              r.invalidSmilesRemoved + r.stereoConflictRowsDropped + r.duplicatesRemoved + r.log10FilteredOut;
+            if (droppedTotal > 0) {
+              const parts = [];
+              if (r.invalidSmilesRemoved) parts.push(`${r.invalidSmilesRemoved} invalid SMILES`);
+              if (r.stereoConflictRowsDropped)
+                parts.push(
+                  `${r.stereoConflictRowsDropped} from ${r.stereoConflictGroups} conflicting stereoisomer group(s) (1 representative kept per group)`,
+                );
+              if (r.duplicatesRemoved) parts.push(`${r.duplicatesRemoved} duplicates`);
+              if (r.log10FilteredOut) parts.push(`${r.log10FilteredOut} with non-positive/invalid activity`);
+              pushNotification({
+                message: `Cleaning removed ${droppedTotal} of ${r.startCount} compounds — ${parts.join(", ")}.`,
+                type: 'info',
+                autoClose: false,
+              });
+            }
+          }
           setTimeout(() => {
             setLigand(data.data);
             setTarget(prev => ({ ...prev, activity_columns: data.activity_columns, pre_processed: true }));
@@ -107,6 +336,16 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         case 'tanimoto':
           pushNotification({ id, message: "Tanimoto Similarity Calculation Done!", type: 'success', done: true });
           setLigand(data.data);
+          break;
+
+        case 'substructure_search':
+          setLigand(data.results);
+          pushNotification({
+            id,
+            message: `Found ${data.results.length} matching substructures`,
+            type: 'success',
+            done: true,
+          });
           break;
 
         case 'scaffold_network':
@@ -131,7 +370,6 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     rdkit.addEventListener('message', handler);
     return () => rdkit.removeEventListener('message', handler);
   }, [rdkit]);
-
 
   const pyodideHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
   pyodideHandlerRef.current = (event: MessageEvent) => {
@@ -159,6 +397,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     } else if (message.func === "ml") {
       pushNotification({ id: message.id, message: "Model Training Done! Going to Results Page...", type: 'success', done: true });
       setTarget(prev => ({ ...prev, machine_learning: message.results }));
+      setClassicalModelReady(true);
     }
     // ml-screen and other local operations are handled by their respective pages
   };
@@ -168,57 +407,6 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     const handler = (event: MessageEvent) => pyodideHandlerRef.current?.(event);
     pyodide.addEventListener('message', handler);
     return () => pyodide.removeEventListener('message', handler);
-  }, [pyodide]);
-
-      if (typeof message === "string") {
-        pushNotification({ message });
-        return;
-      }
-
-      if (message.func === "dim_red") {
-        if (message.opts === 2 || message.opts === 3) {
-          setTarget({
-            ...targetRef.current,
-            tsne_explained_variance: message.explained_variance,
-          });
-          pushNotification({
-            id: message.id,
-            message: "tSNE Processing Done!",
-            type: "success",
-            done: true,
-          });
-          setLigand((prev) =>
-            prev.map((lig, i) => ({ ...lig, tsne: message.result[i] })),
-          );
-        } else {
-          pushNotification({
-            id: message.id,
-            message: "PCA Processing Done!",
-            type: "success",
-            done: true,
-          });
-          setTarget({
-            ...targetRef.current,
-            pca_explained_variance: message.explained_variance,
-          });
-          setLigand((prev) =>
-            prev.map((lig, i) => ({ ...lig, pca: message.result[i] })),
-          );
-        }
-        return;
-      }
-
-      if (message.func === "ml") {
-        pushNotification({
-          id: message.id,
-          message: "Model Training Done! Going to Results Page...",
-          type: "success",
-          done: true,
-        });
-        setTarget({ ...targetRef.current, machine_learning: message.results });
-        setClassicalModelReady(true); // ← add this
-      }
-    };
   }, [pyodide]);
 
   // ── Render ─────────────────────────────────────────────────────────────────

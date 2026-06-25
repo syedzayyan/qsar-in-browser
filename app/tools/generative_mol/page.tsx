@@ -180,12 +180,18 @@ export default function GenerativeMol() {
       {/* ── Header ── */}
       <div>
         <Group justify="apart">
-          <Title order={1}>Generative Chemistry</Title>
+          <Group gap="xs" align="center">
+            <Title order={1}>Generative Chemistry</Title>
+            <Badge color="yellow" variant="filled">
+              Beta
+            </Badge>
+          </Group>
           <Badge color={statusColor}>{gaStatus}</Badge>
         </Group>
         <Text size="sm" c="dimmed">
           Genetic Algorithm for molecule optimisation using RDKit.js + ML
-          scoring
+          scoring. This is a new, experimental feature — results and APIs may
+          change.
         </Text>
       </div>
 

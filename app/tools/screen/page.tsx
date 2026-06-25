@@ -294,7 +294,103 @@ export default function Screen() {
       {/* ── Results ── */}
       {hasPredictions && preds.length > 0 && (
         <>
-          <Histogram data={preds} toolTipData={screenData}/>
+          <Group justify="space-between" px="md" mb="xs">
+            <Text size="sm" c="dimmed">
+              {sortedScreenData.length} molecules screened
+            </Text>
+            <Button
+              size="xs"
+              variant="subtle"
+              color="gray"
+              onClick={resetScreening}
+            >
+              Clear & screen again
+            </Button>
+          </Group>
+          <Paper withBorder p="md" radius="md" mb="md" mx="md">
+            <Group align="flex-start" gap="xl" wrap="wrap">
+              {isClassification && pieData.length > 0 && (
+                <Group align="center" gap="xl">
+                  <Stack gap="xs">
+                    <Text fw={600} size="sm">
+                      Classification Threshold
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      predictions[0] ≥ threshold →{" "}
+                      <Badge color="green" size="xs" component="span">
+                        Active
+                      </Badge>{" "}
+                      — below →{" "}
+                      <Badge color="red" size="xs" component="span">
+                        Inactive
+                      </Badge>
+                    </Text>
+                    <NumberInput
+                      value={screenThreshold}
+                      onChange={(v) =>
+                        setScreenThreshold(typeof v === "number" ? v : 0.5)
+                      }
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      decimalScale={2}
+                      style={{ width: 160 }}
+                    />
+                  </Stack>
+                  <PieChart data={pieData} width={200} height={200} />
+                  <Stack gap={6}>
+                    <Group gap={6}>
+                      <Badge color="green" variant="filled">
+                        {activeCount}
+                      </Badge>
+                      <Text size="sm">
+                        Active (
+                        {total > 0
+                          ? ((activeCount / total) * 100).toFixed(1)
+                          : 0}
+                        %)
+                      </Text>
+                    </Group>
+                    <Group gap={6}>
+                      <Badge color="red" variant="filled">
+                        {inactiveCount}
+                      </Badge>
+                      <Text size="sm">
+                        Inactive (
+                        {total > 0
+                          ? ((inactiveCount / total) * 100).toFixed(1)
+                          : 0}
+                        %)
+                      </Text>
+                    </Group>
+                    <Text size="xs" c="dimmed">
+                      Total: {total} compounds
+                    </Text>
+                    {Math.abs(activeCount - inactiveCount) / total > 0.3 && (
+                      <Text size="xs" c="orange">
+                        ⚠ Imbalanced predictions
+                      </Text>
+                    )}
+                  </Stack>
+                </Group>
+              )}
+
+              {!isClassification && preds.length > 0 && (
+                <Histogram
+                  data={preds}
+                  toolTipData={sortedScreenData.map((row) => ({
+                    ...row,
+                    id:
+                      row.id ??
+                      row.drugbank_id ??
+                      row.broad_id ??
+                      row.name ??
+                      "—",
+                  }))}
+                />
+              )}
+            </Group>
+          </Paper>
           <br />
           <Button onClick={downloadCsv}>
             Download Predictions in CSV Format

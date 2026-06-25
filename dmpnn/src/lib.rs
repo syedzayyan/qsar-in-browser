@@ -1,5 +1,5 @@
 use candle_core::{DType, Device, Result, Tensor};
-use candle_nn::{linear, ops::sigmoid, Linear, Module, VarBuilder, VarMap};
+use candle_nn::{linear, linear_no_bias, ops::sigmoid, Linear, Module, VarBuilder, VarMap};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
@@ -123,19 +123,23 @@ impl DMPNNConv {
     pub fn new(cfg: &DMPNNConfig, vs: VarBuilder) -> Result<Self> {
         let input_dim = cfg.atom_dim + cfg.bond_dim;
         Ok(Self {
-            w_i: linear(input_dim, cfg.hidden_dim, vs.pp("w_i"))?,
-            w_h: linear(cfg.hidden_dim, cfg.hidden_dim, vs.pp("w_h"))?,
+            // Matches Chemprop's BondMessagePassing.setup(): W_i/W_h have no bias
+            // (bias=False default); W_o always has a bias (hardcoded in Chemprop).
+            w_i: linear_no_bias(input_dim, cfg.hidden_dim, vs.pp("w_i"))?,
+            w_h: linear_no_bias(cfg.hidden_dim, cfg.hidden_dim, vs.pp("w_h"))?,
             w_o: linear(cfg.atom_dim + cfg.hidden_dim, cfg.hidden_dim, vs.pp("w_o"))?,
             depth: cfg.depth,
         })
     }
 
-    pub fn init_edge_state(&self, graph: &MolGraph) -> Result<Tensor> {
+    /// Raw (pre-activation) initial edge state — matches Chemprop's `initialize()`,
+    /// which returns `W_i(...)` un-activated; the caller applies `tau` separately.
+    pub fn init_edge_state_raw(&self, graph: &MolGraph) -> Result<Tensor> {
         let src_feats = graph
             .atom_features
             .index_select(&graph.edge_index.get(0)?, 0)?;
         let edge_in = Tensor::cat(&[&src_feats, &graph.edge_attr], 1)?;
-        self.w_i.forward(&edge_in)?.relu()
+        self.w_i.forward(&edge_in)
     }
 
     pub fn step(
@@ -240,13 +244,16 @@ impl DMPNN {
 
     pub fn forward(&self, graph: &MolGraph) -> Result<Tensor> {
         let rev = build_rev_edge_index(&graph.edge_index, graph.n_dir_edges)?;
-        let h0 = self.conv.init_edge_state(graph)?;
-        let mut h = h0.clone();
-        for _ in 0..self.conv.depth {
-            h = self.conv.step(&h, &h0, graph, &rev)?;
+        // Chemprop: H_0 = W_i(...) (raw); H = tau(H_0) is one activation "round",
+        // then `depth - 1` further message+update rounds follow.
+        let h0_raw = self.conv.init_edge_state_raw(graph)?;
+        let mut h = h0_raw.relu()?;
+        for _ in 1..self.conv.depth {
+            h = self.conv.step(&h, &h0_raw, graph, &rev)?;
         }
         let node_h = self.conv.readout_nodes(&h, graph)?;
-        let graph_h = node_h.sum(0)?.unsqueeze(0)?;
+        // MeanAggregation (Chemprop default): average atom hidden states, not sum.
+        let graph_h = (node_h.sum(0)? / graph.n_atoms as f64)?.unsqueeze(0)?;
         let out = self
             .ffn
             .forward(&graph_h, self.cfg.task_type == "classification")?;

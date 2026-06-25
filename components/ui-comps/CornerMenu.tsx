@@ -1,17 +1,34 @@
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import LigandContext from "../../context/LigandContext";
 import TargetContext from "../../context/TargetContext";
-import { Button, Group, Modal, NavLink } from "@mantine/core";
+import { Badge, Button, Group, Modal, NavLink } from "@mantine/core";
 import Link from "next/link";
 import { useDisclosure } from "@mantine/hooks";
 import { readFpSettings } from "../utils/get_fp_settings";
+import { useMLResults } from "../../context/MLResultsContext";
+import NotificationContext from "../../context/NotificationContext";
+import RDKitContext from "../../context/RDKitContext";
+import PyodideContext from "../../context/PyodideContext";
+import ReportSetupModal from "./ReportSetupModal";
 
 export default function CornerMenu() {
   const [fileName, setFileName] = useState("Untitled");
   const [opened, { open, close }] = useDisclosure(false);
+  const [reportModalOpened, { open: openReportModal, close: closeReportModal }] =
+    useDisclosure(false);
 
   const { ligand } = useContext(LigandContext);
   const { target } = useContext(TargetContext);
+  const { pushNotification } = useContext(NotificationContext);
+  const { rdkit } = useContext(RDKitContext);
+  const { pyodide } = useContext(PyodideContext);
+  const ml = useMLResults();
+
+  // The report-setup flow runs as one long async sequence across several
+  // worker round-trips, so it needs the freshest target/ligand/ml on every
+  // step rather than whatever was captured when "Generate Report" was clicked.
+  const latestRef = useRef({ target, ligand, ml });
+  latestRef.current = { target, ligand, ml };
 
   function saveWork(e) {
     e.preventDefault();
@@ -41,6 +58,11 @@ export default function CornerMenu() {
             <Button onClick={() => open()}>
               Save Work{" "}
               <img height="30px" width="30px" src="/save_disk.svg"></img>
+            </Button>
+          )}
+          {target.pre_processed && (
+            <Button onClick={openReportModal} variant="light">
+              Generate Report
             </Button>
           )}
         </Group>
@@ -104,7 +126,14 @@ export default function CornerMenu() {
               <NavLink
                 component={Link}
                 href="/tools/ml/dmpnn"
-                label="Graph Machine Learning (Chemprop)"
+                label={
+                  <Group gap="xs" wrap="nowrap">
+                    <span>Graph Machine Learning (Chemprop)</span>
+                    <Badge color="yellow" variant="filled" size="xs">
+                      Beta
+                    </Badge>
+                  </Group>
+                }
               />
             </NavLink>
 
@@ -118,7 +147,14 @@ export default function CornerMenu() {
               <NavLink
                 component={Link}
                 href="/tools/generative_mol"
-                label="Generate New Molecules"
+                label={
+                  <Group gap="xs" wrap="nowrap">
+                    <span>Generate New Molecules</span>
+                    <Badge color="yellow" variant="filled" size="xs">
+                      Beta
+                    </Badge>
+                  </Group>
+                }
               />
             </NavLink>
 
@@ -143,6 +179,18 @@ export default function CornerMenu() {
                 />
               </form>
             </Modal>
+
+            <ReportSetupModal
+              opened={reportModalOpened}
+              onClose={closeReportModal}
+              target={target}
+              ligand={ligand}
+              ml={ml}
+              rdkit={rdkit}
+              pyodide={pyodide}
+              getLatest={() => latestRef.current}
+              pushNotification={pushNotification}
+            />
           </>
         )}
       </Group>

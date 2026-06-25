@@ -1,4 +1,22 @@
 # pretrain.py
+#
+# Trains a real Chemprop model and exports weights the browser-side Rust/WASM
+# DMPNN (src/lib.rs) can load via `model_load_weights`. For the exported
+# safetensors to actually be usable in-browser, this script must keep using
+# Chemprop's *defaults* for everything that affects parameter shapes or
+# semantics:
+#   - BondMessagePassing's default atom/bond featurizer (MultiHotAtomFeaturizer
+#     .v2(), 72-dim; MultiHotBondFeaturizer(), 14-dim) — i.e. don't pass a
+#     custom featurizer to MoleculeDatapoint/MoleculeDataset.
+#   - MeanAggregation (not Sum/Norm/Attentive) — the Rust model averages atom
+#     hidden states to match.
+#   - depth=3, d_h=300 for BondMessagePassing; hidden_dim=300, n_layers=2 for
+#     the FFN — these must match DMPNNConfig's defaults in lib.rs.
+#   - batch_norm=False (MPNN default) and no extra atom/bond/molecule
+#     descriptors — the Rust model has no batch-norm or descriptor inputs.
+# A chemprop checkpoint trained any other way (different depth/hidden size,
+# a custom featurizer, extra descriptors, batch norm, etc.) will not load
+# correctly even if the safetensors keys remap successfully.
 
 import os
 import random

@@ -86,7 +86,15 @@ export default function CompoundGetter() {
       )
     );
 
-    setLigandSearch(true);
+    // Normalise fields — downstream pre-processing keys off `id` and the unit column
+    const normalised = results.map((x: any) => ({
+      ...x,
+      [unit]: x.standard_value,
+      id: x.molecule_chembl_id,
+      standard_value: undefined,
+    }));
+
+    setLocalLigands(normalised);
     setLoading(false);
     setFetchComplete(true);
   }

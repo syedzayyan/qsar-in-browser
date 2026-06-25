@@ -171,6 +171,9 @@ export default function DMPNNPage() {
         <Badge color="grape" variant="light">
           Graph Neural Network
         </Badge>
+        <Badge color="yellow" variant="filled">
+          Beta
+        </Badge>
         {hasResults && (
           <Button
             variant="light"
