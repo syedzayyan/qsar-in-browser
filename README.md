@@ -35,3 +35,19 @@ Entirely! As a static web application using WASM and JS, all code runs in the br
 - Syed Zayyan Masud: Original developer and the brains behind the entire codebase.
 - Professor Graham Ladds: Academic supervisor during original MPhil project at University of Cambridge.
 - Dr Theo Redfern-Nichols: Mentor during MPhil project, improved design, user-experience and explanations of techniques. 
+
+### How to Cite
+If you use QITB in your research, please cite:
+
+> Masud, S. Z.; Redfern-Nichols, T.; Rahman, T.; Ladds, G. QSAR in the Browser: An Interactive Cheminformatics Web Application. *J. Chem. Inf. Model.* **2026**. DOI: [10.1021/acs.jcim.6c01010](https://doi.org/10.1021/acs.jcim.6c01010)
+
+```bibtex
+@article{masud2026qitb,
+  title   = {QSAR in the Browser: An Interactive Cheminformatics Web Application},
+  author  = {Masud, Syed Zayyan and Redfern-Nichols, Theo and Rahman, Taufiq and Ladds, Graham},
+  journal = {Journal of Chemical Information and Modeling},
+  year    = {2026},
+  doi     = {10.1021/acs.jcim.6c01010},
+  publisher = {American Chemical Society (ACS)}
+}
+```
