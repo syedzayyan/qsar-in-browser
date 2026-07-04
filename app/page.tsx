@@ -128,6 +128,31 @@ export default function IndexPage() {
             maw={1000}
           />
         </Center> */}
+
+        {/* How to Cite */}
+        <Stack align="center" mt="6rem" gap="xs">
+          <Title ta="center" order={3} size="h4" fw={600}>
+            How to Cite
+          </Title>
+          <Text ta="center" size="sm" c="dimmed" maw={700}>
+            Masud, S. Z.; Redfern-Nichols, T.; Rahman, T.; Ladds, G. QSAR in
+            the Browser: An Interactive Cheminformatics Web Application.{" "}
+            <Text span fs="italic" inherit>
+              J. Chem. Inf. Model.
+            </Text>{" "}
+            <Text span fw={600} inherit>
+              2026
+            </Text>
+            . DOI:{" "}
+            <Anchor
+              href="https://doi.org/10.1021/acs.jcim.6c01010"
+              size="sm"
+              underline="hover"
+            >
+              10.1021/acs.jcim.6c01010
+            </Anchor>
+          </Text>
+        </Stack>
       </Container>
     </>
   );
