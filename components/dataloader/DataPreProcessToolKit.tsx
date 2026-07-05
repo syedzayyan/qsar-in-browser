@@ -143,8 +143,15 @@ const DataPreProcessToolKit = () => {
   const { rdkit }  = useContext(RDKitContext);
   const { target } = useContext(TargetContext);
 
+  // Predicted-activity values (e.g. from the Broad Hub screening hand-off)
+  // aren't IC50-like potencies, so the log10 transform would mangle/drop them.
   const { control, register, handleSubmit, watch } =
-    useForm<FingerPrintSettings>({ defaultValues: FORM_DEFAULTS });
+    useForm<FingerPrintSettings>({
+      defaultValues: {
+        ...FORM_DEFAULTS,
+        log10: target.data_source !== "broad_predicted",
+      },
+    });
 
   const fpOption = watch("fingerprint");
   const fpDef    = FP_REGISTRY[fpOption];
@@ -185,7 +192,15 @@ const DataPreProcessToolKit = () => {
   const handleChooseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selection === "express") {
-      processData(null);
+      // Mirrors the worker's own fallback defaults (public/workers/rdkit.mjs)
+      // — passed explicitly rather than `null` so the log10 override below
+      // still applies to predicted-activity data in Express mode too.
+      processData({
+        ...FORM_DEFAULTS,
+        fingerprint: "maccs",
+        nBits: 1024,
+        log10: target.data_source !== "broad_predicted",
+      });
     } else {
       setStage("advanced");
     }

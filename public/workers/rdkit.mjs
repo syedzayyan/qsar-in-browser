@@ -535,6 +535,19 @@ function stripSalts(mol_data, RDKit) {
   });
 }
 
+// Treat activity values as matching if they're numerically close rather than
+// requiring byte-identical equality — real assay data is rarely bit-exact
+// across repeat/duplicate measurements of the same compound.
+const ACTIVITY_MATCH_RELATIVE_TOLERANCE = 1e-3;
+function activityValuesMatch(a, b) {
+  if (a === b) return true;
+  const na = Number(a);
+  const nb = Number(b);
+  if (!Number.isFinite(na) || !Number.isFinite(nb)) return false;
+  const scale = Math.max(Math.abs(na), Math.abs(nb), 1e-9);
+  return Math.abs(na - nb) / scale <= ACTIVITY_MATCH_RELATIVE_TOLERANCE;
+}
+
 // ── Step 3: Resolve stereochemistry ───────────────────────────────────────────
 function resolveStereochemistry(mol_data, activity_columns, RDKit) {
   // get_smiles accepts details_json — pass doIsomericSmiles: false to strip stereo
@@ -566,7 +579,9 @@ function resolveStereochemistry(mol_data, activity_columns, RDKit) {
       continue;
     }
     const allMatch = group.every((lig) =>
-      activity_columns.every((col) => lig[col] === group[0][col]),
+      activity_columns.every((col) =>
+        activityValuesMatch(lig[col], group[0][col]),
+      ),
     );
     if (allMatch) {
       result.push({ ...first, canonical_smiles: stripped });

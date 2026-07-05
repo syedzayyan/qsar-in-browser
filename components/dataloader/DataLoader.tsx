@@ -6,9 +6,10 @@ import { useContext, useEffect, useState } from "react";
 import LigandContext from "../../context/LigandContext";
 import { useRouter } from "next/navigation";
 import ErrorContext from "../../context/ErrorContext";
-import { Tabs } from '@mantine/core';
+import { Tabs, Badge, Group } from '@mantine/core';
 import SDFFileLoader from "./SDFFileLoader";
 import TargetContext from "../../context/TargetContext";
+import PubChemGetter from "./PubChemGetter";
 
 export default function DataLoader() {
   const { ligand, setLigand } = useContext(LigandContext);
@@ -68,6 +69,14 @@ export default function DataLoader() {
           <Tabs.Tab value="gallery">
             Online Curated Data
           </Tabs.Tab>
+          <Tabs.Tab value="pubchem">
+            <Group gap="xs" wrap="nowrap">
+              <span>PubChem</span>
+              <Badge color="yellow" variant="filled" size="xs">
+                Beta
+              </Badge>
+            </Group>
+          </Tabs.Tab>
           <Tabs.Tab value="messages" >
             Your Data
           </Tabs.Tab>
@@ -78,6 +87,10 @@ export default function DataLoader() {
 
         <Tabs.Panel value="gallery">
           <TargetGetter />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="pubchem">
+          <PubChemGetter />
         </Tabs.Panel>
 
         <Tabs.Panel value="messages">

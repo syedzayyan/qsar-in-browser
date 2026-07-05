@@ -62,7 +62,12 @@ export default function CornerMenu() {
           )}
           {target.pre_processed && (
             <Button onClick={openReportModal} variant="light">
-              Generate Report
+              <Group gap="xs" wrap="nowrap">
+                <span>Generate Report</span>
+                <Badge color="yellow" variant="filled" size="xs">
+                  Beta
+                </Badge>
+              </Group>
             </Button>
           )}
         </Group>

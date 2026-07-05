@@ -56,6 +56,18 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     if (ligand.length > 1) pushNotification({ message: "Data Loading Done!" });
   }, [ligand]);
 
+  // A dataset handed off from another tab (e.g. "Open Predictions in New
+  // Tab" on the Screen page) is read synchronously by TargetProvider /
+  // LigandProvider's lazy initializers (context/TargetContext.tsx,
+  // context/LigandContext.tsx) — this just clears it after so a later full
+  // reload of this tab doesn't re-apply stale data. A plain useEffect (not
+  // the lazy initializers) is the right place for this removal: effects are
+  // fine to fire more than once (idempotent here), whereas the initializers
+  // must stay pure since Strict Mode double-invokes them in development.
+  useEffect(() => {
+    localStorage.removeItem("qitb_transfer_payload");
+  }, []);
+
   useEffect(() => {
     const timers = notifications
       .filter(n => n.autoClose !== false)
@@ -317,7 +329,7 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
               pushNotification({
                 message: `Cleaning removed ${droppedTotal} of ${r.startCount} compounds — ${parts.join(", ")}.`,
                 type: 'info',
-                autoClose: false,
+                duration: 18000,
               });
             }
           }

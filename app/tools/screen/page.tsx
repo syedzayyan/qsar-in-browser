@@ -183,6 +183,38 @@ export default function Screen() {
     sortedScreenData.length > 0 &&
     sortedScreenData[0].predictions !== undefined;
 
+  const isBroadHubData = sortedScreenData[0]?.broad_id !== undefined;
+
+  // ── Hand the predicted Broad dataset off to a new tab ──────────────────────
+  // window.open() starts a fresh JS context, so we can't pass React context
+  // state directly — stash a small payload in localStorage and let the new
+  // tab's DashboardInner (app/tools/layout.tsx) pick it up on mount. The
+  // fingerprint array is dropped (would blow past localStorage's quota at
+  // ~7600 rows) — the new tab re-generates it via the normal preprocess step.
+  const openPredictionsInNewTab = () => {
+    const payload = {
+      ligand_data: sortedScreenData.map((r) => ({
+        id: r.broad_id,
+        name: r.name,
+        canonical_smiles: r.canonical_smiles,
+        predicted_activity: Array.isArray(r.predictions)
+          ? r.predictions[0]
+          : r.predictions,
+      })),
+      target_data: {
+        target_name: "Broad Repurposing Hub — Predictions",
+        data_source: "broad_predicted",
+        activity_columns: ["predicted_activity"],
+        pre_processed: false,
+        scaffCores: [],
+        scaffold_network: undefined,
+        machine_learning_inference_type: target.machine_learning_inference_type,
+      },
+    };
+    localStorage.setItem("qitb_transfer_payload", JSON.stringify(payload));
+    window.open("/tools/preprocess", "_blank");
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="tools-container">
@@ -298,14 +330,25 @@ export default function Screen() {
             <Text size="sm" c="dimmed">
               {sortedScreenData.length} molecules screened
             </Text>
-            <Button
-              size="xs"
-              variant="subtle"
-              color="gray"
-              onClick={resetScreening}
-            >
-              Clear & screen again
-            </Button>
+            <Group gap="xs">
+              {isBroadHubData && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  onClick={openPredictionsInNewTab}
+                >
+                  Open Predictions in New Tab
+                </Button>
+              )}
+              <Button
+                size="xs"
+                variant="subtle"
+                color="gray"
+                onClick={resetScreening}
+              >
+                Clear & screen again
+              </Button>
+            </Group>
           </Group>
           <Paper withBorder p="md" radius="md" mb="md" mx="md">
             <Group align="flex-start" gap="xl" wrap="wrap">
