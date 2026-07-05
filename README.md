@@ -2,6 +2,11 @@
 
 <img src="https://github.com/syedzayyan/qsar-in-browser/blob/main/public/logo.svg" alt="image" width="300" width="300" height="auto">
 
+### 🌐 Live Demo
+
+- **Main website:** https://qsar.syedzayyan.com/
+- **Beta version:** https://qsar-in-browser.vercel.app/
+
 ### What is QITB?
 Quantitative structure-activity relationship (QSAR) in the browser (QITB) is a browser-based platform for analysing small molecule data. It is designed to make cheminformatic techniques accessible to a wider range of researchers, scientists and analysts. We believe QSAR analysis should be as accessible as possible, for academia, industry, students and anyone with a general interest in small molecules! QSAR in the browser (QITB) is our attempt to make QSAR accessible to all. 
 
