@@ -23,6 +23,11 @@ export default function RootLayout({
         <title>QSAR In The Browser</title>
         <link rel="shortcut icon" href="favicon.ico" />
         <ColorSchemeScript />
+        {/* Fakes COOP/COEP response headers so the page becomes cross-origin
+            isolated on GitHub Pages (which can't set custom headers). Needed
+            for SharedArrayBuffer, which the DMPNN wasm module's rayon thread
+            pool depends on. */}
+        <script src="/coi-serviceworker.js" />
       </head>
       <body>
         <MantineProvider defaultColorScheme="dark">

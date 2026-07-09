@@ -1611,6 +1611,8 @@ async function loadDMPNN() {
         // ✅ dynamic import instead of importScripts
         const {
           default: initDMPNN,
+          initThreadPool,
+          dmpnn_threads_ready,
           model_new,
           model_free,
           model_train_step,
@@ -1622,6 +1624,31 @@ async function loadDMPNN() {
         } = await import("/dmpnn_rust/dmpnn_wasm.js");
 
         await initDMPNN({ module_or_path: dmpnnWasmUrl });
+
+        // Rayon needs a Web Worker pool backed by SharedArrayBuffer, which
+        // only exists when the page is cross-origin isolated. Skip quietly
+        // otherwise — every wasm training call falls back to sequential
+        // execution on its own (see `parallel_enabled` in lib.rs).
+        if (self.crossOriginIsolated) {
+          try {
+            await initThreadPool(navigator.hardwareConcurrency || 4);
+            dmpnn_threads_ready();
+            self._dmpnnNJobs = navigator.hardwareConcurrency || 4;
+            notify({
+              message: `DMPNN thread pool ready (${self._dmpnnNJobs} threads)`,
+            });
+          } catch (err) {
+            self._dmpnnNJobs = 1;
+            notify({
+              message: `DMPNN thread pool init failed, running sequentially: ${err?.message || err}`,
+            });
+          }
+        } else {
+          self._dmpnnNJobs = 1;
+          notify({
+            message: "DMPNN running sequentially (page is not cross-origin isolated)",
+          });
+        }
 
         notify({ message: "DMPNN WASM Loaded" });
         resolve({
@@ -1770,6 +1797,7 @@ async function runEpoch(
       flat_edge_attr,
       batch_labels,
       lr,
+      config.n_jobs ?? self._dmpnnNJobs ?? 1,
     );
 
     const count = graphs.length;

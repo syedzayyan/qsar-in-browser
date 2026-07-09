@@ -1,8 +1,33 @@
 use candle_core::{DType, Device, Result, Tensor};
+use candle_core::backprop::GradStore;
 use candle_nn::{linear, linear_no_bias, ops::sigmoid, Linear, Module, VarBuilder, VarMap};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use wasm_bindgen::prelude::*;
+
+// ---------------------------------------------------------------------------
+// Thread pool — re-export wasm-bindgen-rayon's initializer as `initThreadPool`.
+// Rayon's parallel iterators panic if used before a Web Worker pool backs
+// them, so `dmpnn_threads_ready()` is a flag the JS side flips only after
+// `initThreadPool(...)` has resolved; every parallel path below checks it and
+// falls back to a plain sequential iterator otherwise (e.g. on hosts without
+// cross-origin isolation, where SharedArrayBuffer/threads aren't available).
+pub use wasm_bindgen_rayon::init_thread_pool;
+
+static POOL_READY: AtomicBool = AtomicBool::new(false);
+
+#[wasm_bindgen]
+pub fn dmpnn_threads_ready() {
+    POOL_READY.store(true, Ordering::Relaxed);
+}
+
+/// Whether a given `n_jobs` request should actually run in parallel.
+/// `n_jobs == 1` always means sequential; anything else needs a live pool.
+fn parallel_enabled(n_jobs: i32) -> bool {
+    n_jobs != 1 && POOL_READY.load(Ordering::Relaxed)
+}
 
 // ---------------------------------------------------------------------------
 // Config
@@ -306,6 +331,126 @@ fn sgd_step(varmap: &VarMap, grads: &candle_core::backprop::GradStore, lr: f64) 
 }
 
 // ---------------------------------------------------------------------------
+// Parallel gradient computation — one rayon task per molecule computes its
+// own forward+backward pass independently (reading the shared weights
+// immutably), then gradients are averaged and applied to the weights once,
+// sequentially, so concurrent tasks never race on the same Var.
+// ---------------------------------------------------------------------------
+struct MolGrad {
+    loss: f32,
+    grads: GradStore,
+}
+
+fn compute_mol_grad(
+    model: &DMPNN,
+    graph: &MolGraph,
+    label: f32,
+    device: &Device,
+    is_cls: bool,
+) -> Option<MolGrad> {
+    let pred = model.forward(graph).ok()?;
+    let target = Tensor::from_slice(&[label], (1,), device).ok()?;
+    let loss = if is_cls {
+        bce_loss(&pred, &target)
+    } else {
+        mse_loss(&pred, &target)
+    }
+    .ok()?;
+    let grads = loss.backward().ok()?;
+    let loss = loss.to_scalar::<f32>().ok()?;
+    Some(MolGrad { loss, grads })
+}
+
+/// Average a batch of per-molecule gradients and apply them once. Mirrors
+/// `sgd_step`'s clip-then-scale update, just averaged across `grads` first.
+fn apply_averaged_grads(varmap: &VarMap, grads: &[GradStore], lr: f64) -> Result<()> {
+    if grads.is_empty() {
+        return Ok(());
+    }
+    let n = grads.len() as f64;
+    let mut data = varmap.data().lock().unwrap();
+    for (_name, var) in data.iter_mut() {
+        let t = var.as_tensor();
+        let mut sum: Option<Tensor> = None;
+        for g in grads {
+            if let Some(grad) = g.get(t) {
+                sum = Some(match sum {
+                    Some(s) => (s + grad)?,
+                    None => grad.clone(),
+                });
+            }
+        }
+        if let Some(sum) = sum {
+            let avg = (sum / n)?;
+            let clipped = avg.clamp(-1.0f32, 1.0f32)?;
+            let scaled = clipped.affine(lr, 0.0)?;
+            var.set(&(t - scaled)?)?;
+        }
+    }
+    Ok(())
+}
+
+/// Train over `order` (indices into `graphs`/`labels`), chunked so each chunk's
+/// forward+backward passes run in parallel (when the thread pool is ready and
+/// `n_jobs != 1`) and its gradients are applied as one averaged update —
+/// i.e. real mini-batch SGD with batch size = chunk size, rather than one
+/// sequential online update per molecule.
+///
+/// `n_jobs`: `1` forces sequential, per-molecule updates (matches the
+/// original behaviour exactly); `<= 0` uses the whole live thread pool as the
+/// chunk size; `> 1` uses that as an explicit chunk/thread count.
+fn train_molecules(
+    varmap: &VarMap,
+    model: &DMPNN,
+    graphs: &[MolGraph],
+    labels: &[f32],
+    order: &[usize],
+    device: &Device,
+    is_cls: bool,
+    lr: f64,
+    n_jobs: i32,
+) -> f32 {
+    let parallel = parallel_enabled(n_jobs);
+    let chunk_size = if !parallel {
+        1
+    } else if n_jobs > 1 {
+        n_jobs as usize
+    } else {
+        rayon::current_num_threads().max(1)
+    };
+
+    let mut total_loss = 0f32;
+    let mut total_count = 0usize;
+
+    for chunk in order.chunks(chunk_size.max(1)) {
+        let results: Vec<MolGrad> = if parallel && chunk.len() > 1 {
+            chunk
+                .par_iter()
+                .filter_map(|&i| compute_mol_grad(model, &graphs[i], labels[i], device, is_cls))
+                .collect()
+        } else {
+            chunk
+                .iter()
+                .filter_map(|&i| compute_mol_grad(model, &graphs[i], labels[i], device, is_cls))
+                .collect()
+        };
+        if results.is_empty() {
+            continue;
+        }
+        total_loss += results.iter().map(|r| r.loss).sum::<f32>();
+        total_count += results.len();
+        let grad_stores: Vec<GradStore> = results.into_iter().map(|r| r.grads).collect();
+        let _ = apply_averaged_grads(varmap, &grad_stores, lr);
+    }
+
+    if total_count == 0 {
+        f32::NAN
+    } else {
+        total_loss / total_count as f32
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Weight init
 // ---------------------------------------------------------------------------
 fn kaiming_init(shape: &[usize], device: &Device) -> Result<Tensor> {
@@ -461,6 +606,12 @@ pub fn model_train_step(
 }
 
 // FIXED: removed double forward, fixed edge_index slicing, ? in Result closure
+//
+// `n_jobs`: 1 = sequential per-molecule SGD (original behaviour); anything
+// else = mini-batches of `n_jobs` molecules computed in parallel via rayon
+// and applied as one averaged gradient step (falls back to sequential
+// automatically if the wasm thread pool was never started — see
+// `parallel_enabled`).
 #[wasm_bindgen]
 pub fn model_train_step_batch(
     handle: u64,
@@ -471,6 +622,7 @@ pub fn model_train_step_batch(
     mol_edge_attr: &[f32],
     labels: &[f32],
     lr: f64,
+    n_jobs: i32,
 ) -> f32 {
     let h = unsafe { &mut *(handle as *mut ModelHandle) };
     let run = || -> Result<f32> {
@@ -481,8 +633,9 @@ pub fn model_train_step_batch(
             atom_offsets[i + 1] = atom_offsets[i] + mol_n_atoms[i];
             edge_offsets[i + 1] = edge_offsets[i] + mol_n_dir_edges[i];
         }
+        let total_edges = edge_offsets[n_mols];
 
-        let mut total_loss = 0f32;
+        let mut graphs = Vec::with_capacity(n_mols);
         for mol_i in 0..n_mols {
             // FIXED: atom slice = offset * atom_dim (flat row-major)
             let a_start = atom_offsets[mol_i] * h.cfg.atom_dim;
@@ -495,10 +648,6 @@ pub fn model_train_step_batch(
             // but JS sends it as [all_srcs | all_dsts]; Rust sees a flat (2*total) slice.
             // We extract via: row0 = [0..total_edges], row1 = [total_edges..2*total_edges]
             // so per-mol: row0[edge_offsets[i]..edge_offsets[i+1]] etc.
-            // The simplest layout for Rust: just pass the raw flat slice
-            // and compute per-mol as a sub-tensor. We can't easily do that
-            // without building the tensor first, so we rebuild from two row slices:
-            let total_edges = edge_offsets[n_mols];
             let ei_row0_start = edge_offsets[mol_i];
             let ei_row0_end = edge_offsets[mol_i + 1];
             let ei_row1_start = total_edges + edge_offsets[mol_i];
@@ -515,7 +664,7 @@ pub fn model_train_step_batch(
                 *v -= atom_off;
             }
 
-            let graph = MolGraph::from_slices(
+            graphs.push(MolGraph::from_slices(
                 &mol_atom_features[a_start..a_end],
                 (mol_n_atoms[mol_i], h.cfg.atom_dim),
                 &ei_mol,
@@ -523,20 +672,14 @@ pub fn model_train_step_batch(
                 &mol_edge_attr[ea_start..ea_end],
                 (n_e, h.cfg.bond_dim),
                 &h.device,
-            )?;
-
-            let pred = h.model.forward(&graph)?;
-            let target = Tensor::from_slice(&[labels[mol_i]], (1,), &h.device)?;
-            let loss = if h.cfg.task_type == "classification" {
-                bce_loss(&pred, &target)?
-            } else {
-                mse_loss(&pred, &target)?
-            };
-            let grads = loss.backward()?;
-            sgd_step(&h.varmap, &grads, lr)?;
-            total_loss += loss.to_scalar::<f32>().unwrap_or(0.0);
+            )?);
         }
-        Ok(total_loss / n_mols as f32)
+
+        let order: Vec<usize> = (0..n_mols).collect();
+        let is_cls = h.cfg.task_type == "classification";
+        Ok(train_molecules(
+            &h.varmap, &h.model, &graphs, labels, &order, &h.device, is_cls, lr, n_jobs,
+        ))
     };
     run().unwrap_or(f32::NAN)
 }
@@ -635,6 +778,7 @@ pub fn model_train_kfold(
     n_splits: usize,
     epochs_per_fold: usize,
     lr: f64,
+    n_jobs: i32,
 ) -> JsValue {
     let h = unsafe { &mut *(handle as *mut ModelHandle) };
     let n_mols = mol_n_atoms.len();
@@ -682,6 +826,14 @@ pub fn model_train_kfold(
         )
     };
 
+    // Graphs don't depend on the fold split, so build them once up front
+    // instead of every epoch of every fold — also lets `train_molecules`
+    // borrow them for parallel forward+backward passes.
+    let all_graphs: Vec<MolGraph> = (0..n_mols)
+        .map(|mol_i| build_graph(mol_i, &h.device))
+        .collect::<Result<_>>()
+        .expect("graph build failed");
+
     let fold_size = n_mols / n_splits;
     let mut fold_metrics: Vec<Vec<f32>> = Vec::new();
     let mut per_fold_preds: Vec<Vec<PredPoint>> = Vec::new();
@@ -704,32 +856,23 @@ pub fn model_train_kfold(
         init_varmap_weights(&fold_varmap, &h.device);
 
         for _epoch in 0..epochs_per_fold {
-            for &mol_i in &train_idx {
-                let Ok(graph) = build_graph(mol_i, &h.device) else {
-                    continue;
-                };
-                let Ok(pred) = fold_model.forward(&graph) else {
-                    continue;
-                };
-                let Ok(target) = Tensor::from_slice(&[labels[mol_i]], (1,), &h.device) else {
-                    continue;
-                };
-                let Ok(loss) = (if is_cls {
-                    bce_loss(&pred, &target)
-                } else {
-                    mse_loss(&pred, &target)
-                }) else {
-                    continue;
-                };
-                let Ok(grads) = loss.backward() else { continue };
-                let _ = sgd_step(&fold_varmap, &grads, lr);
-            }
+            train_molecules(
+                &fold_varmap,
+                &fold_model,
+                &all_graphs,
+                labels,
+                &train_idx,
+                &h.device,
+                is_cls,
+                lr,
+                n_jobs,
+            );
         }
 
         let mut preds_test = Vec::new();
         for &mol_i in &test_idx {
-            let p = build_graph(mol_i, &h.device)
-                .and_then(|g| fold_model.forward(&g))
+            let p = fold_model
+                .forward(&all_graphs[mol_i])
                 .and_then(|t| t.to_vec1::<f32>())
                 .ok()
                 .and_then(|v| v.into_iter().next())

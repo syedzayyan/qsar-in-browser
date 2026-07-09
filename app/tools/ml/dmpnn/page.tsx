@@ -76,6 +76,7 @@ export default function DMPNNPage() {
   const [useBatch, setUseBatch] = useState(true);
   const [useCV, setUseCV] = useState(false);
   const [nSplits, setNSplits] = useState(5);
+  const [nJobs, setNJobs] = useState(0);
 
   // ── Derived display values ──────────────────────────────────────────────────
   const hasResults = dmpnnLossHistory.length > 0;
@@ -117,6 +118,7 @@ export default function DMPNNPage() {
         task_type: target.machine_learning_inference_type,
         batching: useBatch,
         batch_size: batchSize,
+        n_jobs: nJobs,
       },
     };
 
@@ -291,6 +293,15 @@ export default function DMPNNPage() {
             step={16}
             style={{ width: 100 }}
             onChange={(v) => setBatchSize(Number(v))}
+          />
+          <NumberInput
+            label="Parallel jobs (n_jobs)"
+            description="0 = auto (all threads), 1 = sequential, N = mini-batch size"
+            value={nJobs}
+            min={0}
+            max={64}
+            style={{ width: 160 }}
+            onChange={(v) => setNJobs(Number(v))}
           />
         </Group>
       </Paper>
