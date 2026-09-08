@@ -22,6 +22,7 @@ import {
 } from '@mantine/core';
 import {
   IconChevronRight,
+  IconChevronLeft,
   IconRefresh,
   IconArrowBarToLeft,
 } from '@tabler/icons-react';
@@ -30,6 +31,7 @@ import TargetContext from '../../../context/TargetContext';
 const BASE_CARD_WIDTH = 180;   // base size all cards share
 const BASE_CARD_HEIGHT = 220;  // adjust to taste
 const ACTIVE_WIDTH_FACTOR = 1.35; // how much wider a highlighted card is
+const NODES_PER_COLUMN_PAGE = 20; // cap per column so a large scaffold set doesn't render unbounded
 
 const ScaffoldNetworkTreeView = ({
   imageSize = 120,
@@ -124,12 +126,21 @@ const ScaffoldNetworkTreeView = ({
    * ----------------------------- */
   const [columns, setColumns] = useState([]);
   const [activePath, setActivePath] = useState([]);
+  const [columnPages, setColumnPages] = useState<Record<number, number>>({});
 
   useEffect(() => {
     setColumns(entryNodeIds.length ? [entryNodeIds] : []);
     setActivePath([]);
     scrollToStart();
   }, [entryNodeIds]);
+
+  // Whenever the set of columns changes (drilling in/resetting), the active
+  // node in any given column always sorts back to the top of that column's
+  // list, so any per-column page a viewer had scrolled to is no longer where
+  // it was - resetting to page 1 everywhere keeps this simple and safe.
+  useEffect(() => {
+    setColumnPages({});
+  }, [columns]);
 
   /* -----------------------------
    * Expand logic
@@ -314,15 +325,49 @@ const ScaffoldNetworkTreeView = ({
               ? [activeId, ...sortedByMolCounts.filter((id) => id !== activeId)]
               : sortedByMolCounts;
 
+            const totalPages = Math.max(1, Math.ceil(ordered.length / NODES_PER_COLUMN_PAGE));
+            const currentPage = Math.min(columnPages[columnIndex] ?? 1, totalPages);
+            const pageStart = (currentPage - 1) * NODES_PER_COLUMN_PAGE;
+            const pageItems = ordered.slice(pageStart, pageStart + NODES_PER_COLUMN_PAGE);
+
+            const goToPage = (p: number) =>
+              setColumnPages((prev) => ({ ...prev, [columnIndex]: p }));
+
             return (
               <Stack key={columnIndex} gap="xs">
-                {ordered.map((id) => (
+                {pageItems.map((id) => (
                   <NodeCard
                     key={id}
                     node={nodeMap[id]}
                     columnIndex={columnIndex}
                   />
                 ))}
+
+                {totalPages > 1 && (
+                  <Group justify="space-between" gap={4} wrap="nowrap" style={{ width: BASE_CARD_WIDTH }}>
+                    <ActionIcon
+                      size="sm"
+                      variant="light"
+                      disabled={currentPage <= 1}
+                      onClick={() => goToPage(currentPage - 1)}
+                      title="Previous"
+                    >
+                      <IconChevronLeft size={14} />
+                    </ActionIcon>
+                    <Text size="xs" c="dimmed">
+                      {currentPage}/{totalPages} ({ordered.length})
+                    </Text>
+                    <ActionIcon
+                      size="sm"
+                      variant="light"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => goToPage(currentPage + 1)}
+                      title="Next"
+                    >
+                      <IconChevronRight size={14} />
+                    </ActionIcon>
+                  </Group>
+                )}
               </Stack>
             );
           })}

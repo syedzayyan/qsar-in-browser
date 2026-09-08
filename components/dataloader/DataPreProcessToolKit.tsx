@@ -12,6 +12,7 @@ import {
   NumberInput,
   Checkbox,
   Paper,
+  Divider,
 } from "@mantine/core";
 import FAQComp from "../ui-comps/FAQComp";
 import LigandContext from "../../context/LigandContext";
@@ -23,6 +24,9 @@ type FingerPrintSettings = {
   fingerprint: "maccs" | "morgan" | "rdkit_fp";
   radius?: number;
   nBits?: number;
+  validateSmiles: boolean;
+  stripSalts: boolean;
+  resolveStereo: boolean;
   dedup: boolean;
   log10: boolean;
 };
@@ -46,6 +50,9 @@ const DataPreProcessToolKit = () => {
       fingerprint: "morgan",
       radius: 2,
       nBits: 2048,
+      validateSmiles: true,
+      stripSalts: true,
+      resolveStereo: true,
       dedup: true,
       log10: true,
     },
@@ -209,6 +216,25 @@ const DataPreProcessToolKit = () => {
                   />
                 </Group>
               )}
+
+              <Divider label="Cleaning" labelPosition="left" />
+              <FAQComp>
+                <p><strong>Remove invalid SMILES</strong> drops any row whose SMILES string RDKit can't parse at all.</p>
+                <p><strong>Strip salts</strong> handles multi-component SMILES (e.g. a salt or counter-ion, separated by a "."), keeping only the largest fragment by heavy-atom count.</p>
+                <p><strong>Resolve stereochemistry conflicts</strong> groups molecules that only differ by stereochemistry. If they all report the same activity, they're merged into one row; if they disagree, one representative row is kept (closest to the group's median) instead of silently dropping the disagreement.</p>
+              </FAQComp>
+              <Checkbox
+                label="Remove invalid SMILES"
+                {...register("validateSmiles")}
+              />
+              <Checkbox
+                label="Strip salts (keep largest fragment)"
+                {...register("stripSalts")}
+              />
+              <Checkbox
+                label="Resolve stereochemistry conflicts"
+                {...register("resolveStereo")}
+              />
 
               <Checkbox
                 label="Data De-Duplication (By ID Column)"

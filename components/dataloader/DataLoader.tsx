@@ -2,11 +2,12 @@ import { SubmitHandler } from "react-hook-form";
 import CSVLoader, { Inputs } from "./CSVLoader";
 import LoadFromWork from "./LoadFromWork";
 import TargetGetter from "./TargetGetter";
+import PubChemLoader from "./PubChemLoader";
 import { useContext, useEffect, useState } from "react";
 import LigandContext from "../../context/LigandContext";
 import { useRouter } from "next/navigation";
 import ErrorContext from "../../context/ErrorContext";
-import { Tabs } from '@mantine/core';
+import { Tabs, SegmentedControl } from '@mantine/core';
 import SDFFileLoader from "./SDFFileLoader";
 import TargetContext from "../../context/TargetContext";
 
@@ -17,6 +18,7 @@ export default function DataLoader() {
 
   const { errors, setErrors } = useContext(ErrorContext);
   const [modalState, setModalState] = useState(false);
+  const [curatedSource, setCuratedSource] = useState<"chembl" | "pubchem">("chembl");
 
   useEffect(() => {
     if (errors) {
@@ -50,16 +52,22 @@ export default function DataLoader() {
           corresponding molecule - like binding affinity, assay potency etc. 
         </p>
         <p>
-          If you are new to QSAR and cheminformatics, you can pick a protein target of interest 
-          from the EMBL's manually curated below database of small molecules -&nbsp;<a
+          If you are new to QSAR and cheminformatics, you can pick a protein target of interest
+          from manually curated databases of small molecules -&nbsp;<a
             href="https://www.ebi.ac.uk/chembl/"
             target="_blank"
             rel="noopener noreferrer"
-          >ChEMBL 
+          >ChEMBL
           </a>
-          . If you have small molecules you are interested in analysing, organise 
-          them into a CSV file with columns for 'ID', 'SMILES' and 'Activity' to 
-          analyse them with QITB. 
+          &nbsp;or&nbsp;<a
+            href="https://pubchem.ncbi.nlm.nih.gov/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >PubChem
+          </a>
+          . If you have small molecules you are interested in analysing, organise
+          them into a CSV file with columns for 'ID', 'SMILES' and 'Activity' to
+          analyse them with QITB.
         </p>
       </div>
       <br />
@@ -77,7 +85,18 @@ export default function DataLoader() {
         </Tabs.List>
 
         <Tabs.Panel value="gallery">
-          <TargetGetter />
+          <div style={{ width: "90%", margin: "20px auto 0" }}>
+            <SegmentedControl
+              fullWidth
+              value={curatedSource}
+              onChange={(v) => setCuratedSource(v as "chembl" | "pubchem")}
+              data={[
+                { label: "ChEMBL", value: "chembl" },
+                { label: "PubChem", value: "pubchem" },
+              ]}
+            />
+          </div>
+          {curatedSource === "chembl" ? <TargetGetter /> : <PubChemLoader />}
         </Tabs.Panel>
 
         <Tabs.Panel value="messages">

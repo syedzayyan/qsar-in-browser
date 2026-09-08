@@ -20,6 +20,16 @@ function isEmpty(value) {
   return false;
 }
 
+function safeDelete(...objs) {
+  for (const obj of objs) {
+    try {
+      obj?.delete();
+    } catch (_) {
+      // swallow - object may already be freed
+    }
+  }
+}
+
 self.onmessage = async (event) => {
   const { function: funcName, id, ...params } = event.data;
 
@@ -45,6 +55,12 @@ self.onmessage = async (event) => {
         break;
       case 'physchem_descriptors':
         await calcPhysChemDescriptors(params, id);
+        break;
+      case 'mutate_batch':
+        await mutateBatchHandler(params, id);
+        break;
+      case 'render_svgs':
+        await renderSvgsHandler(params, id);
         break;
       default:
         throw new Error(`Unknown function: ${funcName}`);
@@ -104,12 +120,194 @@ async function makeFingerprints(params, requestId) {
   notify({ id: requestId, message: 'Processing Done' });
 }
 
+// ============================
+// Batch SVG rendering (moves per-molecule RDKit drawing off the main thread)
+// ============================
+// Mirrors MoleculeStructure.tsx's own SVG generation (getMolDetails +
+// get_svg_with_highlights) so callers get pixel-identical output to what the
+// component used to draw itself, but computed here instead of blocking the
+// main thread once per molecule.
+function renderMoleculeSvgs(items, RDKit, { width = 250, height = 200 } = {}) {
+  const results = [];
+  for (const item of items) {
+    let mol, qmol;
+    try {
+      mol = RDKit.get_mol(item.structure || "invalid");
+      if (!mol) {
+        results.push({ id: item.id, svg: null });
+        continue;
+      }
+
+      let details = { width, height, bondLineWidth: 1, addStereoAnnotation: true };
+
+      if (item.subStructure) {
+        qmol = RDKit.get_qmol(item.subStructure);
+        if (qmol) {
+          const matches = JSON.parse(mol.get_substruct_matches(qmol));
+          const merged =
+            Array.isArray(matches) && matches.length > 0
+              ? matches.reduce(
+                  (acc, { atoms, bonds }) => ({
+                    atoms: [...acc.atoms, ...atoms],
+                    bonds: [...acc.bonds, ...bonds],
+                  }),
+                  { atoms: [], bonds: [] },
+                )
+              : matches;
+          details = { ...details, ...merged };
+        }
+      }
+
+      results.push({ id: item.id, svg: mol.get_svg_with_highlights(JSON.stringify(details)) });
+    } catch (e) {
+      console.error(e);
+      results.push({ id: item.id, svg: null });
+    } finally {
+      safeDelete(qmol, mol);
+    }
+  }
+  return results;
+}
+
+async function renderSvgsHandler(params, requestId) {
+  const RDKitInstance = await loadRDKit();
+  const results = renderMoleculeSvgs(params.items || [], RDKitInstance, {
+    width: params.width,
+    height: params.height,
+  });
+  notify({ id: requestId, function: 'render_svgs', results });
+}
+
+// ============================
+// Cleaning steps (run before fingerprinting)
+// ============================
+
+// Step: drop rows whose SMILES don't parse with RDKit at all.
+function filterValidSmiles(mol_data, RDKit) {
+  return mol_data.filter((lig) => {
+    if (!lig.canonical_smiles || typeof lig.canonical_smiles !== "string") return false;
+    const mol = RDKit.get_mol(lig.canonical_smiles);
+    if (!mol) return false;
+    mol.delete();
+    return true;
+  });
+}
+
+// Step: for multi-fragment SMILES (salts, counter-ions), keep only the
+// heaviest fragment by heavy-atom count.
+function stripSalts(mol_data, RDKit) {
+  return mol_data.map((lig) => {
+    if (!lig.canonical_smiles.includes(".")) return lig;
+    const fragments = lig.canonical_smiles.split(".");
+    let heaviestSmi = fragments[0];
+    let heaviestCount = 0;
+    for (const smi of fragments) {
+      const m = RDKit.get_mol(smi);
+      if (!m) continue;
+      const desc = JSON.parse(m.get_descriptors());
+      m.delete();
+      const count = desc.NumHeavyAtoms ?? 0;
+      if (count > heaviestCount) {
+        heaviestCount = count;
+        heaviestSmi = smi;
+      }
+    }
+    const frag = RDKit.get_mol(heaviestSmi);
+    if (!frag) return lig;
+    const cleaned = frag.get_smiles();
+    frag.delete();
+    return { ...lig, canonical_smiles: cleaned };
+  });
+}
+
+// Treat activity values as matching if they're numerically close rather than
+// requiring byte-identical equality - real assay data is rarely bit-exact
+// across repeat/duplicate measurements of the same compound.
+const ACTIVITY_MATCH_RELATIVE_TOLERANCE = 1e-3;
+function activityValuesMatch(a, b) {
+  if (a === b) return true;
+  const na = Number(a);
+  const nb = Number(b);
+  if (!Number.isFinite(na) || !Number.isFinite(nb)) return false;
+  const scale = Math.max(Math.abs(na), Math.abs(nb), 1e-9);
+  return Math.abs(na - nb) / scale <= ACTIVITY_MATCH_RELATIVE_TOLERANCE;
+}
+
+// Step: molecules that only differ by stereochemistry are grouped together.
+// If every row in a group reports the same activity, they're collapsed into
+// one row (using the stereo-stripped SMILES). If activity values conflict,
+// one representative row (closest to the group's median) is kept and the
+// collapse is reported, rather than silently dropping data either way.
+function resolveStereochemistry(mol_data, activity_columns, RDKit) {
+  const noStereoDetails = JSON.stringify({ doIsomericSmiles: false });
+
+  const withStripped = mol_data.map((lig) => {
+    const mol = RDKit.get_mol(lig.canonical_smiles);
+    if (!mol) return { ...lig, _stripped: lig.canonical_smiles };
+    const stripped = mol.get_smiles(noStereoDetails);
+    mol.delete();
+    return { ...lig, _stripped: stripped };
+  });
+
+  const groups = new Map();
+  for (const lig of withStripped) {
+    if (!groups.has(lig._stripped)) groups.set(lig._stripped, []);
+    groups.get(lig._stripped).push(lig);
+  }
+
+  const primaryCol = activity_columns?.[0];
+  let conflictGroups = 0;
+  let conflictRowsDropped = 0;
+
+  const result = [];
+  for (const [stripped, group] of groups) {
+    const { _stripped, ...first } = group[0];
+    if (group.length === 1) {
+      result.push(first);
+      continue;
+    }
+    const allMatch = group.every((lig) =>
+      activity_columns.every((col) => activityValuesMatch(lig[col], group[0][col]))
+    );
+    if (allMatch) {
+      result.push({ ...first, canonical_smiles: stripped });
+      continue;
+    }
+
+    conflictGroups += 1;
+    conflictRowsDropped += group.length - 1;
+
+    let representative = group[0];
+    if (primaryCol) {
+      const values = group.map((lig) => Number(lig[primaryCol])).filter((v) => !isNaN(v));
+      if (values.length > 0) {
+        const sorted = [...values].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        representative = group.reduce((best, lig) => {
+          const v = Number(lig[primaryCol]);
+          if (isNaN(v)) return best;
+          const bestV = Number(best[primaryCol]);
+          return Math.abs(v - median) < Math.abs(bestV - median) ? lig : best;
+        }, group[0]);
+      }
+    }
+
+    const { _stripped: _omit, ...rest } = representative;
+    result.push({ ...rest, canonical_smiles: stripped });
+  }
+  return { result, conflictGroups, conflictRowsDropped };
+}
+
 async function processFingerprintData(params, requestId) {
   const RDKitInstance = await loadRDKit();
   const settings = params.formStuff ?? {
     fingerprint: "maccs",
     radius: 2,
     nBits: 1024,
+    validateSmiles: true,
+    stripSalts: true,
+    resolveStereo: true,
     dedup: true,
     log10: true
   };
@@ -117,14 +315,52 @@ async function processFingerprintData(params, requestId) {
   let mol_data = params.mol_data;
   let activity_columns = params.activity_columns;
   let temp_ligand_process = mol_data;
+  const startCount = temp_ligand_process.length;
+
+  // Remove SMILES RDKit can't parse at all
+  let invalidSmilesRemoved = 0;
+  if (settings.validateSmiles ?? true) {
+    const beforeValidate = temp_ligand_process.length;
+    temp_ligand_process = filterValidSmiles(temp_ligand_process, RDKitInstance);
+    invalidSmilesRemoved = beforeValidate - temp_ligand_process.length;
+  }
+
+  // Strip salts / counter-ions, keeping the largest fragment
+  if (settings.stripSalts ?? true) {
+    temp_ligand_process = stripSalts(temp_ligand_process, RDKitInstance);
+  }
+
+  // Collapse stereoisomer duplicates / resolve conflicting activity labels
+  let stereoConflictGroups = 0;
+  let stereoConflictRowsDropped = 0;
+  if (settings.resolveStereo ?? true) {
+    const stereo = resolveStereochemistry(temp_ligand_process, activity_columns, RDKitInstance);
+    temp_ligand_process = stereo.result;
+    stereoConflictGroups = stereo.conflictGroups;
+    stereoConflictRowsDropped = stereo.conflictRowsDropped;
+  }
+
+  // Deduplication
+  let duplicatesRemoved = 0;
+  if (settings.dedup) {
+    const beforeDedup = temp_ligand_process.length;
+    temp_ligand_process = temp_ligand_process.filter((ligand, index, self) =>
+      index === self.findIndex((t) => (
+        t.id === ligand.id &&
+        t.canonical_smiles === ligand.canonical_smiles
+      ))
+    );
+    duplicatesRemoved = beforeDedup - temp_ligand_process.length;
+  }
 
   // Log10 conversion
+  let log10FilteredOut = 0;
   if (settings.log10) {
+    const beforeLog10 = temp_ligand_process.length;
     const truthyOrFalsy = activity_columns.map(col => col.includes("p"));
     const new_activity_columns = activity_columns.map((col, index) =>
       !truthyOrFalsy[index] ? "p" + col : col
     );
-
 
     temp_ligand_process = temp_ligand_process.filter(lig =>
       activity_columns.every(col => {
@@ -132,8 +368,9 @@ async function processFingerprintData(params, requestId) {
         return val != null && isFinite(val) && val > 0;
       })
     );
+    log10FilteredOut = beforeLog10 - temp_ligand_process.length;
 
-    temp_ligand_process = temp_ligand_process.map((lig) => {  // ← fixed
+    temp_ligand_process = temp_ligand_process.map((lig) => {
       const processedLig = { ...lig };
       new_activity_columns.forEach((col, j) => {
         if (!truthyOrFalsy[j]) {
@@ -148,24 +385,25 @@ async function processFingerprintData(params, requestId) {
     activity_columns = new_activity_columns;
   }
 
-  // Deduplication
-  if (settings.dedup) {
-    temp_ligand_process = temp_ligand_process.filter((ligand, index, self) =>
-      index === self.findIndex((t) => (
-        t.id === ligand.id &&
-        t.canonical_smiles === ligand.canonical_smiles
-      ))
-    );
-  }
-
   const new_clean_ligand_data = generateFingerprints(temp_ligand_process, settings, RDKitInstance, requestId);
+
+  const report = {
+    startCount,
+    invalidSmilesRemoved,
+    stereoConflictGroups,
+    stereoConflictRowsDropped,
+    duplicatesRemoved,
+    log10FilteredOut,
+    finalCount: new_clean_ligand_data.length,
+  };
 
   notify({
     id: requestId,
     function: 'fingerprint',
     data: new_clean_ligand_data,
     activity_columns: activity_columns,
-    settings: settings
+    settings: settings,
+    report: report
   });
   notify({ id: requestId, message: 'Processing Done' });
 }
@@ -213,6 +451,197 @@ function generateFingerprints(ligandData, settings, RDKitInstance, requestId) {
   return new_clean_ligand_data;
 }
 
+// ============================
+// Generative chemistry (GA) - molecule mutation
+// ============================
+// Pure-RDKit reaction-based mutation of a SMILES string, used to produce
+// offspring for the genetic algorithm in /tools/generative_mol. Scoring and
+// generation-loop orchestration live in the page component, which calls the
+// 'mutate_batch' message below plus the existing 'only_fingerprint' /
+// pyodide 'ml-screen' calls to score candidates against the trained model.
+
+function weightedChoiceIndex(weights) {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < weights.length; i++) {
+    if (r < weights[i]) return i;
+    r -= weights[i];
+  }
+  return weights.length - 1;
+}
+
+function weightedChoice(items, weights) {
+  return items[weightedChoiceIndex(weights)];
+}
+
+const MUTATION_TYPE_WEIGHTS = [0.15, 0.14, 0.14, 0.14, 0.14, 0.14, 0.15];
+
+function deleteAtomTemplate() {
+  const choices = [
+    "[*:1]~[D1:2]>>[*:1]",
+    "[*:1]~[D2:2]~[*:3]>>[*:1]-[*:3]",
+    "[*:1]~[D3:2](~[*;!H0:3])~[*:4]>>[*:1]-[*:3]-[*:4]",
+    "[*:1]~[D4:2](~[*;!H0:3])(~[*;!H0:4])~[*:5]>>[*:1]-[*:3]-[*:4]-[*:5]",
+    "[*:1]~[D4:2](~[*;!H0;!H1:3])(~[*:4])~[*:5]>>[*:1]-[*:3](-[*:4])-[*:5]",
+  ];
+  return weightedChoice(choices, [0.25, 0.25, 0.25, 0.1875, 0.0625]);
+}
+
+function appendAtomTemplate() {
+  const choices = [
+    { bo: "single", atoms: ["C", "N", "O", "F", "S", "Cl", "Br"], weights: Array(7).fill(1 / 7) },
+    { bo: "double", atoms: ["C", "N", "O"], weights: Array(3).fill(1 / 3) },
+    { bo: "triple", atoms: ["C", "N"], weights: [0.5, 0.5] },
+  ];
+  const choice = choices[weightedChoiceIndex([0.6, 0.35, 0.05])];
+  const newAtom = weightedChoice(choice.atoms, choice.weights);
+  if (choice.bo === "single") return `[*;!H0:1]>>[*:1]-${newAtom}`;
+  if (choice.bo === "double") return `[*;!H0;!H1:1]>>[*:1]=${newAtom}`;
+  return `[*;H3:1]>>[*:1]#${newAtom}`;
+}
+
+function insertAtomTemplate() {
+  const choices = [
+    { bo: "single", atoms: ["C", "N", "O", "S"], weights: Array(4).fill(1 / 4) },
+    { bo: "double", atoms: ["C", "N"], weights: [0.5, 0.5] },
+    { bo: "triple", atoms: ["C"], weights: [1.0] },
+  ];
+  const choice = choices[weightedChoiceIndex([0.6, 0.35, 0.05])];
+  const newAtom = weightedChoice(choice.atoms, choice.weights);
+  if (choice.bo === "single") return `[*:1]~[*:2]>>[*:1]${newAtom}[*:2]`;
+  if (choice.bo === "double") return `[*;!H0:1]~[*:2]>>[*:1]=${newAtom}-[*:2]`;
+  return `[*;!R;!H1;!H0:1]~[*:2]>>[*:1]#${newAtom}-[*:2]`;
+}
+
+function changeBondOrderTemplate() {
+  const choices = [
+    "[*:1]!-[*:2]>>[*:1]-[*:2]",
+    "[*;!H0:1]-[*;!H0:2]>>[*:1]=[*:2]",
+    "[*:1]#[*:2]>>[*:1]=[*:2]",
+    "[*;!R;!H1;!H0:1]~[*:2]>>[*:1]#[*:2]",
+  ];
+  return weightedChoice(choices, [0.45, 0.45, 0.05, 0.05]);
+}
+
+function deleteCyclicBondTemplate() {
+  return "[*:1]@[*:2]>>([*:1].[*:2])";
+}
+
+function addRingTemplate() {
+  const choices = [
+    "[*;!r;!H0:1]~[*;!r:2]~[*;!r;!H0:3]>>[*:1]1~[*:2]~[*:3]1",
+    "[*;!r;!H0:1]~[*!r:2]~[*!r:3]~[*;!r;!H0:4]>>[*:1]1~[*:2]~[*:3]~[*:4]1",
+    "[*;!r;!H0:1]~[*!r:2]~[*:3]~[*:4]~[*;!r;!H0:5]>>[*:1]1~[*:2]~[*:3]~[*:4]~[*:5]1",
+    "[*;!r;!H0:1]~[*!r:2]~[*:3]~[*:4]~[*!r:5]~[*;!r;!H0:6]>>[*:1]1~[*:2]~[*:3]~[*:4]~[*:5]~[*:6]1",
+  ];
+  return weightedChoice(choices, [0.05, 0.05, 0.45, 0.45]);
+}
+
+function changeAtomTemplate(smiles, RDKitInstance) {
+  const choices = ["#6", "#7", "#8", "#9", "#16", "#17", "#35"];
+  const p = [0.15, 0.15, 0.14, 0.14, 0.14, 0.14, 0.14];
+  const mol = RDKitInstance.get_mol(smiles);
+  try {
+    let X = weightedChoice(choices, p);
+    for (let loopCount = 0; loopCount < 100; loopCount++) {
+      const qmol = RDKitInstance.get_qmol(`[${X}]`);
+      let matches;
+      try {
+        matches = mol.get_substruct_match(qmol);
+      } finally {
+        safeDelete(qmol);
+      }
+      if (matches && JSON.parse(matches).length > 0) break;
+      X = weightedChoice(choices, p);
+    }
+    let Y = weightedChoice(choices, p);
+    while (Y === X) Y = weightedChoice(choices, p);
+    return `[${X}:1]>>[${Y}:1]`;
+  } finally {
+    safeDelete(mol);
+  }
+}
+
+function generateMutationSmarts(smiles, RDKitInstance) {
+  switch (weightedChoiceIndex(MUTATION_TYPE_WEIGHTS)) {
+    case 0: return insertAtomTemplate();
+    case 1: return changeBondOrderTemplate();
+    case 2: return deleteCyclicBondTemplate();
+    case 3: return addRingTemplate();
+    case 4: return deleteAtomTemplate();
+    case 5: return changeAtomTemplate(smiles, RDKitInstance);
+    case 6: return appendAtomTemplate();
+    default: return deleteAtomTemplate();
+  }
+}
+
+// molListFromSmiArray is defined below (used by scaffold_network too)
+
+async function mutateBatch(smilesArray) {
+  const RDKitInstance = await loadRDKit();
+  const offspring = [];
+
+  for (const smi of smilesArray) {
+    let mol;
+    try {
+      mol = RDKitInstance.get_mol(smi);
+      if (!mol?.is_valid()) throw new Error("Invalid molecule");
+
+      let mutated = smi;
+      let success = false;
+
+      for (let attempt = 0; attempt < 10 && !success; attempt++) {
+        let rxn, molList, products;
+        try {
+          const rxnSmarts = generateMutationSmarts(smi, RDKitInstance);
+          rxn = RDKitInstance.get_rxn(rxnSmarts);
+          molList = molListFromSmiArray([smi], RDKitInstance);
+          products = rxn.run_reactants(molList, 10);
+
+          const productCount = products.size();
+          for (let i = 0; i < productCount; i++) {
+            const prodList = products.get(i);
+            let prodMol, newMol;
+            try {
+              prodMol = prodList.next();
+              if (!success && prodMol?.is_valid()) {
+                const newSmi = prodMol.get_smiles();
+                newMol = RDKitInstance.get_mol(newSmi);
+                if (newMol?.is_valid() && newMol.get_num_atoms() <= 80 && !newSmi.includes(".")) {
+                  mutated = newSmi;
+                  success = true;
+                }
+              }
+            } catch (e) {
+              console.warn(`Product processing failed: ${e?.message || e}`);
+            } finally {
+              safeDelete(newMol, prodMol, prodList);
+            }
+          }
+        } catch (e) {
+          console.warn(`Mutation attempt ${attempt + 1} failed for "${smi}": ${e?.message || e}`);
+        } finally {
+          safeDelete(products, molList, rxn);
+        }
+      }
+
+      offspring.push(mutated);
+    } catch (e) {
+      console.warn(`mutateBatch: keeping original for "${smi}": ${e?.message || e}`);
+      offspring.push(smi);
+    } finally {
+      safeDelete(mol);
+    }
+  }
+
+  return offspring;
+}
+
+async function mutateBatchHandler(params, requestId) {
+  const results = await mutateBatch(params.smiles || []);
+  notify({ id: requestId, function: 'mutate_batch', results });
+}
+
 function scaffoldArrayGetter(row_list_s, activity_columns, requestId) {
   const curr_activity_column = row_list_s.map((obj) => obj[activity_columns[0]]);
   const massive_array = [];
@@ -225,33 +654,38 @@ function scaffoldArrayGetter(row_list_s, activity_columns, requestId) {
 
       try {
         const mol_frags = mol.get_mmpa_frags(1, 1, 20);
-        while (!mol_frags.sidechains.at_end()) {
-          const m = mol_frags.sidechains.next();
-          const { molList } = m.get_frags();
-          try {
-            let fragments = [];
-            while (!molList.at_end()) {
-              const m_frag = molList.next();
-              fragments.push(m_frag.get_smiles());
-              m_frag.delete();
+        // get_mmpa_frags returns null cores/sidechains for molecules that
+        // can't be fragmented under these constraints (e.g. too small) -
+        // that's an expected "no fragments" outcome, not an error.
+        if (mol_frags && mol_frags.sidechains && mol_frags.cores) {
+          while (!mol_frags.sidechains.at_end()) {
+            const m = mol_frags.sidechains.next();
+            const { molList } = m.get_frags();
+            try {
+              let fragments = [];
+              while (!molList.at_end()) {
+                const m_frag = molList.next();
+                fragments.push(m_frag.get_smiles());
+                m_frag.delete();
+              }
+              cores_smiles_list.push(fragments[0]);
+              sidechains_smiles_list.push(fragments[1]);
+              massive_array.push([
+                x.canonical_smiles,
+                fragments[0],
+                fragments[1],
+                x.id,
+                x[activity_columns[0]],
+              ]);
+              molList.delete();
+              m.delete();
+            } catch (e) {
+              console.error(e);
             }
-            cores_smiles_list.push(fragments[0]);
-            sidechains_smiles_list.push(fragments[1]);
-            massive_array.push([
-              x.canonical_smiles,
-              fragments[0],
-              fragments[1],
-              x.id,
-              x[activity_columns[0]],
-            ]);
-            molList.delete();
-            m.delete();
-          } catch (e) {
-            console.error(e);
           }
+          mol_frags.cores.delete();
+          mol_frags.sidechains.delete();
         }
-        mol_frags.cores.delete();
-        mol_frags.sidechains.delete();
       } catch (e) {
         console.error(e);
       }

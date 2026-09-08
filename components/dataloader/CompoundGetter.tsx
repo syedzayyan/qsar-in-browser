@@ -1,9 +1,13 @@
 import { useContext, useState, useEffect } from "react";
 import TargetContext from "../../context/TargetContext";
 import LigandContext from "../../context/LigandContext";
+import NotificationContext from "../../context/NotificationContext";
 import Link from "next/link";
 import FAQComp from "../ui-comps/FAQComp";
 import { Button, Progress, Select, Grid, Paper } from "@mantine/core";
+
+const CHEMBL_DOWN_MESSAGE =
+  "ChEMBL's servers seem to be unavailable right now - this isn't an issue with QITB. Please try again in a little while.";
 
 export default function CompoundGetter() {
   const [unit, setUnit] = useState("Ki");
@@ -12,6 +16,7 @@ export default function CompoundGetter() {
 
   const { target, setTarget } = useContext(TargetContext);
   const { ligand, setLigand } = useContext(LigandContext);
+  const { pushNotification } = useContext(NotificationContext);
 
   const [ligandSearch, setLigandSearch] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,6 +45,7 @@ useEffect(() => {
     } catch (err) {
       console.error("Count fetch failed:", err);
       setTotalCount(null);
+      pushNotification({ type: "warning", message: CHEMBL_DOWN_MESSAGE });
     }
   }
 
@@ -57,6 +63,9 @@ useEffect(() => {
     const limit = 1000;
 
     const firstResponse = await fetch(`${chembl_url}${url}&limit=${limit}&offset=0`);
+    if (!firstResponse.ok) {
+      throw new Error(`ChEMBL responded with status ${firstResponse.status}`);
+    }
     const firstData = await firstResponse.json();
     const total: number = firstData.page_meta.total_count;
 
@@ -71,7 +80,12 @@ useEffect(() => {
     await Promise.all(
       offsets.map((offset) =>
         fetch(`${chembl_url}${url}&limit=${limit}&offset=${offset}`)
-          .then((r) => r.json())
+          .then((r) => {
+            if (!r.ok) {
+              throw new Error(`ChEMBL responded with status ${r.status}`);
+            }
+            return r.json();
+          })
           .then((data) => {
             results.push(...data.activities);
             setProgress((results.length / total) * 100);
@@ -87,14 +101,21 @@ useEffect(() => {
   function fetchData() {
     getFullActivityData(
       `/chembl/api/data/activity?format=json&target_chembl_id=${target.target_id}&type=${unit}&target_organism=Homo%20sapiens&assay_type=${binding}&relation==`
-    ).then((data) => {
-      data.forEach((x: any) => {
-        x[unit] = x.standard_value;
-        x.id = x.molecule_chembl_id;
-        delete x.standard_value;
+    )
+      .then((data) => {
+        data.forEach((x: any) => {
+          x[unit] = x.standard_value;
+          x.id = x.molecule_chembl_id;
+          delete x.standard_value;
+        });
+        setLigand(data);
+      })
+      .catch((err) => {
+        console.error("Fetching full activity data failed:", err);
+        setLoading(false);
+        setLigandSearch(false);
+        pushNotification({ type: "warning", message: CHEMBL_DOWN_MESSAGE });
       });
-      setLigand(data);
-    });
 
     setTarget({
       ...target,

@@ -7,6 +7,7 @@ import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/c
 import { TargetProvider } from "../context/TargetContext";
 import { LigandProvider } from "../context/LigandContext";
 import { NotificationContextProvider } from '../context/NotificationContext';
+import { GAContextProvider } from '../context/GAContext';
 
 export default function RootLayout({
   children,
@@ -28,7 +29,9 @@ export default function RootLayout({
               <TargetProvider>
                 <LigandProvider>
                   <NotificationContextProvider>
+                  <GAContextProvider>
                   {children}
+                  </GAContextProvider>
                   </NotificationContextProvider>
                 </LigandProvider>
               </TargetProvider>

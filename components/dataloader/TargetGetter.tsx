@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import dummyData from "../utils/data.json";
 import CompoundGetter from "./CompoundGetter";
 import TargetContext from "../../context/TargetContext";
+import NotificationContext from "../../context/NotificationContext";
 import { useDisclosure } from '@mantine/hooks';
 import { Modal, Loader } from '@mantine/core';
 import { Table } from '@mantine/core';
@@ -12,6 +13,7 @@ export default function TargetGetter() {
   const [targetDetails, setTargetDetails] = useState(dummyData.targets);
   const [loading, setLoading] = useState(false);
   const { target, setTarget } = useContext(TargetContext);
+  const { pushNotification } = useContext(NotificationContext);
 
   const [opened, { open, close }] = useDisclosure(false);
 
@@ -20,7 +22,12 @@ export default function TargetGetter() {
     fetch(
       `https://www.ebi.ac.uk/chembl/api/data/target/search?format=json&q=${targetQuery}`,
     )
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`ChEMBL responded with status ${response.status}`);
+        }
+        return response.json();
+      })
       .then((data) => {
         let target_data = data.targets || [];
         setTargetDetails(target_data);
@@ -28,6 +35,12 @@ export default function TargetGetter() {
       })
       .catch((error) => {
         console.error("Error:", error);
+        setLoading(false);
+        pushNotification({
+          type: "warning",
+          message:
+            "ChEMBL's servers seem to be unavailable right now - this isn't an issue with QITB. Please try again in a little while.",
+        });
       });
     e.preventDefault();
   }

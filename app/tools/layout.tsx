@@ -76,7 +76,19 @@ export default function DashboardLayout({
             localStorage.setItem("path", data.settings.radius.toString());
             localStorage.setItem("nBits", data.settings.nBits.toString());
           }
-          pushNotification({ id, message: "Molecule Pre-processing Done! Going to Activity Distribution Tool...", type: 'success' });
+          {
+            const report = data.report;
+            const cleaningNotes = report
+              ? [
+                  report.invalidSmilesRemoved > 0 && `removed ${report.invalidSmilesRemoved} invalid SMILES`,
+                  report.stereoConflictGroups > 0 && `resolved ${report.stereoConflictGroups} stereo conflict${report.stereoConflictGroups === 1 ? '' : 's'} (${report.stereoConflictRowsDropped} row${report.stereoConflictRowsDropped === 1 ? '' : 's'} collapsed)`,
+                  report.duplicatesRemoved > 0 && `deduplicated ${report.duplicatesRemoved} row${report.duplicatesRemoved === 1 ? '' : 's'}`,
+                  report.log10FilteredOut > 0 && `dropped ${report.log10FilteredOut} row${report.log10FilteredOut === 1 ? '' : 's'} with non-positive activity`,
+                ].filter(Boolean)
+              : [];
+            const cleaningSummary = cleaningNotes.length > 0 ? ` (${cleaningNotes.join(', ')})` : '';
+            pushNotification({ id, message: `Molecule Pre-processing Done!${cleaningSummary} Going to Activity Distribution Tool...`, type: 'success' });
+          }
           setTimeout(() => {
             setLigand(data.data);
             setTarget(prev => ({ ...prev, activity_columns: data.activity_columns, pre_processed: true }));
@@ -205,7 +217,15 @@ export default function DashboardLayout({
           <Notification
             key={n.id}
             radius="lg"
-            color={n.type === 'error' ? 'red' : n.type || 'blue'}  //
+            color={
+              n.type === 'error'
+                ? 'red'
+                : n.type === 'warning'
+                ? 'yellow'
+                : n.type === 'success'
+                ? 'green'
+                : 'blue'
+            }
             withCloseButton
             onClose={() => removeNotification(n.id)}
           >

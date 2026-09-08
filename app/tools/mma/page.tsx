@@ -18,22 +18,24 @@ export default function Matched(){
             
             <details open={false}>
                 <summary>How are common motifs calculated?</summary>
-                <p>
+                <div>
+                    <p>
                     QITB groups molecules that share the same core structure by using Matched Molecular Series Analysis which you can read more about here:
+                    </p>
                     <ul>
-                        <li>Wawer, Mathias, and Jürgen Bajorath. 
-                            "Local structural changes, global data views: graphical substructure− activity relationship trailing." 
+                        <li>Wawer, Mathias, and Jürgen Bajorath.
+                            "Local structural changes, global data views: graphical substructure− activity relationship trailing."
                             Journal of Medicinal Chemistry 54 (2011): 2944-2951.&nbsp;
                             <a href = "https://doi.org/10.1021/jm200026b">Link</a>
                         </li>
                         <li>
-                            O’Boyle, Noel M., Jonas Boström, Roger A. Sayle, and Adrian Gill. 
-                            "Using matched molecular series as a predictive tool to optimize biological activity." 
+                            O’Boyle, Noel M., Jonas Boström, Roger A. Sayle, and Adrian Gill.
+                            "Using matched molecular series as a predictive tool to optimize biological activity."
                             Journal of Medicinal Chemistry, 57 (2014): 2704-2713.&nbsp;
                             <a href = "https://doi.org/10.1021/jm500022q">Link</a>
                         </li>
                     </ul>
-                    </p>
+                    </div>
             </details>
             <MMA />
         </div>
