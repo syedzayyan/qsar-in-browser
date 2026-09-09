@@ -21,7 +21,10 @@ export default function RandomForest() {
 
   async function onSubmit(data: any) {
     const requestID = `machine_learning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    pushNotification({ message: "Running Machine Learning...", id: requestID, type: "info", autoClose: false });
+    const startMessage = data.use_random_search
+      ? "Starting randomized search..."
+      : "Starting model training...";
+    pushNotification({ message: startMessage, id: requestID, type: "info", autoClose: false });
 
     // -----------------------
     // Activity column handling

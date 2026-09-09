@@ -5,8 +5,10 @@ let pyodideReadyPromise = loadPyodide();
 
 // helper to ensure packages are available
 async function ensurePackages(pyodide) {
-  // scikit-learn and numpy are required
-  await pyodide.loadPackage(["scikit-learn", "numpy", "xgboost"]);
+  // scikit-learn and numpy are required; scipy backs RandomizedSearchCV's
+  // parameter distributions (randint/uniform/loguniform) - scikit-learn pulls
+  // it in transitively too, but requesting it explicitly avoids relying on that.
+  await pyodide.loadPackage(["scikit-learn", "numpy", "xgboost", "scipy"]);
 }
 
 self.onmessage = async (event) => {
@@ -69,6 +71,7 @@ self.onmessage = async (event) => {
         globalThis.fp = fp;
         globalThis.model_parameters = params;
         globalThis.opts = params.model;
+        globalThis.request_id = id;
 
         // =========================
         // Run Python
@@ -113,10 +116,21 @@ self.onmessage = async (event) => {
         });
 
         // =========================
+        // Best params from randomized search, if it ran
+        // =========================
+        let bestParams = null;
+        try {
+          bestParams = globalThis.bestParams ? JSON.parse(globalThis.bestParams) : null;
+        } catch (e) {
+          console.warn("Failed to parse bestParams:", e);
+        }
+
+        // =========================
         // Post back
         // =========================
         self.postMessage({
           results: [metric1, metric2, flatData],
+          bestParams,
           id, // echo same job ID
           func,
           opts,

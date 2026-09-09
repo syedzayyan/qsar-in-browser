@@ -374,7 +374,9 @@ async function processFingerprintData(params, requestId) {
       const processedLig = { ...lig };
       new_activity_columns.forEach((col, j) => {
         if (!truthyOrFalsy[j]) {
-          processedLig[col] = -1 * Math.log10(lig[activity_columns[j]] * 10e-9);
+          // nM -> M before -log10: 10e-9 (=1e-8) was off by one order of
+          // magnitude from the correct nM->M factor.
+          processedLig[col] = -1 * Math.log10(lig[activity_columns[j]] * 1e-9);
         } else {
           processedLig[col] = lig[activity_columns[j]];
         }

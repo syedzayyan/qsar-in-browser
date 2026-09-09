@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm } from "@mantine/form"
-import { TextInput, Select, Button, Paper, Title, Text, Stack } from "@mantine/core"
+import { TextInput, Select, Button, Paper, Title, Text, Stack, Switch, NumberInput } from "@mantine/core"
 import { useContext, useEffect } from "react"
 import NotificationContext from "../../context/NotificationContext"
 
@@ -11,6 +11,8 @@ type RFModelInputs = {
   max_features: string
   n_jobs: number
   model: number
+  use_random_search: boolean
+  n_iter: number
 }
 
 export default function RF({
@@ -30,6 +32,8 @@ export default function RF({
       max_features: "sqrt",
       n_jobs: 2,
       model: taskType === "classification" ? 2 : 1,
+      use_random_search: false,
+      n_iter: 20,
     },
   });
   useEffect(() => {
@@ -39,8 +43,12 @@ export default function RF({
       max_features: "sqrt",
       n_jobs: 2,
       model: taskType === "classification" ? 2 : 1,
+      use_random_search: form.values.use_random_search,
+      n_iter: form.values.n_iter,
     });
   }, [taskType]);
+
+  const useRandomSearch = form.values.use_random_search;
 
   const regressionCriteria = [
     "squared_error",
@@ -85,11 +93,28 @@ export default function RF({
 
       <form onSubmit={form.onSubmit(onSubmit)}>
         <Stack>
+          <Switch
+            label="Use Randomized Search (auto-tune hyperparameters)"
+            description="Instead of the fixed values below, samples random combinations of tree count, depth, feature limit etc. and keeps the best-scoring one. Slower, but usually finds a better model than guessing manually."
+            {...form.getInputProps("use_random_search", { type: "checkbox" })}
+          />
+
+          {useRandomSearch && (
+            <NumberInput
+              label="Search Iterations"
+              description="How many random parameter combinations to try. More iterations can find a better model but take longer - 15-30 is a reasonable range."
+              min={5}
+              max={100}
+              {...form.getInputProps("n_iter")}
+            />
+          )}
+
           <TextInput
             label="Number of Trees"
             description="The total number of decision trees in the forest. More trees yield more reliable, consensus-based predictions but increase training time. 100–200 is a safe starting point."
             placeholder="e.g. 120"
             type="number"
+            disabled={useRandomSearch}
             {...form.getInputProps("n_estimators")}
           />
 
@@ -102,6 +127,7 @@ export default function RF({
             }
             placeholder="Select criterion"
             data={isClassification ? classificationCriteria : regressionCriteria}
+            disabled={useRandomSearch}
             {...form.getInputProps("criterion")}
           />
 
@@ -110,6 +136,7 @@ export default function RF({
             description="The random subset of molecular features evaluated at each split. This forces trees to differ, making the overall model more robust. 'sqrt' is the recommended default."
             placeholder="Select feature limit"
             data={["sqrt", "log2", "None"]}
+            disabled={useRandomSearch}
             {...form.getInputProps("max_features")}
           />
 

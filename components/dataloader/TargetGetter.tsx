@@ -18,9 +18,12 @@ export default function TargetGetter() {
   const [opened, { open, close }] = useDisclosure(false);
 
   function fetchTarget(e) {
+    e.preventDefault();
+    if (!targetQuery || targetQuery.trim().length < 3) return;
+
     setLoading(true);
     fetch(
-      `https://www.ebi.ac.uk/chembl/api/data/target/search?format=json&q=${targetQuery}`,
+      `https://www.ebi.ac.uk/chembl/api/data/target/search?format=json&q=${encodeURIComponent(targetQuery)}`,
     )
       .then((response) => {
         if (!response.ok) {
@@ -42,7 +45,6 @@ export default function TargetGetter() {
             "ChEMBL's servers seem to be unavailable right now - this isn't an issue with QITB. Please try again in a little while.",
         });
       });
-    e.preventDefault();
   }
   const resetAll = () => {
     setTargetDetails(dummyData.targets);
@@ -69,6 +71,7 @@ export default function TargetGetter() {
         </p>
         <Input
           placeholder="Search for relevant words to your Target"
+          value={targetQuery}
           onChange={(e) => setTargetQuery(e.target.value)}
           required={true}
           pattern=".{3,}"

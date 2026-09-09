@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm } from "react-hook-form"
-import { TextInput, Button, Paper, Title, Text, Stack } from "@mantine/core"
+import { TextInput, Button, Paper, Title, Text, Stack, Switch, NumberInput } from "@mantine/core"
 import { useContext, useEffect } from "react"
 import NotificationContext from "../../context/NotificationContext"
 
@@ -13,6 +13,8 @@ type XGBoostModelInputs = {
   learning_rate: number
   n_jobs: number
   model: number
+  use_random_search: boolean
+  n_iter: number
 }
 
 export default function XGB({
@@ -29,6 +31,7 @@ export default function XGB({
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<XGBoostModelInputs>({
     defaultValues: {
@@ -39,6 +42,8 @@ export default function XGB({
       colsample_bytree: 1,
       learning_rate: 0.15,
       n_jobs: 2,
+      use_random_search: false,
+      n_iter: 20,
     },
   })
   useEffect(() => {
@@ -50,8 +55,12 @@ export default function XGB({
       learning_rate: 0.15,
       n_jobs: 2,
       model: taskType === "classification" ? 4 : 3,
+      use_random_search: watch("use_random_search"),
+      n_iter: watch("n_iter"),
     });
   }, [taskType]);
+
+  const useRandomSearch = watch("use_random_search");
 
   const { notifications } = useContext(NotificationContext);
   const isRunning = notifications.some((n) => n.message.startsWith("machine_learning") && !n.done);
@@ -75,11 +84,27 @@ export default function XGB({
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack>
 
+          <Switch
+            label="Use Randomized Search (auto-tune hyperparameters)"
+            description="Instead of the fixed values below, samples random combinations of depth, learning rate, subsampling etc. and keeps the best-scoring one. Slower, but usually finds a better model than guessing manually."
+            {...register("use_random_search")}
+          />
+
+          {useRandomSearch && (
+            <TextInput
+              label="Search Iterations"
+              description="How many random parameter combinations to try. More iterations can find a better model but take longer - 15-30 is a reasonable range."
+              type="number"
+              {...register("n_iter", { valueAsNumber: true })}
+            />
+          )}
+
           <TextInput
             label="Learning Rate"
             description="Controls how much the model adjusts after each round. Smaller values (e.g. 0.05) learn slowly but are often more accurate; larger values (e.g. 0.3) learn faster but risk missing the optimal solution. 0.1–0.2 is a good starting point."
             type="number"
             step="0.01"
+            disabled={useRandomSearch}
             {...register("learning_rate", { required: true, valueAsNumber: true })}
           />
 
@@ -87,6 +112,7 @@ export default function XGB({
             label="Maximum Tree Depth"
             description="The maximum number of levels in each decision tree. Deeper trees capture complex molecular relationships but risk memorising the training data (overfitting). Typical values range from 4 to 10."
             type="number"
+            disabled={useRandomSearch}
             {...register("max_depth", { required: true, valueAsNumber: true })}
           />
 
@@ -94,6 +120,7 @@ export default function XGB({
             label="Minimum Child Weight"
             description="The minimum number of molecules required in a tree branch for it to be kept. Higher values make the model more conservative and reduce overfitting. Increase this for smaller datasets."
             type="number"
+            disabled={useRandomSearch}
             {...register("min_child_weight", { required: true, valueAsNumber: true })}
           />
 
@@ -102,6 +129,7 @@ export default function XGB({
             description="The fraction of molecules randomly selected to train each tree (0.0 to 1.0). Using a subset (e.g. 0.8) introduces variety between trees and prevents overfitting. Set to 1 to use the full dataset."
             type="number"
             step="0.01"
+            disabled={useRandomSearch}
             {...register("subsample", { required: true, valueAsNumber: true })}
           />
 
@@ -110,6 +138,7 @@ export default function XGB({
             description="The fraction of molecular features randomly chosen for each tree (0.0 to 1.0). Like subsampling, using a subset (e.g. 0.8) encourages trees to learn from different molecular patterns, improving generalisation."
             type="number"
             step="0.01"
+            disabled={useRandomSearch}
             {...register("colsample_bytree", { required: true, valueAsNumber: true })}
           />
 

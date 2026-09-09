@@ -26,7 +26,7 @@ export default function DashboardLayout({
     useContext(NotificationContext);
 
   const router = useRouter();
-  const [opened, { toggle }] = useDisclosure();
+  const [opened, { toggle, close: closeNavbar }] = useDisclosure();
 
   useEffect(() => {
     const pyodideWorker = new Worker("/workers/pyodide.mjs", { type: "module" });
@@ -137,6 +137,13 @@ export default function DashboardLayout({
       pushNotification({ message });
       return;
     }
+    if (!message.func && message.message) {
+      // Plain { id, message } progress ping (e.g. mid-training CV/search
+      // updates) - reuse the same notification id so these update one
+      // notification in place instead of spamming a new toast per update.
+      pushNotification({ id: message.id, message: message.message, done: false, autoClose: false });
+      return;
+    }
     if (message.func === "dim_red") {
       if (message.opts === 2 || message.opts === 3) {
         setTarget(prev => ({ ...prev, tsne_explained_variance: message.explained_variance }));
@@ -154,8 +161,11 @@ export default function DashboardLayout({
         })));
       }
     } else if (message.func === "ml") {
-      pushNotification({ id: message.id, message: "Model Training Done! Going to Results Page...", type: 'success', done: true });
-      setTarget(prev => ({ ...prev, machine_learning: message.results }));
+      const bestParamsSummary = message.bestParams
+        ? ` Best parameters found: ${Object.entries(message.bestParams).map(([k, v]) => `${k}=${v}`).join(', ')}.`
+        : '';
+      pushNotification({ id: message.id, message: `Model Training Done!${bestParamsSummary} Going to Results Page...`, type: 'success', done: true });
+      setTarget(prev => ({ ...prev, machine_learning: message.results, machine_learning_best_params: message.bestParams ?? prev.machine_learning_best_params }));
     }
     // ml-screen and other local operations are handled by their respective pages
   };
@@ -193,7 +203,7 @@ export default function DashboardLayout({
 
         <ErrorContextProvider>
           <AppShell.Navbar>
-            <CornerMenu />
+            <CornerMenu onNavigate={closeNavbar} />
           </AppShell.Navbar>
           <AppShell.Main>
             {children}

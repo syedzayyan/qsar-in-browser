@@ -11,6 +11,7 @@ export type targetType = {
     scaffCores: any,
     machine_learning?: any,
     machine_learning_inference_type?: string,
+    machine_learning_best_params?: any,
     pca_explained_variance?: number[],
     tsne_explained_variance?: number[],
 }
